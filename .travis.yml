@@ -5,7 +5,7 @@ before_script:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo add-apt-repository -y ppa:deadsnakes/ppa
   - sudo apt-get update -qy
-  - sudo apt-get install -y python3.6 g++-6 gcc-6 lcov cmake git curl
+  - sudo apt-get install -y python3.6 python3-dev g++-6 gcc-6 lcov cmake git curl
   - curl https://bootstrap.pypa.io/get-pip.py | sudo python3.6
   - export XDG_CACHE_HOME=$TRAVIS_BUILD_DIR/cache
   - sudo python3.6 -m pip install virtualenv
