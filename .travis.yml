@@ -10,8 +10,8 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-6
-      - gcc-6
+      - g++-5
+      - gcc-5
       - lcov
       - cmake
       - git
@@ -21,8 +21,8 @@ before_script:
   - export XDG_CACHE_HOME=$TRAVIS_BUILD_DIR/cache
   - python --version
   - pip install conan jinja2 gcovr pytest websocket-client
-  - export CC=`which gcc-6`
-  - export CXX=`which g++-6`
+  - export CC=`which gcc-5`
+  - export CXX=`which g++-5`
   - export CONAN_USER_HOME=`pwd`/conan-cache
   - ./fips set config linux-make-debug
   - ./fips gen
