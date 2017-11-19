@@ -1,16 +1,15 @@
-sudo: required
+sudo: false
 dist: trusty
 
+language: python
+python:
+  - 3.6
+
 before_script:
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo add-apt-repository -y ppa:deadsnakes/ppa
-  - sudo apt-get update -qy
-  - sudo apt-get install -y python3.6 python3-dev g++-6 gcc-6 lcov cmake git curl
-  - curl https://bootstrap.pypa.io/get-pip.py | sudo python3.6
+  - add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - apt-get update -qy
+  - apt-get install -y g++-6 gcc-6 lcov cmake git curl
   - export XDG_CACHE_HOME=$TRAVIS_BUILD_DIR/cache
-  - sudo python3.6 -m pip install virtualenv
-  - python3.6 -m virtualenv --python=python3.6 python-env
-  - source python-env/bin/activate
   - python --version
   - pip install conan jinja2 gcovr pytest websocket-client
   - export CC=`which gcc-6`
