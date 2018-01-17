@@ -12,7 +12,7 @@ websocketpp/0.7.0@TyRoXx/stable
 zlib/1.2.11@lasote/stable
 
 [options]
-OpenSSL:zlib_dynamic=True
+OpenSSL:shared=True
 FakeIt:integration=catch
 
 [generators]
