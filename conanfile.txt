@@ -9,6 +9,7 @@ OpenSSL/1.0.2k@lasote/stable
 sqlite3/3.18.0@jgsogo/stable
 FakeIt/master@gasuketsu/stable
 websocketpp/0.7.0@TyRoXx/stable
+zlib/1.2.11@lasote/stable
 
 [options]
 FakeIt:integration=catch
