@@ -5,7 +5,7 @@ json/2.0.10@jjones646/stable
 msgpack-c/1.4.2@paulobrizolara/stable
 cotire/1.7.6@smspillaz/cotire
 libcurl/7.50.3@lasote/stable
-OpenSSL/1.0.2k@lasote/stable
+OpenSSL/1.0.2m@conan/stable
 sqlite3/3.18.0@jgsogo/stable
 FakeIt/master@gasuketsu/stable
 websocketpp/0.7.0@TyRoXx/stable
