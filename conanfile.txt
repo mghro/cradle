@@ -4,7 +4,7 @@ catch/1.5.0@TyRoXx/stable
 json/2.0.10@jjones646/stable
 msgpack-c/1.4.2@paulobrizolara/stable
 cotire/1.7.6@smspillaz/cotire
-libcurl/7.47.1@lasote/stable
+libcurl/7.50.3@lasote/stable
 OpenSSL/1.0.2k@lasote/stable
 sqlite3/3.18.0@jgsogo/stable
 FakeIt/master@gasuketsu/stable
