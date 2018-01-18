@@ -123,7 +123,7 @@ parse_msgpack_value(uint8_t const* data, size_t size)
         msgpack::unpack(reinterpret_cast<char const*>(data), size);
     std::shared_ptr<msgpack::object_handle>
         shared_handle(new msgpack::object_handle);
-    *shared_handle = handle;
+    *shared_handle = std::move(handle);
     ownership_holder ownership;
     ownership = shared_handle;
     return read_msgpack_value(ownership, shared_handle->get());
