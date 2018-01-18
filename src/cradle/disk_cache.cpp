@@ -230,7 +230,7 @@ has_value(sqlite_row& row, int column_index)
     return sqlite3_column_type(row.statement, column_index) != SQLITE_NULL;
 }
 
-int static
+bool static
 read_bool(sqlite_row& row, int column_index)
 {
     return sqlite3_column_int(row.statement, column_index) != 0;

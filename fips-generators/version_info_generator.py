@@ -9,7 +9,7 @@ def generate(unused_input_file, unusued_source_file_path, header_file_path):
     # Run 'git describe' and capture its output.
     result = \
         subprocess.run(
-            ["git", "describe", "--dirty", "--long"],
+            ["git", "describe", "--tags", "--dirty", "--long"],
             check=True,
             stdout=subprocess.PIPE)
     output = result.stdout.decode('utf-8')
