@@ -10,6 +10,7 @@ sqlite3/3.18.0@jgsogo/stable
 FakeIt/master@gasuketsu/stable
 websocketpp/0.7.0@TyRoXx/stable
 zlib/1.2.11@conan/stable
+bzip2/1.0.6@conan/stable
 
 [options]
 FakeIt:integration=catch
