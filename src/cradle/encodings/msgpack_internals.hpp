@@ -18,7 +18,7 @@
 #include <cradle/encodings/msgpack.hpp>
 
 // Include msgpack-c, disabling any warnings that it would trigger.
-#define MSGPACK_USE_CPP03
+#define MSGPACK_USE_CPP11
 #if defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"

@@ -6,7 +6,7 @@ msgpack/2.1.5@bincrafters/stable
 cotire/1.7.6@smspillaz/cotire
 libcurl/7.52.1@bincrafters/stable
 OpenSSL/1.0.2m@conan/stable
-sqlite3/3.18.0@jgsogo/stable
+sqlite3/3.21.0@bincrafters/stable
 FakeIt/master@gasuketsu/stable
 websocketpp/0.7.0@TyRoXx/stable
 zlib/1.2.11@conan/stable
