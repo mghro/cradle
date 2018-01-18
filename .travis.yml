@@ -25,6 +25,7 @@ before_script:
   - export CXX=`which g++-5`
   - export CONAN_USER_HOME=`pwd`/conan-cache
   - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
+  - conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
   - ./fips set config linux-make-debug
   - ./fips gen
 
