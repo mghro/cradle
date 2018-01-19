@@ -40,12 +40,13 @@ get_method_name(http_request_method method)
     return boost::to_upper_copy(string(get_value_id(method)));
 };
 
-http_request_system::http_request_system()
+http_request_system::http_request_system(optional<file_path> const& cacert_path)
 {
     if (curl_global_init(CURL_GLOBAL_ALL))
     {
         CRADLE_THROW(http_request_system_error());
     }
+    set_cacert_path(cacert_path);
 }
 http_request_system::~http_request_system()
 {
@@ -76,11 +77,20 @@ http_connection::http_connection(http_request_system& system)
 
     // Enable SSL verification.
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
-    // This is only necessary on Windows.
+    auto const& cacert_path = system.get_cacert_path();
+    if (cacert_path)
+    {
+        auto path = cacert_path->string();
+        curl_easy_setopt(curl, CURLOPT_CAINFO, path.c_str());
+    }
+    // A manual fallback is only necessary on Windows.
     // On other systems, this setting defaults to the system's certificate file.
-    #ifdef _WIN32
+  #ifdef _WIN32
+    else
+    {
         curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
-    #endif
+    }
+  #endif
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
 
     impl_->curl = curl;

@@ -30,7 +30,7 @@ elseif(FIPS_GCC)
     endif()
 endif()
 execute_process(
-    COMMAND conan install ${PROJECT_SOURCE_DIR} ${CONAN_OPTIONS} --build missing
+    COMMAND conan install ${PROJECT_SOURCE_DIR} ${CONAN_OPTIONS} -e CONAN_IMPORT_PATH=${FIPS_PROJECT_DEPLOY_DIR} --build missing
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     RESULT_VARIABLE CONAN_RESULT)
 if(NOT ${CONAN_RESULT} EQUAL 0)
@@ -211,8 +211,12 @@ cotire(unit_test_runner)
 # Add the unit testing target.
 add_custom_target(
     unit_tests
-    COMMAND unit_test_runner
-    WORKING_DIRECTORY ${FIPS_PROJECT_DEPLOY_DIR}
+    # Create a fresh 'testing' directory within the build dir and run the
+    # tests with that. (Some of them perform file I/O.)
+    COMMAND ${CMAKE_COMMAND} -E remove_directory testing
+    COMMAND ${CMAKE_COMMAND} -E make_directory testing
+    COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${FIPS_PROJECT_DEPLOY_DIR} ${FIPS_PROJECT_DEPLOY_DIR}/unit_test_runner
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     DEPENDS unit_test_runner)
 
 # Add the unit test coverage target.
@@ -220,10 +224,14 @@ if(FIPS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_target(
         unit_test_coverage
         COMMAND lcov --directory . --zerocounters
-        COMMAND unit_test_runner
+        # Create a fresh 'testing' directory within the build dir and run the
+        # tests with that. (Some of them perform file I/O.)
+        COMMAND ${CMAKE_COMMAND} -E remove_directory testing
+        COMMAND ${CMAKE_COMMAND} -E make_directory testing
+        COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${FIPS_PROJECT_DEPLOY_DIR} ${FIPS_PROJECT_DEPLOY_DIR}/unit_test_runner
         COMMAND lcov --directory . --capture --output-file raw.info
         COMMAND lcov --extract raw.info '${PROJECT_SOURCE_DIR}/src/cradle/*' --output-file filtered.info
-        COMMAND cp filtered.info ${PROJECT_SOURCE_DIR}/.lcov.info
+        COMMAND ${CMAKE_COMMAND} -E copy filtered.info ${PROJECT_SOURCE_DIR}/.lcov.info
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         DEPENDS unit_test_runner)
 endif()

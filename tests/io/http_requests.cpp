@@ -4,11 +4,14 @@
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
+#include <cradle/core/utilities.hpp>
 #include <cradle/encodings/json.hpp>
 
 using namespace cradle;
 
-static http_request_system the_http_request_system;
+http_request_system static
+the_http_request_system(
+    some(file_path(get_environment_variable("CRADLE_DEPLOY_DIR")) / "cacert.pem"));
 
 http_response
 perform_simple_request(http_request const& request)

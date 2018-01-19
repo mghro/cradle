@@ -3,6 +3,7 @@
 
 #include <boost/core/noncopyable.hpp>
 
+#include <cradle/fs/types.hpp>
 #include <cradle/io/http_types.hpp>
 
 // This file defines a low-level facility for doing authenticated HTTP requests.
@@ -54,15 +55,34 @@ CRADLE_DEFINE_ERROR_INFO(http_request, attempted_http_request)
 // transient cause and is therefore worth retrying.
 CRADLE_DEFINE_ERROR_INFO(bool, error_is_transient)
 
-// http_request_system provides global initialization and shutdown of the HTTP request
-// system. Exactly one of these objects must be instantiated by the
-// application, and its scope must dominate the scope of all other HTTP request
+// http_request_system provides global initialization and shutdown of the HTTP
+// request system. Exactly one of these objects must be instantiated by the
+// application, and its scope must dominate the scope of all http_connection
 // objects.
 
 struct http_request_system : boost::noncopyable
 {
-    http_request_system();
+    // See below for details on :cacert_path.
+    http_request_system(optional<file_path> const& cacert_path = none);
     ~http_request_system();
+
+    // Get/set the path for the certificate authority file.
+    // This is optional. If none is specified, the system default is used.
+    // (On Windows, the default is to look for a cacert.pem file included with
+    // cradle.)
+    optional<file_path> const&
+    get_cacert_path()
+    {
+        return cacert_path_;
+    }
+    void
+    set_cacert_path(optional<file_path> const& cacert_path)
+    {
+        cacert_path_ = cacert_path;
+    }
+
+ private:
+    optional<file_path> cacert_path_;
 };
 
 // http_connection provides a network connection over which HTTP requests can
