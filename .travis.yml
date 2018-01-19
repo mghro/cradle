@@ -16,10 +16,7 @@ addons:
       - cmake
       - git
       - curl
-    sources:
-      - trusty
-    packages:
-      - binutils=2.26.1-1ubuntu1~14.04
+      - binutils-2.26
 
 before_script:
   - export XDG_CACHE_HOME=$TRAVIS_BUILD_DIR/cache
