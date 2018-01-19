@@ -16,8 +16,7 @@ addons:
       - cmake
       - git
       - curl
-      - libc6-dev
-      - binutils-dev
+      - binutils=2.24
 
 before_script:
   - export XDG_CACHE_HOME=$TRAVIS_BUILD_DIR/cache
