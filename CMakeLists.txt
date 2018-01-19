@@ -21,7 +21,13 @@ if (FIPS_MSVC)
             -s compiler=Visual\ Studio -s build_type=Release -s compiler.runtime=MT)
     endif()
 elseif(FIPS_GCC)
-    set(CONAN_OPTIONS -s compiler=gcc -s compiler.libcxx=libstdc++11 -o Boost:fPIC=True)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CONAN_OPTIONS
+            -s compiler=gcc -s compiler.libcxx=libstdc++11 -s build_type=Debug -o Boost:fPIC=True)
+    else()
+        set(CONAN_OPTIONS
+            -s compiler=gcc -s compiler.libcxx=libstdc++11 -s build_type=Release -o Boost:fPIC=True)
+    endif()
 endif()
 execute_process(
     COMMAND conan install ${PROJECT_SOURCE_DIR} ${CONAN_OPTIONS} --build missing
