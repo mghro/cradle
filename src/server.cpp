@@ -61,7 +61,6 @@ main(int argc, char const* const* argv)
     if (vm.count("config-file"))
     {
         config_path = vm["config-file"].as<string>();
-        return 0;
     }
     else
     {

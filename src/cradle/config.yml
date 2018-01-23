@@ -13,6 +13,11 @@ types:
           named:
             app: cradle
             name: disk_cache_config
+    - address:
+        doc: the address on which the server will listen
+        omissible: true
+        schema:
+          string: {}
     - port:
         doc: the WebSocket port on which the server will listen
         omissible: true

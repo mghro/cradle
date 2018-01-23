@@ -731,7 +731,8 @@ websocket_server::listen()
     auto& server = *impl_;
     server.ws.listen(
         boost::asio::ip::tcp::endpoint(
-            boost::asio::ip::address::from_string("::1"),
+            boost::asio::ip::address::from_string(
+                server.config.address ? *server.config.address : "127.0.0.1"),
             server.config.port ? *server.config.port : 41071));
     server.ws.start_accept();
 }
