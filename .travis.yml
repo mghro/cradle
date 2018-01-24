@@ -5,24 +5,12 @@ language: python
 python:
   - 3.6
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-5
-      - gcc-5
-      - lcov
-      - cmake
-      - git
-      - curl
-      - binutils-2.26
-
 before_script:
+  - ./setup.sh
+  - sudo apt-get install -y --upgrade binutils-2.26
   - export PATH=/usr/lib/binutils-2.26/bin:${PATH}
   - export CC=`which gcc-5`
   - export CXX=`which g++-5`
-  - sudo setup.sh
   - ./fips set config linux-make-debug
   - ./fips gen
 
