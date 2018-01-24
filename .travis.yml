@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 dist: trusty
 
 language: python
@@ -20,12 +20,9 @@ addons:
 
 before_script:
   - export PATH=/usr/lib/binutils-2.26/bin:${PATH}
-  - python --version
-  - pip install conan jinja2 gcovr pytest websocket-client
   - export CC=`which gcc-5`
   - export CXX=`which g++-5`
-  - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
-  - conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
+  - ./setup.py
   - ./fips set config linux-make-debug
   - ./fips gen
 
