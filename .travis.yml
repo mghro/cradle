@@ -1,16 +1,15 @@
 sudo: required
 dist: trusty
 
-language: python
-python:
-  - 3.6
-
 before_script:
-  - ./setup.sh
+  - sudo bash scripts/set-up-system.sh
+  # The particular version of Ubuntu used by Travis has a buggy binutils.
   - sudo apt-get install -y --upgrade binutils-2.26
   - export PATH=/usr/lib/binutils-2.26/bin:${PATH}
+  - scripts/set-up-python.sh
   - export CC=`which gcc-5`
   - export CXX=`which g++-5`
+  - scripts/set-up-conan.sh
   - ./fips set config linux-make-debug
   - ./fips gen
 
