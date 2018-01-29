@@ -1,4 +1,4 @@
-FROM ubuntu:xenial as builder
+FROM ubuntu:artful as builder
 
 COPY . /cradle
 
@@ -14,5 +14,5 @@ RUN scripts/set-up-system.sh \
  && ./fips gen \
  && ./fips make server
 
-FROM ubuntu:xenial
+FROM ubuntu:artful
 COPY --from=builder /fips-deploy/cradle/linux-make-release cradle
