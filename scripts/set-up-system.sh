@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "Setting up system..."
+apt-get install -y software-properties-common
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 add-apt-repository -y ppa:deadsnakes/ppa
 apt-get update -qy
