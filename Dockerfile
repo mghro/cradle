@@ -1,5 +1,9 @@
 FROM ubuntu:xenial as builder
 
+COPY . /cradle
+
+WORKDIR /cradle
+
 RUN scripts/set-up-system.sh \
  && scripts/set-up-python.sh \
  && source .python/bin/activate \
