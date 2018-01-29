@@ -1,20 +1,7 @@
 FROM ubuntu:xenial as builder
-
 COPY . /cradle
-
 WORKDIR /cradle
-
-RUN ["/bin/bash", \
-     "-c", \
-     "/bin/bash -c scripts/set-up-system.sh \
-      && scripts/set-up-python.sh \
-      && source .python/bin/activate \
-      && export CC=`which gcc-5` \
-      && export CXX=`which g++-5` \
-      && scripts/set-up-conan.sh \
-      && ./fips set config linux-make-release \
-      && ./fips gen \
-      && ./fips make server"]
+RUN scripts/docker-build.sh
 
 FROM ubuntu:xenial
 COPY --from=builder /fips-deploy/cradle/linux-make-release cradle
