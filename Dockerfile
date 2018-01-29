@@ -1,4 +1,4 @@
-FROM ubuntu:zesty as builder
+FROM ubuntu:xenial as builder
 
 COPY . /cradle
 
@@ -14,5 +14,5 @@ RUN scripts/set-up-system.sh \
  && ./fips gen \
  && ./fips make server
 
-FROM ubuntu:zesty
+FROM ubuntu:xenial
 COPY --from=builder /fips-deploy/cradle/linux-make-release cradle
