@@ -1,4 +1,4 @@
-FROM ubuntu:artful as builder
+FROM ubuntu:zesty as builder
 
 COPY . /cradle
 
@@ -14,5 +14,5 @@ RUN scripts/set-up-system.sh \
  && ./fips gen \
  && ./fips make server
 
-FROM ubuntu:artful
+FROM ubuntu:zesty
 COPY --from=builder /fips-deploy/cradle/linux-make-release cradle
