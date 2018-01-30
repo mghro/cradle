@@ -423,12 +423,12 @@ look_up(
     bool only_if_valid)
 {
     bool exists = false;
-    int64_t id;
-    bool valid;
-    bool in_db;
+    int64_t id = 0;
+    bool valid = false;
+    bool in_db = false;
     optional<string> value;
-    int64_t size;
-    uint32_t crc32;
+    int64_t size = 0;
+    uint32_t crc32 = 0;
 
     bind_string(cache, cache.look_up_entry_query, 1, key);
     execute_prepared_statement(
