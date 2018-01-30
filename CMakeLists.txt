@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 
+set(CMAKE_CXX_STANDARD 14)
+
 # Set up fips.
 get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
 include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
@@ -39,10 +41,10 @@ endif()
 
 # And now set up CMake to use those libraries.
 # Note that Conan seems to insert flags that don't make sense and cause warnings.
-set(original_cxx_flags "${CMAKE_CXX_FLAGS}")
+set(ORIGINAL_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 include(${PROJECT_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
-set(CMAKE_CXX_FLAGS "${original_cxx_flags}")
+set(CMAKE_CXX_FLAGS "${ORIGINAL_CXX_FLAGS}")
 
 # Register Conan's include directories with fips.
 fips_include_directories(${CONAN_INCLUDE_DIRS}
@@ -71,11 +73,6 @@ macro(add_exe_link_options )
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OPTIONS}")
 endmacro()
 
-# Enable advanced C++ features.
-if(FIPS_GCC)
-    add_compile_options(-std=c++14)
-endif()
-
 # Enable a high level of compiler warnings and treat them as errors.
 if(FIPS_GCC)
     add_compile_options(-Wall -Werror)
@@ -86,7 +83,7 @@ if(FIPS_GCC)
     add_compile_options(-Wno-unused-function)
 elseif(FIPS_MSVC)
     # First strip out the old warning level.
-    string(REGEX REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    string(REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
     add_compile_options(/W4 /WX)
     # Disable warnings that are too strict.
     # "unreferenced formal parameter"
