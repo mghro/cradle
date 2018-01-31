@@ -13,6 +13,11 @@ types:
           named:
             app: cradle
             name: disk_cache_config
+    - cacert_file:
+        doc: the path to the cacert.pem file for validating SSL certificates
+        omissible: true
+        schema:
+          string: {}
     - address:
         doc: the address on which the server will listen
         omissible: true

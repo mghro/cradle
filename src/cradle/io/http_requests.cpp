@@ -10,6 +10,7 @@
 #include <cradle/core/monitoring.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/encodings/msgpack.hpp>
+#include <cradle/fs/file_io.hpp>
 
 // Include this again to clean up preprocessor definitions.
 #include <cradle/io/http_types.hpp>
@@ -77,20 +78,26 @@ http_connection::http_connection(http_request_system& system)
 
     // Enable SSL verification.
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
-    auto const& cacert_path = system.get_cacert_path();
+    auto cacert_path = system.get_cacert_path();
+    // A default cacert file is only necessary on Windows.
+    // On other systems, Curl will automatically use the system's certificate file.
+  #ifdef _WIN32
+    if (!cacert_path)
+    {
+        cacert_path = file_path("cacert.pem");
+    }
+  #endif
     if (cacert_path)
     {
+        // Confirm that the file actually exists and can be opened.
+        // (Curl will silently ignore it if it can't.)
+        {
+            std::ifstream in;
+            open_file(in, *cacert_path, std::ios::in | std::ios::binary);
+        }
         auto path = cacert_path->string();
         curl_easy_setopt(curl, CURLOPT_CAINFO, path.c_str());
     }
-    // A manual fallback is only necessary on Windows.
-    // On other systems, this setting defaults to the system's certificate file.
-  #ifdef _WIN32
-    else
-    {
-        curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
-    }
-  #endif
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
 
     impl_->curl = curl;

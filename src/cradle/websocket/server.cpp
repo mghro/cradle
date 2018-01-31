@@ -690,12 +690,15 @@ initialize(websocket_server_impl& server, server_config const& config)
 {
     server.config = config;
 
+    if (config.cacert_file)
+        server.http_system.set_cacert_path(some(file_path(*config.cacert_file)));
+
     server.cache.reset(
         config.disk_cache ?
             *config.disk_cache :
             make_disk_cache_config(none, 0x1'00'00'00'00));
 
-    server.ws.clear_access_channels(websocketpp::log::alevel::all);
+    server.ws.set_access_channels(websocketpp::log::alevel::all);
     server.ws.init_asio();
     server.ws.set_open_handler(
         [&](connection_hdl hdl)
