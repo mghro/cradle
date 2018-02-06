@@ -18,11 +18,11 @@ types:
         omissible: true
         schema:
           string: {}
-    - address:
-        doc: the address on which the server will listen
+    - open:
+        doc: whether or not the server should be open to connections from other machines (defaults to false)
         omissible: true
         schema:
-          string: {}
+          boolean: {}
     - port:
         doc: the WebSocket port on which the server will listen
         omissible: true

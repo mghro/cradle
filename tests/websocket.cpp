@@ -6,11 +6,15 @@
 #include <cradle/encodings/base64.hpp>
 #include <cradle/websocket/messages.hpp>
 
+#include "io/http_requests.hpp"
+
 using namespace cradle;
 
 TEST_CASE("websocket client/server", "[ws]")
 {
-    websocket_server server(make_server_config(none, string("127.0.0.1"), 41072));
+    auto config =
+        make_server_config(none, some(string(find_testing_cacert_file().string())), none, 41072);
+    websocket_server server(config);
     server.listen();
     std::thread server_thread([&](){ server.run(); });
 

@@ -698,7 +698,7 @@ initialize(websocket_server_impl& server, server_config const& config)
             *config.disk_cache :
             make_disk_cache_config(none, 0x1'00'00'00'00));
 
-    server.ws.set_access_channels(websocketpp::log::alevel::all);
+    server.ws.clear_access_channels(websocketpp::log::alevel::all);
     server.ws.init_asio();
     server.ws.set_open_handler(
         [&](connection_hdl hdl)
@@ -732,11 +732,19 @@ void
 websocket_server::listen()
 {
     auto& server = *impl_;
-    server.ws.listen(
-        boost::asio::ip::tcp::endpoint(
-            boost::asio::ip::address::from_string(
-                server.config.address ? *server.config.address : "127.0.0.1"),
-            server.config.port ? *server.config.port : 41071));
+    bool open = server.config.open ? *server.config.open : false;
+    auto port = server.config.port ? *server.config.port : 41071;
+    if (open)
+    {
+        server.ws.listen(port);
+    }
+    else
+    {
+        server.ws.listen(
+            boost::asio::ip::tcp::endpoint(
+                boost::asio::ip::address::from_string("127.0.0.1"),
+                port));
+    }
     server.ws.start_accept();
 }
 

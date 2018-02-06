@@ -1,0 +1,8 @@
+.cache
+.fips-*
+.vscode
+.gcovr.txt
+.lcov.info
+.python
+*.pyc
+python/config.yml

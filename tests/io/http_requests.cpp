@@ -7,11 +7,25 @@
 #include <cradle/core/utilities.hpp>
 #include <cradle/encodings/json.hpp>
 
+#include "http_requests.hpp"
+
 using namespace cradle;
 
+file_path
+find_testing_cacert_file()
+{
+    try
+    {
+        return file_path(get_environment_variable("CRADLE_DEPLOY_DIR")) / "cacert.pem";
+    }
+    catch (...)
+    {
+        return file_path("cacert.pem");
+    }
+}
+
 http_request_system static
-the_http_request_system(
-    some(file_path(get_environment_variable("CRADLE_DEPLOY_DIR")) / "cacert.pem"));
+the_http_request_system(some(find_testing_cacert_file()));
 
 http_response
 perform_simple_request(http_request const& request)

@@ -1,0 +1,8 @@
+{
+    "disk_cache": {
+        "directory": { "some": "/var/cache/cradle" },
+        "size_limit": 1048576
+    },
+    "cacert_file": "/cradle/cacert.pem",
+    "open": true
+}
