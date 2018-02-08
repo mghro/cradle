@@ -221,16 +221,11 @@ if(FIPS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_target(
         unit_test_coverage
         COMMAND lcov --directory . --zerocounters
-        # Create a fresh 'testing' directory within the build dir and run the
-        # tests with that. (Some of them perform file I/O.)
-        COMMAND ${CMAKE_COMMAND} -E remove_directory testing
-        COMMAND ${CMAKE_COMMAND} -E make_directory testing
-        COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${FIPS_PROJECT_DEPLOY_DIR} ${FIPS_PROJECT_DEPLOY_DIR}/unit_test_runner
+        COMMAND ${CMAKE_COMMAND} --build . --target unit_tests
         COMMAND lcov --directory . --capture --output-file raw.info
         COMMAND lcov --extract raw.info '${PROJECT_SOURCE_DIR}/src/cradle/*' --output-file filtered.info
         COMMAND ${CMAKE_COMMAND} -E copy filtered.info ${PROJECT_SOURCE_DIR}/.lcov.info
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-        DEPENDS unit_test_runner)
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
 # Add the integration testing target.
