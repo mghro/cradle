@@ -11,17 +11,10 @@
 #include <cradle/encodings/msgpack.hpp>
 #include <cradle/io/http_requests.hpp>
 
+#include "utilities.hpp"
+
 using namespace cradle;
 using namespace fakeit;
-
-http_response static
-make_mock_response(string const& body)
-{
-    http_response mock_response;
-    mock_response.status_code = 200;
-    mock_response.body = make_string_blob(body);
-    return mock_response;
-}
 
 TEST_CASE("ISS object resolution", "[thinknode][iss]")
 {

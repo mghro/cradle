@@ -519,7 +519,7 @@ types:
   doc: ''
   schema:
     structure:
-    - doc:
+    - description:
         doc: ''
         schema:
           string: {}
@@ -554,7 +554,7 @@ types:
   doc: ''
   schema:
     structure:
-    - doc:
+    - description:
         doc: ''
         schema:
           string: {}
@@ -584,7 +584,7 @@ types:
   doc: ''
   schema:
     structure:
-    - doc:
+    - description:
         doc: ''
         schema:
           string: {}
@@ -655,11 +655,11 @@ types:
   doc: ''
   schema:
     structure:
-    - doc:
+    - name:
         doc: ''
         schema:
           string: {}
-    - name:
+    - description:
         doc: ''
         schema:
           string: {}
@@ -674,7 +674,7 @@ types:
   doc: ''
   schema:
     structure:
-    - doc:
+    - description:
         doc: ''
         schema:
           string: {}
@@ -704,19 +704,30 @@ types:
             app: cradle
             name: thinknode_function_result_info
 
+- name: thinknode_function_type
+  doc: ''
+  schema:
+    union:
+    - function_type:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: thinknode_function_type_info
+
 - name: thinknode_function_info
   doc: ''
   schema:
     structure:
-    - doc:
+    - name:
+        doc: ''
+        schema:
+          string: {}
+    - description:
         doc: ''
         schema:
           string: {}
     - execution_class:
-        doc: ''
-        schema:
-          string: {}
-    - name:
         doc: ''
         schema:
           string: {}
@@ -725,17 +736,17 @@ types:
         schema:
           named:
             app: cradle
-            name: thinknode_function_type_info
+            name: thinknode_function_type
 
 - name: thinknode_named_type_info
   doc: ''
   schema:
     structure:
-    - doc:
+    - name:
         doc: ''
         schema:
           string: {}
-    - name:
+    - description:
         doc: ''
         schema:
           string: {}
@@ -745,3 +756,125 @@ types:
           named:
             app: cradle
             name: thinknode_type_info
+
+- name: thinknode_app_manifest
+  doc: ''
+  schema:
+    structure:
+    - dependencies:
+        doc: An array of objects that denote the app and version on which the manifest depends.
+        schema:
+          array:
+            element_schema:
+              dynamic: {}
+    - provider:
+        doc: A docker container providing function and upgrade implementations.
+        schema:
+          dynamic: {}
+        omissible: true
+    - types:
+        doc: An array of types.
+        schema:
+          array:
+            element_schema:
+              named:
+                app: cradle
+                name: thinknode_named_type_info
+    - functions:
+        doc: An array of functions.
+        schema:
+          array:
+            element_schema:
+              named:
+                app: cradle
+                name: thinknode_function_info
+    - records:
+        doc: An array of records.
+        schema:
+          array:
+            element_schema:
+              dynamic: {}
+    - upgrades:
+        doc: An array of upgrade functions to use when migrating data from one
+          version to another.
+        schema:
+          array:
+            element_schema:
+              dynamic: {}
+
+- name: thinknode_app_version_info
+  doc: ''
+  schema:
+    structure:
+    - name:
+        doc: The name of the version.
+        schema:
+          string: {}
+    - manifest:
+        doc: The manifest for the version.
+        schema:
+          named:
+            app: cradle
+            name: thinknode_app_manifest
+        omissible: true
+    - created_by:
+        doc: The user that created the branch.
+        schema:
+          string: {}
+    - created_at:
+        doc: Indicates the date and time when the version was created.
+        schema:
+          datetime: {}
+
+- name: thinknode_app_source_info
+  doc: ''
+  schema:
+    union:
+      - version:
+          doc: The name of the source version.
+          schema:
+            string: {}
+      - branch:
+          doc: The name of the source branch.
+          schema:
+            string: {}
+      - commit:
+          doc: The unique id of the source commit. Note that this is only returned if the associated commit is not the current head of a branch.
+          schema:
+            string: {}
+
+- name: thinknode_context_app_info
+  doc: ''
+  schema:
+    structure:
+      - account:
+          doc: The name of the account responsible for publishing the app.
+          schema:
+            string: {}
+      - app:
+          doc: The name of the app.
+          schema:
+            string: {}
+      - source:
+          doc: ''
+          schema:
+            named:
+              app: cradle
+              name: thinknode_app_source_info
+
+- name: thinknode_context_contents
+  doc: ''
+  schema:
+    structure:
+      - bucket:
+          doc: The bucket for the context.
+          schema:
+            string: {}
+      - contents:
+          doc: A list of apps within the context.
+          schema:
+            array:
+              element_schema:
+                named:
+                  app: cradle
+                  name: thinknode_context_app_info

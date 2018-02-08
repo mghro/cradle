@@ -11,6 +11,8 @@
 #include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
 
+#include "utilities.hpp"
+
 using namespace cradle;
 using namespace fakeit;
 
@@ -72,15 +74,6 @@ TEST_CASE("calc status utilities", "[thinknode][tn_calc]")
             some(make_calculation_status_with_queued(calculation_queue_type::READY)));
         REQUIRE(calc_status_as_query_string(generating) == "status=generating");
     }
-}
-
-http_response static
-make_mock_response(string const& body)
-{
-    http_response mock_response;
-    mock_response.status_code = 200;
-    mock_response.body = make_string_blob(body);
-    return mock_response;
 }
 
 TEST_CASE("calc status query", "[thinknode][tn_calc]")
