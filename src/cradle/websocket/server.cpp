@@ -297,7 +297,7 @@ post_iss_object(
     http_connection& connection,
     thinknode_session const& session,
     string const& context_id,
-    api_type_info const& schema,
+    thinknode_type_info const& schema,
     dynamic const& object)
 {
     // Try the disk cache.

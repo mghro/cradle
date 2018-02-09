@@ -73,6 +73,7 @@ TEST_CASE("app version info", "[thinknode][apm]")
                                                         "description": "A dog with an age in people years",
                                                         "schema": {
                                                             "named_type": {
+                                                                "account": "acme",
                                                                 "app": "pets",
                                                                 "name": "dog"
                                                             }
@@ -147,7 +148,7 @@ TEST_CASE("app version info", "[thinknode][apm]")
                                             "A dog with an age in people years",
                                             make_thinknode_type_info_with_named_type(
                                                 make_thinknode_named_type_reference(
-                                                    none,
+                                                    "acme",
                                                     "pets",
                                                     "dog")))
                                     },

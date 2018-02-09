@@ -17,7 +17,7 @@ post_calculation(
 {
     auto request_iss_id =
         post_iss_object(connection, session, context_id,
-            make_api_type_info_with_dynamic(api_dynamic_type()),
+            make_thinknode_type_info_with_dynamic_type(thinknode_dynamic_type()),
             to_dynamic(request));
     auto query =
         make_http_request(

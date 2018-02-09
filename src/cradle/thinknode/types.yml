@@ -569,7 +569,7 @@ types:
   doc: ''
   schema:
     structure:
-    - fields:
+    - members:
         doc: ''
         schema:
           map:
@@ -592,13 +592,17 @@ types:
 - name: thinknode_enum_info
   doc: ''
   schema:
-    map:
-      key_schema:
-        string: {}
-      value_schema:
-        named:
-          app: cradle
-          name: thinknode_enum_value_info
+    structure:
+    - values:
+        doc: ''
+        schema:
+          map:
+            key_schema:
+              string: {}
+            value_schema:
+              named:
+                app: cradle
+                name: thinknode_enum_value_info
 
 - name: thinknode_array_info
   doc: ''
@@ -639,7 +643,6 @@ types:
     structure:
     - account:
         doc: ''
-        omissible: true
         schema:
           string: {}
     - app:

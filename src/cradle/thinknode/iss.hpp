@@ -26,7 +26,11 @@ retrieve_immutable(
 
 // Get the URL form of a schema.
 string
-get_url_type_string(api_type_info const& schema);
+get_url_type_string(thinknode_type_info const& schema);
+
+// Get the URL form of a schema.
+thinknode_type_info
+parse_url_type_string(string const& url_type);
 
 // Post an ISS object and return its ID.
 string
@@ -34,7 +38,7 @@ post_iss_object(
     http_connection_interface& connection,
     thinknode_session const& session,
     string const& context_id,
-    api_type_info const& schema,
+    thinknode_type_info const& schema,
     dynamic const& data);
 
 }
