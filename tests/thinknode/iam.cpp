@@ -6,8 +6,6 @@
 #include <cradle/core/testing.hpp>
 #include <cradle/io/http_requests.hpp>
 
-#include "utilities.hpp"
-
 using namespace cradle;
 using namespace fakeit;
 
@@ -30,7 +28,7 @@ TEST_CASE("context contents retrieval", "[thinknode][iam]")
             REQUIRE(request == expected_request);
 
             return
-                make_mock_response(
+                make_http_200_response(
                     R"(
                         {
                             "bucket": "hacks",

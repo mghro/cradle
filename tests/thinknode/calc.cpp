@@ -11,8 +11,6 @@
 #include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
 
-#include "utilities.hpp"
-
 using namespace cradle;
 using namespace fakeit;
 
@@ -94,7 +92,7 @@ TEST_CASE("calc status query", "[thinknode][tn_calc]")
                     });
             REQUIRE(request == expected_request);
 
-            return make_mock_response("{ \"completed\": null }");
+            return make_http_200_response("{ \"completed\": null }");
         });
 
     thinknode_session session;
@@ -123,7 +121,7 @@ TEST_CASE("calc request retrieval", "[thinknode][tn_calc]")
                     });
             REQUIRE(request == expected_request);
 
-            return make_mock_response("{ \"value\": [2.1, 4.2] }");
+            return make_http_200_response("{ \"value\": [2.1, 4.2] }");
         });
 
     thinknode_session session;
@@ -177,7 +175,8 @@ TEST_CASE("calc status long polling", "[thinknode][tn_calc]")
         {
             REQUIRE(request == expected_requests.at(request_counter));
             auto response =
-                make_mock_response(value_to_json(to_dynamic(mock_responses.at(request_counter))));
+                make_http_200_response(
+                    value_to_json(to_dynamic(mock_responses.at(request_counter))));
             ++request_counter;
             return response;
         });

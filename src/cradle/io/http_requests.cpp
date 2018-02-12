@@ -35,6 +35,15 @@ parse_msgpack_response(http_response const& response)
             response.body.size);
 }
 
+http_response
+make_http_200_response(string const& body)
+{
+    http_response response;
+    response.status_code = 200;
+    response.body = make_string_blob(body);
+    return response;
+}
+
 string static
 get_method_name(http_request_method method)
 {
