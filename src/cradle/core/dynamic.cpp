@@ -33,8 +33,8 @@ std::ostream& operator<<(std::ostream& s, value_type t)
      case value_type::DATETIME:
         s << "datetime";
         break;
-     case value_type::LIST:
-        s << "list";
+     case value_type::ARRAY:
+        s << "array";
         break;
      case value_type::MAP:
         s << "map";
@@ -61,14 +61,14 @@ void check_type(value_type expected, value_type actual)
 
 dynamic::dynamic(std::initializer_list<dynamic> list)
 {
-    // If this is a list of lists, all of which are length two and have strings as their
-    // first elements, treat it as a map.
+    // If this is a list of arrays, all of which are length two and have
+    // strings as their first elements, treat it as a map.
     if (std::all_of(
             list.begin(), list.end(),
             [ ](dynamic const& v)
             {
                 return
-                    v.type() == value_type::LIST &&
+                    v.type() == value_type::ARRAY &&
                     cast<dynamic_array>(v).size() == 2 &&
                     cast<dynamic_array>(v)[0].type() == value_type::STRING;
             }))
@@ -85,63 +85,6 @@ dynamic::dynamic(std::initializer_list<dynamic> list)
     {
         *this = dynamic_array(list);
     }
-}
-
-void dynamic::get(bool const** v) const
-{
-    check_type(value_type::BOOLEAN, type_);
-    *v = boost::any_cast<bool>(&value_);
-}
-void dynamic::get(integer const** v) const
-{
-    check_type(value_type::INTEGER, type_);
-    *v = boost::any_cast<integer>(&value_);
-}
-void dynamic::get(double const** v) const
-{
-    check_type(value_type::FLOAT, type_);
-    *v = boost::any_cast<double>(&value_);
-}
-void dynamic::get(string const** v) const
-{
-    check_type(value_type::STRING, type_);
-    *v = boost::any_cast<string>(&value_);
-}
-void dynamic::get(blob const** v) const
-{
-    check_type(value_type::BLOB, type_);
-    *v = boost::any_cast<blob>(&value_);
-}
-void dynamic::get(boost::posix_time::ptime const** v) const
-{
-    check_type(value_type::DATETIME, type_);
-    *v = boost::any_cast<boost::posix_time::ptime>(&value_);
-}
-void dynamic::get(dynamic_array const** v) const
-{
-    // Certain ways of encoding values (e.g., JSON) have the same representation for empty
-    // arrays and empty maps, so if we encounter an empty map here, we should treat it as
-    // an empty list.
-    if (type_ == value_type::MAP && cast<dynamic_map>(*this).empty())
-    {
-        static const dynamic_array empty_list;
-        *v = &empty_list;
-        return;
-    }
-    check_type(value_type::LIST, type_);
-    *v = boost::any_cast<dynamic_array>(&value_);
-}
-void dynamic::get(dynamic_map const** v) const
-{
-    // Same logic as in the list case.
-    if (type_ == value_type::LIST && cast<dynamic_array>(*this).empty())
-    {
-        static const dynamic_map empty_map;
-        *v = &empty_map;
-        return;
-    }
-    check_type(value_type::MAP, type_);
-    *v = boost::any_cast<dynamic_map>(&value_);
 }
 
 void dynamic::set(nil_t _)
@@ -195,12 +138,12 @@ void dynamic::set(boost::posix_time::ptime&& v)
 }
 void dynamic::set(dynamic_array const& v)
 {
-    type_ = value_type::LIST;
+    type_ = value_type::ARRAY;
     value_ = v;
 }
 void dynamic::set(dynamic_array&& v)
 {
-    type_ = value_type::LIST;
+    type_ = value_type::ARRAY;
     value_ = std::move(v);
 }
 void dynamic::set(dynamic_map const& v)
@@ -319,6 +262,180 @@ add_dynamic_path_element(boost::exception& e, dynamic const& path_element)
     {
         e << dynamic_value_path_info(std::list<dynamic>({ path_element }));
     }
+}
+
+template<class Dynamic>
+dynamic
+coerce_value_impl(
+    std::function<api_type_info (api_named_type_reference const& ref)> const& look_up_named_type,
+    api_type_info const& type,
+    Dynamic&& value)
+{
+    auto recurse =
+        [&look_up_named_type](api_type_info const& type, auto&& value)
+        {
+            return coerce_value_impl(look_up_named_type, type, value);
+        };
+
+    switch (get_tag(type))
+    {
+     case api_type_info_tag::ARRAY:
+        return
+            map([&](auto&& item)
+                {
+                    return
+                        recurse(
+                            as_array(type).element_schema,
+                            std::forward<decltype(item)>(item));
+                },
+                cast<dynamic_array>(std::forward<Dynamic>(value)));
+     case api_type_info_tag::BLOB:
+        check_type(value.type(), value_type::BLOB);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::BOOLEAN:
+        check_type(value.type(), value_type::BOOLEAN);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::DATETIME:
+        check_type(value.type(), value_type::DATETIME);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::DYNAMIC:
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::ENUM:
+        check_type(value.type(), value_type::STRING);
+        if (as_enum(type).find(cast<string>(value)) == as_enum(type).end())
+        {
+            CRADLE_THROW(
+                cradle::invalid_enum_string() <<
+                    cradle::enum_string_info(cast<string>(value)));
+        }
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::FLOAT:
+        if (value.type() == value_type::INTEGER)
+            return dynamic(boost::numeric_cast<double>(cast<integer>(value)));
+        check_type(value.type(), value_type::FLOAT);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::INTEGER:
+        if (value.type() == value_type::FLOAT)
+        {
+            double d = cast<double>(value);
+            integer i = boost::numeric_cast<integer>(d);
+            // Check that coercion doesn't change the value.
+            if (boost::numeric_cast<double>(i) == d)
+                return dynamic(i);
+        }
+        check_type(value.type(), value_type::INTEGER);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::MAP:
+      {
+        auto const& map_type = as_map(type);
+        // This doesn't forward perfectly.
+        dynamic_map coerced;
+        for (auto const& pair : cast<dynamic_map>(value))
+        {
+            coerced[recurse(map_type.key_schema, pair.first)] =
+                recurse(map_type.value_schema, pair.second);
+        }
+        return coerced;
+      }
+     case api_type_info_tag::NAMED:
+          return recurse(look_up_named_type(as_named(type)), value);
+     case api_type_info_tag::NIL:
+     default:
+        check_type(value.type(), value_type::NIL);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::OPTIONAL:
+      {
+        // This doesn't forward perfectly.
+        dynamic_map coerced;
+        auto const& map = cast<dynamic_map>(value);
+        string tag;
+        from_dynamic(&tag, cradle::get_union_value_type(map));
+        if (tag == "some")
+        {
+            coerced["some"] = recurse(as_optional(type), get_field(map, "some"));
+        }
+        else if (tag == "none")
+        {
+            coerced["none"] = nil;
+        }
+        else
+        {
+            CRADLE_THROW(invalid_optional_type() << optional_type_tag_info(tag));
+        }
+        return coerced;
+      }
+     case api_type_info_tag::REFERENCE:
+        check_type(value.type(), value_type::STRING);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::STRING:
+        check_type(value.type(), value_type::STRING);
+        return std::forward<Dynamic>(value);
+     case api_type_info_tag::STRUCTURE:
+      {
+        auto const& structure_type = as_structure(type);
+        // This doesn't forward perfectly.
+        dynamic_map coerced;
+        auto const& map = cast<dynamic_map>(value);
+        for (auto const& pair : structure_type)
+        {
+            auto const& field_name = pair.first;
+            auto const& field_info = pair.second;
+            dynamic const* field_value;
+            bool field_present = get_field(&field_value, map, pair.first);
+            if (field_present)
+            {
+                coerced[field_name] = recurse(field_info.schema, *field_value);
+            }
+            else if (!field_info.omissible || !*field_info.omissible)
+            {
+                CRADLE_THROW(missing_field() << field_name_info(field_name));
+            }
+        }
+        return coerced;
+      }
+     case api_type_info_tag::UNION:
+      {
+        auto const& union_type = as_union(type);
+        // This doesn't forward perfectly.
+        auto const& map = cast<dynamic_map>(value);
+        string tag;
+        from_dynamic(&tag, cradle::get_union_value_type(map));
+        for (auto const& pair : union_type)
+        {
+            auto const& member_name = pair.first;
+            auto const& member_info = pair.second;
+            if (tag == member_name)
+            {
+                dynamic_map coerced;
+                coerced[member_name] =
+                    recurse(member_info.schema, get_field(map, member_name));
+                return coerced;
+            }
+        }
+        CRADLE_THROW(
+            cradle::invalid_enum_string() <<
+                // This should technically include enum_id_info.
+                cradle::enum_string_info(tag));
+      }
+    }
+}
+
+dynamic
+coerce_value(
+    std::function<api_type_info (api_named_type_reference const& ref)> const& look_up_named_type,
+    api_type_info const& type,
+    dynamic const& value)
+{
+    return coerce_value_impl(look_up_named_type, type, value);
+}
+
+dynamic
+coerce_value(
+    std::function<api_type_info (api_named_type_reference const& ref)> const& look_up_named_type,
+    api_type_info const& type,
+    dynamic&& value)
+{
+    return coerce_value_impl(look_up_named_type, type, std::move(value));
 }
 
 }

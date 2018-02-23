@@ -117,7 +117,7 @@ write_msgpack_value(msgpack::packer<Buffer>& packer, dynamic const& v)
         }
         break;
       }
-     case value_type::LIST:
+     case value_type::ARRAY:
       {
         dynamic_array const& x = cast<dynamic_array>(v);
         size_t size = x.size();

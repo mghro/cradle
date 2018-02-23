@@ -11,10 +11,10 @@ namespace cradle {
 
 // JSON I/O
 
-// Check if a JSON list is actually an encoded map.
-// This is the case if the list contains only key/value pairs.
+// Check if a JSON array is actually an encoded map.
+// This is the case if the array contains only key/value pairs.
 bool static
-list_resembles_map(nlohmann::json const& json)
+array_resembles_map(nlohmann::json const& json)
 {
     assert(json.is_array());
     for (auto const& element : json)
@@ -102,7 +102,7 @@ read_json_value(nlohmann::json const& json)
      case nlohmann::json::value_t::array:
       {
         // If this resembles an encoded map, read it as that.
-        if (!json.empty() && list_resembles_map(json))
+        if (!json.empty() && array_resembles_map(json))
         {
             dynamic_map map;
             for (auto const& i : json)
@@ -111,7 +111,7 @@ read_json_value(nlohmann::json const& json)
             }
             return map;
         }
-        // Otherwise, read it as an actual list.
+        // Otherwise, read it as an actual array.
         else
         {
             dynamic_array array;
@@ -229,7 +229,7 @@ to_nlohmann_json(dynamic const& v)
       }
      case value_type::DATETIME:
         return to_value_string(cast<boost::posix_time::ptime>(v));
-     case value_type::LIST:
+     case value_type::ARRAY:
       {
         nlohmann::json json(nlohmann::json::value_t::array);
         for (auto const& i : cast<dynamic_array>(v))
@@ -251,7 +251,7 @@ to_nlohmann_json(dynamic const& v)
             }
             return json;
         }
-        // Otherwise, encode it as a list of key/value pairs.
+        // Otherwise, encode it as a array of key/value pairs.
         else
         {
             nlohmann::json json(nlohmann::json::value_t::array);

@@ -46,8 +46,8 @@ deep_sizeof(nil_t)
 
 struct dynamic;
 
-// Note that we don't have to do anything here because callers of to_dynamic are required to
-// provide an uninitialized dynamic, which defaults to nil.
+// Note that we don't have to do anything here because callers of to_dynamic
+// are required to provide a default-constructed dynamic, which is already nil.
 void static inline
 to_dynamic(dynamic* v, nil_t n)
 {}
@@ -324,6 +324,15 @@ template<class T>
 void
 from_dynamic(std::vector<T>* x, dynamic const& v)
 {
+    // Certain ways of encoding values (e.g., JSON) have the same
+    // representation for empty arrays and empty maps, so if we encounter an
+    // empty map here, we should treat it as an empty array.
+    if (v.type() == value_type::MAP && cast<dynamic_map>(v).empty())
+    {
+        // *x is already empty because it's default-constructed.
+        return;
+    }
+
     dynamic_array const& array = cast<dynamic_array>(v);
     size_t n_elements = array.size();
     x->resize(n_elements);
@@ -383,6 +392,17 @@ template<class T, size_t N>
 void
 from_dynamic(std::array<T,N>* x, dynamic const& v)
 {
+    if (N == 0)
+    {
+        // Certain ways of encoding values (e.g., JSON) have the same
+        // representation for empty arrays and empty maps, so if we encounter
+        // an empty map here, we should treat it as an empty array.
+        if (v.type() == value_type::MAP && cast<dynamic_map>(v).empty())
+        {
+            return;
+        }
+    }
+
     dynamic_array const& l = cast<dynamic_array>(v);
     check_array_size(N, l.size());
     for (size_t i = 0; i != N; ++i)
@@ -428,19 +448,27 @@ template<class Key, class Value>
 void
 to_dynamic(dynamic* v, std::map<Key,Value> const& x)
 {
-    dynamic_map record;
+    dynamic_map map;
     for (auto const& i : x)
-        to_dynamic(&record[to_dynamic(i.first)], i.second);
-    *v = std::move(record);
+        to_dynamic(&map[to_dynamic(i.first)], i.second);
+    *v = std::move(map);
 }
 
 template<class Key, class Value>
 void
 from_dynamic(std::map<Key,Value>* x, dynamic const& v)
 {
-    x->clear();
-    dynamic_map const& record = cast<dynamic_map>(v);
-    for (auto const& i : record)
+    // Certain ways of encoding values (e.g., JSON) have the same
+    // representation for empty arrays and empty maps, so if we encounter an
+    // empty array here, we should treat it as an empty map.
+    if (v.type() == value_type::ARRAY && cast<dynamic_array>(v).empty())
+    {
+        // *x is already empty because it's default-constructed.
+        return;
+    }
+
+    dynamic_map const& map = cast<dynamic_map>(v);
+    for (auto const& i : map)
     {
         try
         {
@@ -501,16 +529,16 @@ template<class T>
 void
 to_dynamic(cradle::dynamic* v, optional<T> const& x)
 {
-    cradle::dynamic_map record;
+    cradle::dynamic_map map;
     if (x)
     {
-        to_dynamic(&record[cradle::dynamic("some")], *x);
+        to_dynamic(&map[cradle::dynamic("some")], *x);
     }
     else
     {
-        to_dynamic(&record[cradle::dynamic("none")], cradle::nil);
+        to_dynamic(&map[cradle::dynamic("none")], cradle::nil);
     }
-    *v = std::move(record);
+    *v = std::move(map);
 }
 
 CRADLE_DEFINE_EXCEPTION(invalid_optional_type)
@@ -520,13 +548,13 @@ template<class T>
 void
 from_dynamic(optional<T>* x, cradle::dynamic const& v)
 {
-    cradle::dynamic_map const& record = cradle::cast<cradle::dynamic_map>(v);
+    cradle::dynamic_map const& map = cradle::cast<cradle::dynamic_map>(v);
     string type;
-    from_dynamic(&type, cradle::get_union_value_type(record));
+    from_dynamic(&type, cradle::get_union_value_type(map));
     if (type == "some")
     {
         T t;
-        from_dynamic(&t, cradle::get_field(record, "some"));
+        from_dynamic(&t, cradle::get_field(map, "some"));
         *x = t;
     }
     else if (type == "none")

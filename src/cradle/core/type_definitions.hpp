@@ -70,18 +70,18 @@ struct dynamic;
 
 enum class value_type
 {
-    NIL,            // no value, nil_t
+    NIL,            // nil_t - no value
     BOOLEAN,        // bool
     INTEGER,        // integer
     FLOAT,          // double
     STRING,         // string
-    BLOB,           // binary blob, blob
+    BLOB,           // blob - binary blob
     DATETIME,       // boost::posix_time::ptime
-    LIST,           // ordered list of values, dynamic_array
-    MAP,            // collection of named values, dynamic_map
+    ARRAY,          // dynamic_array - array of dynamic values
+    MAP,            // dynamic_map - collection of named dynamic values
 };
 
-// Lists are represented as std::vectors and can be manipulated as such.
+// Arrays are represented as std::vectors and can be manipulated as such.
 typedef std::vector<dynamic> dynamic_array;
 
 // Maps are represented as std::maps and can be manipulated as such.
@@ -119,42 +119,15 @@ struct dynamic
     // Get the type of value stored here.
     value_type type() const { return type_; }
 
-    // Get the value.
-    // Requesting the wrong type will result in a type_mismatch exception.
-    // If the type matches, *v will point to the value.
-    void get(bool const** v) const;
-    void get(integer const** v) const;
-    void get(double const** v) const;
-    void get(string const** v) const;
-    void get(blob const** v) const;
-    void get(boost::posix_time::ptime const** v) const;
-    void get(dynamic_array const** v) const;
-    void get(dynamic_map const** v) const;
+    // Get the contents.
+    // This should be used with caution.
+    // cast<T>(dynamic) provides a safer interface to this.
+    any const& contents() const& { return value_; }
 
-    // value(value const& other)
-    //   : type_(other.type_),
-    //     value_(other.value_)
-    // {
-    //     std::cerr << "value: copy constructor\n";
-    // }
-    // value(value&& other)
-    //   : type_(std::move(other.type_)),
-    //     value_(std::move(other.value_))
-    // {
-    // }
-    // value& operator=(value const& other)
-    // {
-    //     std::cerr << "value: copy assignment\n";
-    //     type_ = other.type_;
-    //     value_ = other.value_;
-    //     return *this;
-    // }
-    // value& operator=(value&& other)
-    // {
-    //     type_ = std::move(other.type_);
-    //     value_ = std::move(other.value_);
-    //     return *this;
-    // }
+    // Get an r-value reference to the contents.
+    // This should be used with caution.
+    // cast<T>(dynamic) provides a safer interface to this.
+    any&& contents() && { return std::move(value_); }
 
  private:
     void set(nil_t _);

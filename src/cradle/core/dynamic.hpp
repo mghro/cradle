@@ -13,10 +13,6 @@ namespace cradle {
 // DYNAMIC VALUES - Dynamic values are values whose structure is determined at
 // run-time rather than compile time.
 
-// All dynamic values have corresponding concrete C++ types.
-// The following is a list of value types along with their significance and the
-// corresponding C++ type.
-
 std::ostream& operator<<(std::ostream& s, value_type t);
 
 // Check that two value types match.
@@ -26,6 +22,56 @@ void check_type(value_type expected, value_type actual);
 CRADLE_DEFINE_EXCEPTION(type_mismatch)
 CRADLE_DEFINE_ERROR_INFO(value_type, expected_value_type)
 CRADLE_DEFINE_ERROR_INFO(value_type, actual_value_type)
+
+// Get the value_type value for a C++ type.
+template<class T>
+struct value_type_of
+{};
+template<>
+struct value_type_of<nil_t>
+{
+    value_type static const value = value_type::NIL;
+};
+template<>
+struct value_type_of<bool>
+{
+    value_type static const value = value_type::BOOLEAN;
+};
+template<>
+struct value_type_of<integer>
+{
+    value_type static const value = value_type::INTEGER;
+};
+template<>
+struct value_type_of<double>
+{
+    value_type static const value = value_type::FLOAT;
+};
+template<>
+struct value_type_of<string>
+{
+    value_type static const value = value_type::STRING;
+};
+template<>
+struct value_type_of<blob>
+{
+    value_type static const value = value_type::BLOB;
+};
+template<>
+struct value_type_of<boost::posix_time::ptime>
+{
+    value_type static const value = value_type::DATETIME;
+};
+template<>
+struct value_type_of<dynamic_array>
+{
+    value_type static const value = value_type::ARRAY;
+};
+template<>
+struct value_type_of<dynamic_map>
+{
+    value_type static const value = value_type::MAP;
+};
 
 // MAPS
 
@@ -58,13 +104,19 @@ add_dynamic_path_element(boost::exception& e, dynamic const& path_element);
 
 // VALUES
 
-// Cast a value to one of the base types.
+// Cast a dynamic value to one of the base types.
 template<class T>
 T const& cast(dynamic const& v)
 {
-    T const* x;
-    v.get(&x);
-    return *x;
+    check_type(value_type_of<T>::value, v.type());
+    return boost::any_cast<T const&>(v.contents());
+}
+// Same, but with move semantics.
+template<class T>
+T&& cast(dynamic&& v)
+{
+    check_type(value_type_of<T>::value, v.type());
+    return boost::any_cast<T&&>(std::move(v).contents());
 }
 
 std::ostream&
@@ -146,7 +198,7 @@ auto apply_to_dynamic(Fn&& fn, dynamic const& v)
         return fn(cast<blob>(v));
      case value_type::DATETIME:
         return fn(cast<boost::posix_time::ptime>(v));
-     case value_type::LIST:
+     case value_type::ARRAY:
         return fn(cast<dynamic_array>(v));
      case value_type::MAP:
         return fn(cast<dynamic_map>(v));
@@ -176,12 +228,28 @@ auto apply_to_dynamic_pair(Fn&& fn, dynamic const& a, dynamic const& b)
         return fn(cast<blob>(a), cast<blob>(b));
      case value_type::DATETIME:
         return fn(cast<boost::posix_time::ptime>(a), cast<boost::posix_time::ptime>(b));
-     case value_type::LIST:
+     case value_type::ARRAY:
         return fn(cast<dynamic_array>(a), cast<dynamic_array>(b));
      case value_type::MAP:
         return fn(cast<dynamic_map>(a), cast<dynamic_map>(b));
     }
 }
+
+// Coerce a dynamic value to match the given type.
+// This only applies very gentle coercions (e.g., lossless numeric casts).
+// :look_up_named_type must be implemented by the caller as a means for the
+// algorithm to look up named types.
+dynamic
+coerce_value(
+    std::function<api_type_info (api_named_type_reference const& ref)> const& look_up_named_type,
+    api_type_info const& type,
+    dynamic const& value);
+// Same, but with move semantics.
+dynamic
+coerce_value(
+    std::function<api_type_info (api_named_type_reference const& ref)> const& look_up_named_type,
+    api_type_info const& type,
+    dynamic&& value);
 
 }
 
