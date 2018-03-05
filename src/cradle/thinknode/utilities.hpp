@@ -7,7 +7,6 @@ namespace cradle {
 
 api_type_info
 as_api_type(thinknode_type_info const& tn);
-
 }
 
 #endif

@@ -3,7 +3,8 @@
 
 #include <cradle/common.hpp>
 
-// This file provides functions for converting dynamic values to and from MessagePack.
+// This file provides functions for converting dynamic values to and from
+// MessagePack.
 
 namespace cradle {
 
@@ -18,9 +19,7 @@ parse_msgpack_value(string const& msgpack);
 // data rather than copying them.
 dynamic
 parse_msgpack_value(
-    ownership_holder const& ownership,
-    uint8_t const* data,
-    size_t size);
+    ownership_holder const& ownership, uint8_t const* data, size_t size);
 
 string
 value_to_msgpack_string(dynamic const& v);
@@ -32,6 +31,6 @@ CRADLE_DEFINE_EXCEPTION(msgpack_blob_size_limit_exceeded)
 CRADLE_DEFINE_ERROR_INFO(uint64_t, msgpack_blob_size)
 CRADLE_DEFINE_ERROR_INFO(uint64_t, msgpack_blob_size_limit)
 
-}
+} // namespace cradle
 
 #endif

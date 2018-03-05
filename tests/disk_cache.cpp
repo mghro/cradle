@@ -93,7 +93,8 @@ test_item_access(disk_cache& cache, int item_id)
         // Use external storage.
         if (entry)
         {
-            auto cached_contents = read_file_contents(cache.get_path_for_id(entry->id));
+            auto cached_contents
+                = read_file_contents(cache.get_path_for_id(entry->id));
             REQUIRE(cached_contents == value);
             REQUIRE(entry->crc32 == computed_crc);
             cache.record_usage(entry->id);
@@ -233,13 +234,11 @@ TEST_CASE("cache summary info", "[disk_cache]")
 
     int64_t expected_size = 0;
     int64_t expected_count = 0;
-    auto check_summary_info =
-        [&]()
-        {
-            auto summary = cache.get_summary_info();
-            REQUIRE(summary.entry_count == expected_count);
-            REQUIRE(summary.total_size == expected_size);
-        };
+    auto check_summary_info = [&]() {
+        auto summary = cache.get_summary_info();
+        REQUIRE(summary.entry_count == expected_count);
+        REQUIRE(summary.total_size == expected_size);
+    };
 
     // Test an empty cache.
     init_disk_cache(cache);
@@ -326,7 +325,9 @@ TEST_CASE("incompatible cache", "[disk_cache]")
     {
         sqlite3* db = nullptr;
         REQUIRE(sqlite3_open("disk_cache/index.db", &db) == SQLITE_OK);
-        REQUIRE(sqlite3_exec(db, "pragma user_version = 9600;", 0, 0, 0) == SQLITE_OK);
+        REQUIRE(
+            sqlite3_exec(db, "pragma user_version = 9600;", 0, 0, 0)
+            == SQLITE_OK);
         sqlite3_close(db);
     }
     file_path extraneous_file("disk_cache/some_other_file");

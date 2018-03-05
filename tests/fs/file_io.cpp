@@ -26,16 +26,19 @@ test_bad_open_file(std::ios::openmode mode)
 
 TEST_CASE("file open errors", "[fs][file_io]")
 {
-    test_bad_open_file<std::fstream>(std::ios::binary | std::ios::out | std::ios::trunc);
+    test_bad_open_file<std::fstream>(
+        std::ios::binary | std::ios::out | std::ios::trunc);
     test_bad_open_file<std::ifstream>(std::ios::in);
-    test_bad_open_file<std::ofstream>(std::ios::binary | std::ios::out | std::ios::trunc);
+    test_bad_open_file<std::ofstream>(
+        std::ios::binary | std::ios::out | std::ios::trunc);
 }
 
 TEST_CASE("file error bits set", "[fs][file_io]")
 {
     {
         std::fstream fs;
-        open_file(fs, file_path("empty_file.txt"), std::ios::out | std::ios::trunc);
+        open_file(
+            fs, file_path("empty_file.txt"), std::ios::out | std::ios::trunc);
         int i;
         REQUIRE_THROWS(fs >> i);
     }

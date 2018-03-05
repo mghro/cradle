@@ -61,20 +61,16 @@ TEST_CASE("floating point type interfaces", "[core][types]")
 
 TEST_CASE("string type interface", "[core][types]")
 {
-    test_regular_value_pair(
-        string("hello"),
-        string("world!"));
+    test_regular_value_pair(string("hello"), string("world!"));
 
-    REQUIRE(
-        deep_sizeof(string("hello")) ==
-        deep_sizeof(string()) + 5);
+    REQUIRE(deep_sizeof(string("hello")) == deep_sizeof(string()) + 5);
 }
 
 TEST_CASE("date type interface", "[core][types]")
 {
     test_regular_value_pair(
-        boost::gregorian::date(2017,boost::gregorian::Apr,26),
-        boost::gregorian::date(2017,boost::gregorian::Apr,27));
+        boost::gregorian::date(2017, boost::gregorian::Apr, 26),
+        boost::gregorian::date(2017, boost::gregorian::Apr, 27));
 
     // Try parsing a malformed date.
     try
@@ -93,16 +89,16 @@ TEST_CASE("ptime type interface", "[core][types]")
 {
     test_regular_value_pair(
         ptime(
-            date(2017,boost::gregorian::Apr,26),
-            boost::posix_time::time_duration(1,2,3)),
+            date(2017, boost::gregorian::Apr, 26),
+            boost::posix_time::time_duration(1, 2, 3)),
         ptime(
-            boost::gregorian::date(2017,boost::gregorian::Apr,26),
-            boost::posix_time::time_duration(1,2,4)));
+            boost::gregorian::date(2017, boost::gregorian::Apr, 26),
+            boost::posix_time::time_duration(1, 2, 4)));
 }
 
 TEST_CASE("blob type interface", "[core][types]")
 {
-    char blob_data[] = { 'a', 'b' };
+    char blob_data[] = {'a', 'b'};
 
     INFO("Test blobs of the different sizes.");
     test_regular_value_pair(
@@ -118,24 +114,20 @@ TEST_CASE("blob type interface", "[core][types]")
 TEST_CASE("optional type interface", "[core][types]")
 {
     // Test an optional with a value.
-    test_regular_value_pair(
-        some(string("hello")),
-        some(string("world!")));
+    test_regular_value_pair(some(string("hello")), some(string("world!")));
 
     REQUIRE(
-        deep_sizeof(some(string("hello"))) ==
-        sizeof(optional<string>) + deep_sizeof(string()) + 5);
+        deep_sizeof(some(string("hello")))
+        == sizeof(optional<string>) + deep_sizeof(string()) + 5);
 
     // Test an empty optional.
     test_regular_value(optional<string>());
-    REQUIRE(
-        deep_sizeof(optional<string>()) ==
-        sizeof(optional<string>));
+    REQUIRE(deep_sizeof(optional<string>()) == sizeof(optional<string>));
 
     // Try converting an invalid dynamic value to an optional.
     try
     {
-        from_dynamic<optional<string>>(dynamic({ { "asdf", nil } }));
+        from_dynamic<optional<string>>(dynamic({{"asdf", nil}}));
         FAIL("no exception thrown");
     }
     catch (invalid_optional_type& e)
@@ -146,31 +138,24 @@ TEST_CASE("optional type interface", "[core][types]")
 
 TEST_CASE("vector type interface", "[core][types]")
 {
-    test_regular_value_pair(
-        std::vector<int>({ 0, 1 }),
-        std::vector<int>({ 1 }));
+    test_regular_value_pair(std::vector<int>({0, 1}), std::vector<int>({1}));
 
     REQUIRE(
-        deep_sizeof(std::vector<int>({ 0, 1 })) ==
-        deep_sizeof(std::vector<int>()) + deep_sizeof(0) + deep_sizeof(1));
+        deep_sizeof(std::vector<int>({0, 1}))
+        == deep_sizeof(std::vector<int>()) + deep_sizeof(0) + deep_sizeof(1));
 }
 
 TEST_CASE("map type interface", "[core][types]")
 {
-    test_regular_value(std::map<int,int>({}));
+    test_regular_value(std::map<int, int>({}));
 
     test_regular_value_pair(
-        std::map<int,int>({
-            { 0, 1 },
-            { 1, 2 }}),
-        std::map<int,int>({
-            { 1, 2 },
-            { 2, 5 },
-            { 3, 7 }}));
+        std::map<int, int>({{0, 1}, {1, 2}}),
+        std::map<int, int>({{1, 2}, {2, 5}, {3, 7}}));
 
     REQUIRE(
-        deep_sizeof(std::map<int,int>({ { 0, 1 } })) ==
-        deep_sizeof(std::map<int,int>()) + deep_sizeof(0) + deep_sizeof(1));
+        deep_sizeof(std::map<int, int>({{0, 1}}))
+        == deep_sizeof(std::map<int, int>()) + deep_sizeof(0) + deep_sizeof(1));
 }
 
 TEST_CASE("generated type interfaces", "[core][types]")
@@ -182,23 +167,20 @@ TEST_CASE("generated type interfaces", "[core][types]")
             make_disk_cache_config(some(string("def")), 1));
     }
 
-    #if defined(__GNUC__) && __GNUC__ >= 6
+#if defined(__GNUC__) && __GNUC__ >= 6
     {
         INFO("Test tagged constructors.");
         api_structure_field_info info;
-        info =
-            make_api_structure_field_info(
-                _doc("docs"),
-                _schema(make_api_type_info_with_nil(api_nil_type())));
+        info = make_api_structure_field_info(
+            _doc("docs"), _schema(make_api_type_info_with_nil(api_nil_type())));
         REQUIRE(info.doc == "docs");
         REQUIRE(info.omissible == none);
         REQUIRE(info.schema == make_api_type_info_with_nil(api_nil_type()));
-        info =
-            make_api_structure_field_info(
-                _doc("docs"),
-                _omissible(true),
-                _schema(make_api_type_info_with_nil(api_nil_type())));
+        info = make_api_structure_field_info(
+            _doc("docs"),
+            _omissible(true),
+            _schema(make_api_type_info_with_nil(api_nil_type())));
         REQUIRE(info.omissible == some(true));
     }
-    #endif
+#endif
 }

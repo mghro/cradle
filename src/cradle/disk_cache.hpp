@@ -1,8 +1,8 @@
 #ifndef CRADLE_DISK_CACHE_HPP
 #define CRADLE_DISK_CACHE_HPP
 
-#include <cradle/fs/types.hpp>
 #include <cradle/cache_types.hpp>
+#include <cradle/fs/types.hpp>
 
 #include <vector>
 
@@ -33,27 +33,33 @@ CRADLE_DEFINE_EXCEPTION(disk_cache_uninitialized)
 
 struct disk_cache_interface
 {
-    virtual ~disk_cache_interface() {}
+    virtual ~disk_cache_interface()
+    {
+    }
 
     // Reset the cache with a new config.
     // After a successful call to this, the cache is considered initialized.
     virtual void
-    reset(disk_cache_config const& config) = 0;
+    reset(disk_cache_config const& config)
+        = 0;
 
     // Reset the cache to an uninitialized state.
     virtual void
-    reset() = 0;
+    reset()
+        = 0;
 
     // Is the cache initialized?
     virtual bool
-    is_initialized() = 0;
+    is_initialized()
+        = 0;
 
-    // The rest of this interface should only be used if is_initialized() returns true.
-    // It will throw an exception otherwise.
+    // The rest of this interface should only be used if is_initialized()
+    // returns true. It will throw an exception otherwise.
 
     // Get summary information about the cache.
     virtual disk_cache_info
-    get_summary_info() = 0;
+    get_summary_info()
+        = 0;
 
     // Get a list of all entries in the cache.
     // Note that none of the returned entries will include values.
@@ -62,11 +68,13 @@ struct disk_cache_interface
 
     // Remove an individual entry from the cache.
     virtual void
-    remove_entry(int64_t id) = 0;
+    remove_entry(int64_t id)
+        = 0;
 
     // Clear the cache of all data.
     virtual void
-    clear() = 0;
+    clear()
+        = 0;
 
     // Look up a key in the cache.
     //
@@ -84,7 +92,8 @@ struct disk_cache_interface
     // a few kB. Below this level, it is more efficient (both in time and
     // storage) to store data directly in the SQLite database.
     virtual void
-    insert(string const& key, string const& value) = 0;
+    insert(string const& key, string const& value)
+        = 0;
 
     // Add an arbitrarily large entry to the cache.
     //
@@ -95,42 +104,49 @@ struct disk_cache_interface
     // as it will be marked as invalid initially.)
     //
     virtual int64_t
-    initiate_insert(string const& key) = 0;
+    initiate_insert(string const& key)
+        = 0;
     virtual void
-    finish_insert(int64_t id, uint32_t crc32) = 0;
+    finish_insert(int64_t id, uint32_t crc32)
+        = 0;
 
-    // Given an ID within the cache, this computes the path of the file that would
-    // store the data associated with that ID (assuming that entry were actually
-    // stored in a file rather than in the database).
+    // Given an ID within the cache, this computes the path of the file that
+    // would store the data associated with that ID (assuming that entry were
+    // actually stored in a file rather than in the database).
     virtual file_path
-    get_path_for_id(int64_t id) = 0;
+    get_path_for_id(int64_t id)
+        = 0;
 
     // Record that an ID within the cache was just used.
     // When a lot of small objects are being read from the cache, the calls to
     // record_usage() can slow down the loading process.
-    // To address this, calls are buffered and sent all at once when the cache is
-    // idle.
+    // To address this, calls are buffered and sent all at once when the cache
+    // is idle.
     virtual void
-    record_usage(int64_t id) = 0;
+    record_usage(int64_t id)
+        = 0;
 
-    // If you know that the cache is idle, you can call this to force the cache to
-    // write out its buffered usage records.
-    // (This is automatically called when the cache is destructed.)
+    // If you know that the cache is idle, you can call this to force the cache
+    // to write out its buffered usage records. (This is automatically called
+    // when the cache is destructed.)
     virtual void
-    write_usage_records() = 0;
+    write_usage_records()
+        = 0;
 
     // Another approach is to call this function periodically.
     // It checks to see how long it's been since the cache was last used, and if
     // the cache appears idle, it automatically writes the usage records.
     virtual void
-    do_idle_processing() = 0;
+    do_idle_processing()
+        = 0;
 };
 
 struct disk_cache_impl;
 
 struct disk_cache : disk_cache_interface, boost::noncopyable
 {
-    // The default constructor creates an invalid disk cache that must be initialized via reset().
+    // The default constructor creates an invalid disk cache that must be
+    // initialized via reset().
     disk_cache();
 
     // Create a disk cache that's initialized with the given config.
@@ -186,6 +202,6 @@ struct disk_cache : disk_cache_interface, boost::noncopyable
     disk_cache_impl* impl_;
 };
 
-}
+} // namespace cradle
 
 #endif

@@ -20,7 +20,8 @@ namespace cradle {
 // Get the directory that should be used to store user-specific configuration
 // files. If the directory doesn't already exist, it is created.
 file_path
-get_user_config_dir(optional<string> const& author_name, string const& app_name);
+get_user_config_dir(
+    optional<string> const& author_name, string const& app_name);
 
 // Get the full path of directories that should be searched for configuration
 // files. (This may include system-wide configuration directories that are
@@ -33,7 +34,8 @@ get_user_config_dir(optional<string> const& author_name, string const& app_name)
 // want your search path to include that directory.
 //
 std::vector<file_path>
-get_config_search_path(optional<string> const& author_name, string const& app_name);
+get_config_search_path(
+    optional<string> const& author_name, string const& app_name);
 
 // Get the directory that should be used for user-specific caching.
 // If the directory doesn't already exist, it is created.
@@ -45,19 +47,21 @@ get_user_cache_dir(optional<string> const& author_name, string const& app_name);
 // Note that since some systems might not support this concept, this is
 // allowed to return the user-specific cache directory.
 file_path
-get_shared_cache_dir(optional<string> const& author_name, string const& app_name);
+get_shared_cache_dir(
+    optional<string> const& author_name, string const& app_name);
 
 // Given a search path and a relative path to a configuration file (or
 // directory) that the application wants to read, this will scan the search
 // path and return the full path to the first place it's found.
 optional<file_path>
-search_in_path(std::vector<file_path> const& search_path, file_path const& item);
+search_in_path(
+    std::vector<file_path> const& search_path, file_path const& item);
 
 // If one of the above is unable to create the requested directory, this
 // exception is throw.
 CRADLE_DEFINE_EXCEPTION(directory_creation_failure)
 CRADLE_DEFINE_ERROR_INFO(file_path, directory_path)
 
-}
+} // namespace cradle
 
 #endif

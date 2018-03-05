@@ -44,20 +44,19 @@ from_dynamic(string* x, dynamic const& v)
 
 // INTEGERS
 
-#define CRADLE_DEFINE_INTEGER_INTERFACE(T) \
-    void \
-    to_dynamic(dynamic* v, T x) \
-    { \
-        *v = boost::numeric_cast<integer>(x); \
-    } \
-    void \
-    from_dynamic(T* x, dynamic const& v) \
-    { \
-        /* Floats can also be acceptable as integers if they convert properly. */ \
-        if (v.type() == value_type::FLOAT) \
-            *x = boost::numeric_cast<T>(cast<double>(v)); \
-        else \
-            *x = boost::numeric_cast<T>(cast<integer>(v)); \
+#define CRADLE_DEFINE_INTEGER_INTERFACE(T)                                     \
+    void to_dynamic(dynamic* v, T x)                                           \
+    {                                                                          \
+        *v = boost::numeric_cast<integer>(x);                                  \
+    }                                                                          \
+    void from_dynamic(T* x, dynamic const& v)                                  \
+    {                                                                          \
+        /* Floats can also be acceptable as integers if they convert properly. \
+         */                                                                    \
+        if (v.type() == value_type::FLOAT)                                     \
+            *x = boost::numeric_cast<T>(cast<double>(v));                      \
+        else                                                                   \
+            *x = boost::numeric_cast<T>(cast<integer>(v));                     \
     }
 
 CRADLE_DEFINE_INTEGER_INTERFACE(signed char)
@@ -73,20 +72,18 @@ CRADLE_DEFINE_INTEGER_INTERFACE(unsigned long long)
 
 // FLOATS
 
-#define CRADLE_DEFINE_FLOAT_INTERFACE(T) \
-    void \
-    to_dynamic(dynamic* v, T x) \
-    { \
-        *v = double(x); \
-    } \
-    void \
-    from_dynamic(T* x, dynamic const& v) \
-    { \
+#define CRADLE_DEFINE_FLOAT_INTERFACE(T)                                       \
+    void to_dynamic(dynamic* v, T x)                                           \
+    {                                                                          \
+        *v = double(x);                                                        \
+    }                                                                          \
+    void from_dynamic(T* x, dynamic const& v)                                  \
+    {                                                                          \
         /* Integers can also acceptable as floats if they convert properly. */ \
-        if (v.type() == value_type::INTEGER) \
-            *x = boost::numeric_cast<T>(cast<integer>(v)); \
-        else \
-            *x = boost::numeric_cast<T>(cast<double>(v)); \
+        if (v.type() == value_type::INTEGER)                                   \
+            *x = boost::numeric_cast<T>(cast<integer>(v));                     \
+        else                                                                   \
+            *x = boost::numeric_cast<T>(cast<double>(v));                      \
     }
 
 CRADLE_DEFINE_FLOAT_INTERFACE(double)
@@ -99,15 +96,14 @@ parse_date(std::string const& s)
 {
     namespace bg = boost::gregorian;
     std::istringstream is(s);
-    is.imbue(
-        std::locale(std::locale::classic(),
-            new bg::date_input_facet("%Y-%m-%d")));
+    is.imbue(std::locale(
+        std::locale::classic(), new bg::date_input_facet("%Y-%m-%d")));
     try
     {
         date d;
         is >> d;
-        if (d != date() && !is.fail() &&
-            is.peek() == std::istringstream::traits_type::eof())
+        if (d != date() && !is.fail()
+            && is.peek() == std::istringstream::traits_type::eof())
         {
             return d;
         }
@@ -115,7 +111,8 @@ parse_date(std::string const& s)
     catch (...)
     {
     }
-    CRADLE_THROW(parsing_error() << expected_format_info("date") << parsed_text_info(s));
+    CRADLE_THROW(
+        parsing_error() << expected_format_info("date") << parsed_text_info(s));
 }
 
 string
@@ -123,9 +120,7 @@ to_string(date const& d)
 {
     namespace bg = boost::gregorian;
     std::ostringstream os;
-    os.imbue(
-        std::locale(std::cout.getloc(),
-            new bg::date_facet("%Y-%m-%d")));
+    os.imbue(std::locale(std::cout.getloc(), new bg::date_facet("%Y-%m-%d")));
     os << d;
     return os.str();
 }
@@ -150,8 +145,7 @@ to_string(ptime const& t)
     namespace bt = boost::posix_time;
     std::ostringstream os;
     os.imbue(
-        std::locale(std::cout.getloc(),
-            new bt::time_facet("%Y-%m-%d %X")));
+        std::locale(std::cout.getloc(), new bt::time_facet("%Y-%m-%d %X")));
     os << t;
     return os.str();
 }
@@ -162,12 +156,12 @@ to_value_string(ptime const& t)
     namespace bt = boost::posix_time;
     std::ostringstream os;
     os.imbue(
-        std::locale(std::cout.getloc(),
-            new bt::time_facet("%Y-%m-%dT%H:%M")));
+        std::locale(std::cout.getloc(), new bt::time_facet("%Y-%m-%dT%H:%M")));
     os << t;
     // Add the seconds and timezone manually to match Thinknode.
-    os << (boost::format(":%02d.%03dZ") % t.time_of_day().seconds()
-        % (t.time_of_day().total_milliseconds() % 1000));
+    os
+        << (boost::format(":%02d.%03dZ") % t.time_of_day().seconds()
+            % (t.time_of_day().total_milliseconds() % 1000));
     return os.str();
 }
 
@@ -188,17 +182,16 @@ from_dynamic(ptime* x, dynamic const& v)
 bool
 operator==(blob const& a, blob const& b)
 {
-    return
-        a.size == b.size &&
-       (a.data == b.data || std::memcmp(a.data, b.data, a.size) == 0);
+    return a.size == b.size
+           && (a.data == b.data || std::memcmp(a.data, b.data, a.size) == 0);
 }
 
 bool
 operator<(blob const& a, blob const& b)
 {
-    return
-        a.size < b.size ||
-       (a.size == b.size && a.data != b.data && std::memcmp(a.data, b.data, a.size) < 0);
+    return a.size < b.size
+           || (a.size == b.size && a.data != b.data
+               && std::memcmp(a.data, b.data, a.size) < 0);
 }
 
 void
@@ -244,4 +237,4 @@ make_string_blob(string&& s)
     return generic_make_string_blob(s);
 }
 
-}
+} // namespace cradle

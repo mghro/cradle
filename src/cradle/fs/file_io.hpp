@@ -31,6 +31,6 @@ read_file_contents(file_path const& path);
 void
 dump_string_to_file(file_path const& path, string const& contents);
 
-}
+} // namespace cradle
 
 #endif

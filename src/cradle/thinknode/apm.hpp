@@ -16,6 +16,6 @@ get_app_version_info(
     string const& app,
     string const& version);
 
-}
+} // namespace cradle
 
 #endif

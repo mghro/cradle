@@ -13,23 +13,19 @@ TEST_CASE("app version info", "[thinknode][apm]")
 {
     Mock<http_connection_interface> mock_connection;
 
-    When(Method(mock_connection, perform_request)).Do(
-        [&](check_in_interface& check_in,
-            progress_reporter_interface& reporter,
-            http_request const& request)
-        {
-            auto expected_request =
-                make_get_request(
-                    "https://mgh.thinknode.io/api/v1.0/apm/apps/acme/pets/versions/2.0.0",
-                    {
-                        { "Authorization", "Bearer xyz" },
-                        { "Accept", "application/json" }
-                    });
+    When(Method(mock_connection, perform_request))
+        .Do([&](check_in_interface& check_in,
+                progress_reporter_interface& reporter,
+                http_request const& request) {
+            auto expected_request = make_get_request(
+                "https://mgh.thinknode.io/api/v1.0/apm/apps/acme/pets/versions/"
+                "2.0.0",
+                {{"Authorization", "Bearer xyz"},
+                 {"Accept", "application/json"}});
             REQUIRE(request == expected_request);
 
-            return
-                make_http_200_response(
-                    R"(
+            return make_http_200_response(
+                R"(
                         {
                             "name": "2.0.0",
                             "manifest": {
@@ -101,67 +97,51 @@ TEST_CASE("app version info", "[thinknode][apm]")
     session.api_url = "https://mgh.thinknode.io/api/v1.0";
     session.access_token = "xyz";
 
-    auto expected_version_info =
-        make_thinknode_app_version_info(
-            "2.0.0",
-            some(
-                make_thinknode_app_manifest(
-                    {},
-                    none,
-                    {
-                        make_thinknode_named_type_info(
+    auto expected_version_info = make_thinknode_app_version_info(
+        "2.0.0",
+        some(make_thinknode_app_manifest(
+            {},
+            none,
+            {make_thinknode_named_type_info(
+                "dog",
+                "Canis lupus familiaris",
+                make_thinknode_type_info_with_structure_type(
+                    make_thinknode_structure_info(
+                        {{"name",
+                          make_thinknode_structure_field_info(
+                              "The name of the dog",
+                              none,
+                              make_thinknode_type_info_with_string_type(
+                                  thinknode_string_type()))},
+                         {"age",
+                          make_thinknode_structure_field_info(
+                              "The age of the dog",
+                              none,
+                              make_thinknode_type_info_with_integer_type(
+                                  thinknode_integer_type()))}})))},
+            {make_thinknode_function_info(
+                "get_dog_years",
+                "Computes the dog's age in dog years.",
+                "cpu.x1",
+                make_thinknode_function_type_with_function_type(
+                    make_thinknode_function_type_info(
+                        {make_thinknode_function_parameter_info(
                             "dog",
-                            "Canis lupus familiaris",
-                            make_thinknode_type_info_with_structure_type(
-                                make_thinknode_structure_info(
-                                    {
-                                        {
-                                            "name",
-                                            make_thinknode_structure_field_info(
-                                                "The name of the dog",
-                                                none,
-                                                make_thinknode_type_info_with_string_type(
-                                                    thinknode_string_type()))
-                                        },
-                                        {
-                                            "age",
-                                            make_thinknode_structure_field_info(
-                                                "The age of the dog",
-                                                none,
-                                                make_thinknode_type_info_with_integer_type(
-                                                    thinknode_integer_type()))
-                                        }
-                                    })))
-                    },
-                    {
-                        make_thinknode_function_info(
-                            "get_dog_years",
-                            "Computes the dog's age in dog years.",
-                            "cpu.x1",
-                            make_thinknode_function_type_with_function_type(
-                                make_thinknode_function_type_info(
-                                    {
-                                        make_thinknode_function_parameter_info(
-                                            "dog",
-                                            "A dog with an age in people years",
-                                            make_thinknode_type_info_with_named_type(
-                                                make_thinknode_named_type_reference(
-                                                    "acme",
-                                                    "pets",
-                                                    "dog")))
-                                    },
-                                    make_thinknode_function_result_info(
-                                        "The computed age of the dog in dog years.",
-                                        make_thinknode_type_info_with_integer_type(
-                                            thinknode_integer_type())))))
-                    },
-                    {},
-                    {})),
-            "tmadden",
-            ptime(
-                date(2017,boost::gregorian::Apr,26),
-                boost::posix_time::time_duration(1,2,3)));
-    auto version_info =
-        get_app_version_info(mock_connection.get(), session, "acme", "pets", "2.0.0");
+                            "A dog with an age in people years",
+                            make_thinknode_type_info_with_named_type(
+                                make_thinknode_named_type_reference(
+                                    "acme", "pets", "dog")))},
+                        make_thinknode_function_result_info(
+                            "The computed age of the dog in dog years.",
+                            make_thinknode_type_info_with_integer_type(
+                                thinknode_integer_type())))))},
+            {},
+            {})),
+        "tmadden",
+        ptime(
+            date(2017, boost::gregorian::Apr, 26),
+            boost::posix_time::time_duration(1, 2, 3)));
+    auto version_info = get_app_version_info(
+        mock_connection.get(), session, "acme", "pets", "2.0.0");
     REQUIRE(version_info == expected_version_info);
 }

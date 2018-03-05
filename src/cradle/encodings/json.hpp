@@ -24,8 +24,9 @@ value_to_json(dynamic const& v);
 
 // Write a value to a blob in JSON format.
 // This does NOT include a terminating null character.
-blob value_to_json_blob(dynamic const& v);
+blob
+value_to_json_blob(dynamic const& v);
 
-}
+} // namespace cradle
 
 #endif

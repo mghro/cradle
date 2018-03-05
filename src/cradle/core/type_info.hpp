@@ -3,12 +3,13 @@
 
 #include <vector>
 
-#include <cradle/core/utilities.hpp>
 #include <cradle/core/api_types.hpp>
+#include <cradle/core/utilities.hpp>
 
 namespace cradle {
 
-// get_type_info<T>() is the external API for getting the CRADLE type info for the type T.
+// get_type_info<T>() is the external API for getting the CRADLE type info for
+// the type T.
 template<class T>
 auto
 get_type_info()
@@ -18,6 +19,6 @@ get_type_info()
     return info;
 }
 
-}
+} // namespace cradle
 
 #endif

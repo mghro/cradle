@@ -64,8 +64,8 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     // the path.
     get_user_config_dir(author, app);
     REQUIRE(
-        get_config_search_path(author, app) ==
-        std::vector<file_path>({ get_user_config_dir(author, app) }));
+        get_config_search_path(author, app)
+        == std::vector<file_path>({get_user_config_dir(author, app)}));
     reset_directory(home_dir);
 
     // Check that relative paths aren't used.
@@ -94,15 +94,19 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     auto system_config_dir_c = cwd / "xdg_sys_config_c";
     reset_directory(system_config_dir_c);
     create_directory(system_config_dir_c / app);
-    set_environment_variable("XDG_CONFIG_DIRS",
-        system_config_dir_b.string() + ":" + system_config_dir_a.string() + ":xdg_sys_config_c");
+    set_environment_variable(
+        "XDG_CONFIG_DIRS",
+        system_config_dir_b.string() + ":" + system_config_dir_a.string()
+            + ":xdg_sys_config_c");
     REQUIRE(
-        get_config_search_path(author, app) ==
-        std::vector<file_path>({ custom_config_dir / app, system_config_dir_a / app }));
+        get_config_search_path(author, app)
+        == std::vector<file_path>(
+               {custom_config_dir / app, system_config_dir_a / app}));
 
     // This isn't really implemented, but check that it's doing the correct
     // fallback.
-    REQUIRE(get_shared_cache_dir(author, app) == get_user_cache_dir(author, app));
+    REQUIRE(
+        get_shared_cache_dir(author, app) == get_user_cache_dir(author, app));
 }
 
 #endif
@@ -118,13 +122,12 @@ TEST_CASE("search paths", "[fs][app_dirs]")
     dump_string_to_file(search_dir / "a" / "foo.txt", "foo");
     dump_string_to_file(search_dir / "c" / "foo.txt", "foo");
 
-    auto search_path =
-        std::vector<file_path> ({
-            search_dir,
-            search_dir / "b",
-            search_dir / "d",
-            search_dir / "c",
-            search_dir / "a" });
+    auto search_path = std::vector<file_path>({search_dir,
+                                               search_dir / "b",
+                                               search_dir / "d",
+                                               search_dir / "c",
+                                               search_dir / "a"});
 
-    REQUIRE(search_in_path(search_path, "foo.txt") == search_dir / "c" / "foo.txt");
+    REQUIRE(
+        search_in_path(search_path, "foo.txt") == search_dir / "c" / "foo.txt");
 }

@@ -29,7 +29,7 @@ struct {{type_info.name}}
 template<>
 struct type_info_query<{{type_info.name}}>
 {
-    void static
+    static void
     get(api_type_info* info);
 };
 
@@ -44,7 +44,7 @@ make_{{type_info.name}}_with_{{case_name}}(
 {% endfor %}
 
 // tag access
-{{type_info.name}}_tag static inline
+static inline {{type_info.name}}_tag
 get_tag({{type_info.name}} const& x)
 {
     return x.tag_;
@@ -52,7 +52,7 @@ get_tag({{type_info.name}} const& x)
 
 // case testing
 {% for case_name, case_info in ordered_object_items(union_info) %}
-bool static inline
+static inline bool
 is_{{case_name}}({{type_info.name}} const& x)
 {
     return get_tag(x) == {{cpp_enum_value_of_union_member(type_info, case_name)}};
@@ -74,22 +74,22 @@ as_{{case_name}}({{type_info.name}}& x);
 bool
 operator==({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-bool static inline
+static inline bool
 operator!=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a == b); }
 
 bool
 operator<({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-bool static inline
+static inline bool
 operator<=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(b < a); }
 
-bool static inline
+static inline bool
 operator>({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return b < a; }
 
-bool static inline
+static inline bool
 operator>=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a < b); }
 

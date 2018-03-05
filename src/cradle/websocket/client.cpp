@@ -1,7 +1,7 @@
 #include <cradle/websocket/client.hpp>
 
-#include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_no_tls_client.hpp>
 
 #include <cradle/encodings/json.hpp>
 #include <cradle/websocket/messages.hpp>
@@ -41,8 +41,8 @@ websocket_client::connect(string const& uri)
     if (ec)
     {
         CRADLE_THROW(
-            websocket_client_error() <<
-                internal_error_message_info(ec.message()));
+            websocket_client_error()
+            << internal_error_message_info(ec.message()));
     }
     client.connect(server);
     impl_->server_handle = server->get_handle();
@@ -53,11 +53,9 @@ websocket_client::set_message_handler(
     std::function<void(websocket_server_message const& message)> const& handler)
 {
     impl_->client.set_message_handler(
-        [=](websocketpp::connection_hdl hdl, message_ptr message)
-        {
-            handler(
-                from_dynamic<websocket_server_message>(
-                    parse_json_value(message->get_payload())));
+        [=](websocketpp::connection_hdl hdl, message_ptr message) {
+            handler(from_dynamic<websocket_server_message>(
+                parse_json_value(message->get_payload())));
         });
 }
 
@@ -66,12 +64,13 @@ websocket_client::send(websocket_client_message const& message)
 {
     auto json = value_to_json(to_dynamic(message));
     websocketpp::lib::error_code ec;
-    impl_->client.send(impl_->server_handle, json, websocketpp::frame::opcode::text, ec);
+    impl_->client.send(
+        impl_->server_handle, json, websocketpp::frame::opcode::text, ec);
     if (ec)
     {
         CRADLE_THROW(
-            websocket_client_error() <<
-                internal_error_message_info(ec.message()));
+            websocket_client_error()
+            << internal_error_message_info(ec.message()));
     }
 }
 
@@ -85,16 +84,14 @@ void
 websocket_client::set_open_handler(std::function<void()> const& handler)
 {
     impl_->client.set_open_handler(
-        [=](websocketpp::connection_hdl hdl)
-        {
-            handler();
-        });
+        [=](websocketpp::connection_hdl hdl) { handler(); });
 }
 
 void
 websocket_client::close()
 {
-    impl_->client.close(impl_->server_handle, websocketpp::close::status::normal, "done");
+    impl_->client.close(
+        impl_->server_handle, websocketpp::close::status::normal, "done");
 }
 
-}
+} // namespace cradle

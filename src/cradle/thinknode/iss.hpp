@@ -41,6 +41,6 @@ post_iss_object(
     thinknode_type_info const& schema,
     dynamic const& data);
 
-}
+} // namespace cradle
 
 #endif

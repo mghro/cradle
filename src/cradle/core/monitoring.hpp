@@ -12,12 +12,17 @@ namespace cradle {
 // algorithm (0 is just started, 1 is done).
 struct progress_reporter_interface
 {
-    virtual void operator()(float) = 0;
+    virtual void
+    operator()(float)
+        = 0;
 };
 // If you don't want to know about the progress, pass one of these.
 struct null_progress_reporter : progress_reporter_interface
 {
-    void operator()(float) {}
+    void
+    operator()(float)
+    {
+    }
 };
 
 // When an algorithm is divided into subtasks, this can be used to translate
@@ -30,7 +35,9 @@ struct null_progress_reporter : progress_reporter_interface
 struct task_subdivider_state
 {
     float offset;
-    task_subdivider_state() : offset(0) {}
+    task_subdivider_state() : offset(0)
+    {
+    }
 };
 struct subtask_progress_reporter : progress_reporter_interface
 {
@@ -38,15 +45,14 @@ struct subtask_progress_reporter : progress_reporter_interface
         progress_reporter_interface& parent_reporter,
         task_subdivider_state& state,
         float portion)
-      : parent_reporter_(&parent_reporter)
-      , state_(state)
-      , portion_(portion)
+        : parent_reporter_(&parent_reporter), state_(state), portion_(portion)
     {
         offset_ = state_.offset;
         state_.offset += portion;
     }
 
-    void operator()(float progress)
+    void
+    operator()(float progress)
     {
         (*parent_reporter_)(offset_ + progress * portion_);
     }
@@ -66,16 +72,13 @@ struct subtask_progress_reporter : progress_reporter_interface
 struct sub_progress_reporter : progress_reporter_interface
 {
     sub_progress_reporter(
-        progress_reporter_interface& parent_reporter,
-        float offset,
-        float scale)
-      : parent_reporter_(&parent_reporter)
-      , offset_(offset)
-      , scale_ (scale)
+        progress_reporter_interface& parent_reporter, float offset, float scale)
+        : parent_reporter_(&parent_reporter), offset_(offset), scale_(scale)
     {
     }
 
-    void operator()(float progress)
+    void
+    operator()(float progress)
     {
         (*parent_reporter_)(offset_ + progress * scale_);
     }
@@ -90,29 +93,39 @@ struct sub_progress_reporter : progress_reporter_interface
 // This can be used to abort the algorithm by throwing an exception.
 struct check_in_interface
 {
-    virtual void operator()() = 0;
+    virtual void
+    operator()()
+        = 0;
 };
 // If you don't need the algorithm to check in, pass one of these.
 struct null_check_in : check_in_interface
 {
-    void operator()() {}
+    void
+    operator()()
+    {
+    }
 };
 
 // If you need an algorithm to check in with two different controllers, you
 // can use this to merge the check_in objects supplied by the two controllers.
 struct merged_check_in : check_in_interface
 {
-    merged_check_in(check_in_interface* a, check_in_interface* b)
-      : a(a), b(b)
-    {}
+    merged_check_in(check_in_interface* a, check_in_interface* b) : a(a), b(b)
+    {
+    }
 
-    void operator()() { (*a)(); (*b)(); }
+    void
+    operator()()
+    {
+        (*a)();
+        (*b)();
+    }
 
  private:
     check_in_interface* a;
     check_in_interface* b;
 };
 
-}
+} // namespace cradle
 
 #endif

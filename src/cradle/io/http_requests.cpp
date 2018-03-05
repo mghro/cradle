@@ -20,19 +20,16 @@ namespace cradle {
 dynamic
 parse_json_response(http_response const& response)
 {
-    return
-        parse_json_value(
-            reinterpret_cast<char const*>(response.body.data),
-            response.body.size);
+    return parse_json_value(
+        reinterpret_cast<char const*>(response.body.data), response.body.size);
 }
 
 dynamic
 parse_msgpack_response(http_response const& response)
 {
-    return
-        parse_msgpack_value(
-            reinterpret_cast<uint8_t const*>(response.body.data),
-            response.body.size);
+    return parse_msgpack_value(
+        reinterpret_cast<uint8_t const*>(response.body.data),
+        response.body.size);
 }
 
 http_response
@@ -89,13 +86,14 @@ http_connection::http_connection(http_request_system& system)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
     auto cacert_path = system.get_cacert_path();
     // A default cacert file is only necessary on Windows.
-    // On other systems, Curl will automatically use the system's certificate file.
-  #ifdef _WIN32
+    // On other systems, Curl will automatically use the system's certificate
+    // file.
+#ifdef _WIN32
     if (!cacert_path)
     {
         cacert_path = file_path("cacert.pem");
     }
-  #endif
+#endif
     if (cacert_path)
     {
         // Confirm that the file actually exists and can be opened.
@@ -124,18 +122,18 @@ struct send_transmission_state
     size_t data_length;
     size_t read_position;
 
-    send_transmission_state()
-        : data(0), data_length(0), read_position(0)
-    {}
+    send_transmission_state() : data(0), data_length(0), read_position(0)
+    {
+    }
 };
 
 static size_t
 transmit_request_body(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
-    send_transmission_state& state =
-        *reinterpret_cast<send_transmission_state*>(userdata);
-    size_t n_bytes =
-        (std::min)(size * nmemb, state.data_length - state.read_position);
+    send_transmission_state& state
+        = *reinterpret_cast<send_transmission_state*>(userdata);
+    size_t n_bytes
+        = (std::min)(size * nmemb, state.data_length - state.read_position);
     if (n_bytes > 0)
     {
         assert(state.data);
@@ -145,7 +143,7 @@ transmit_request_body(void* ptr, size_t size, size_t nmemb, void* userdata)
     return n_bytes;
 }
 
-typedef std::unique_ptr<char,decltype(&free)> malloc_buffer_ptr;
+typedef std::unique_ptr<char, decltype(&free)> malloc_buffer_ptr;
 
 struct receive_transmission_state
 {
@@ -154,15 +152,16 @@ struct receive_transmission_state
     size_t write_position;
 
     receive_transmission_state()
-      : buffer(nullptr, free), buffer_length(0), write_position(0)
-    {}
+        : buffer(nullptr, free), buffer_length(0), write_position(0)
+    {
+    }
 };
 
 static size_t
 record_http_response(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
-    receive_transmission_state& state =
-        *reinterpret_cast<receive_transmission_state*>(userdata);
+    receive_transmission_state& state
+        = *reinterpret_cast<receive_transmission_state*>(userdata);
     if (!state.buffer)
     {
         char* allocation = reinterpret_cast<char*>(malloc(4096));
@@ -182,7 +181,8 @@ record_http_response(void* ptr, size_t size, size_t nmemb, void* userdata)
         size_t new_size = state.buffer_length * 2;
         while (new_size < state.buffer_length + n_bytes)
             new_size *= 2;
-        char* allocation = reinterpret_cast<char*>(realloc(state.buffer.release(), new_size));
+        char* allocation = reinterpret_cast<char*>(
+            realloc(state.buffer.release(), new_size));
         if (!allocation)
             return 0;
         state.buffer = malloc_buffer_ptr(allocation, free);
@@ -197,7 +197,8 @@ record_http_response(void* ptr, size_t size, size_t nmemb, void* userdata)
 
 static void
 set_up_send_transmission(
-    CURL* curl, send_transmission_state& send_state,
+    CURL* curl,
+    send_transmission_state& send_state,
     http_request const& request)
 {
     send_state.data = reinterpret_cast<char const*>(request.body.data);
@@ -214,14 +215,16 @@ struct curl_progress_data
 
 static int
 curl_progress_callback(
-    void *clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+    void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
 {
     curl_progress_data* data = reinterpret_cast<curl_progress_data*>(clientp);
     try
     {
         (*data->check_in)();
-        (*data->reporter)((dltotal + ultotal == 0) ? 0.f :
-            float((dlnow + ulnow) / (dltotal + ultotal)));
+        (*data->reporter)(
+            (dltotal + ultotal == 0)
+                ? 0.f
+                : float((dlnow + ulnow) / (dltotal + ultotal)));
     }
     catch (...)
     {
@@ -232,7 +235,10 @@ curl_progress_callback(
 
 struct scoped_curl_slist
 {
-    ~scoped_curl_slist() { curl_slist_free_all(list); }
+    ~scoped_curl_slist()
+    {
+        curl_slist_free_all(list);
+    }
     curl_slist* list;
 };
 
@@ -241,7 +247,8 @@ make_blob(receive_transmission_state&& transmission)
 {
     blob result;
     result.data = transmission.buffer.get();
-    result.ownership = std::shared_ptr<char>(transmission.buffer.release(), free);
+    result.ownership
+        = std::shared_ptr<char>(transmission.buffer.release(), free);
     result.size = transmission.write_position;
     return result;
 }
@@ -261,7 +268,8 @@ http_connection::perform_request(
     for (auto const& header : request.headers)
     {
         auto header_string = header.first + ":" + header.second;
-        curl_headers.list = curl_slist_append(curl_headers.list, header_string.c_str());
+        curl_headers.list
+            = curl_slist_append(curl_headers.list, header_string.c_str());
     }
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curl_headers.list);
 
@@ -277,7 +285,8 @@ http_connection::perform_request(
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, record_http_response);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &header_receive_state);
 
-    // Let CURL know what the method is and set up for sending the body if necessary.
+    // Let CURL know what the method is and set up for sending the body if
+    // necessary.
     send_transmission_state send_state;
     if (request.method == http_request_method::PUT)
     {
@@ -321,33 +330,37 @@ http_connection::perform_request(
     // Perform the request.
     CURLcode result = curl_easy_perform(curl);
 
-    // Check in again here because if the job was canceled inside the above call, it will
-    // just look like an error. We need the cancelation exception to be rethrown.
+    // Check in again here because if the job was canceled inside the above
+    // call, it will just look like an error. We need the cancelation exception
+    // to be rethrown.
     check_in();
 
     // Check for low-level CURL errors.
     if (result != CURLE_OK)
     {
         CRADLE_THROW(
-            http_request_failure() <<
-                attempted_http_request_info(request) <<
-                internal_error_message_info(curl_easy_strerror(result)));
+            http_request_failure()
+            << attempted_http_request_info(request)
+            << internal_error_message_info(curl_easy_strerror(result)));
     }
 
     // Parse the response headers.
     http_header_list response_headers;
     {
-        std::istringstream
-            response_header_text(
-                string(header_receive_state.buffer.get(), header_receive_state.buffer_length));
+        std::istringstream response_header_text(string(
+            header_receive_state.buffer.get(),
+            header_receive_state.buffer_length));
         string header_line;
-        while (std::getline(response_header_text, header_line) && header_line != "\r")
+        while (std::getline(response_header_text, header_line)
+               && header_line != "\r")
         {
             auto index = header_line.find(':', 0);
             if (index != string::npos)
             {
-                response_headers[boost::algorithm::trim_copy(header_line.substr(0, index))] =
-                    boost::algorithm::trim_copy(header_line.substr(index + 1));
+                response_headers[boost::algorithm::trim_copy(
+                    header_line.substr(0, index))]
+                    = boost::algorithm::trim_copy(
+                        header_line.substr(index + 1));
             }
         }
     }
@@ -364,12 +377,11 @@ http_connection::perform_request(
     if (status_code < 200 || status_code > 299)
     {
         CRADLE_THROW(
-            bad_http_status_code() <<
-                attempted_http_request_info(request) <<
-                http_response_info(response));
+            bad_http_status_code() << attempted_http_request_info(request)
+                                   << http_response_info(response));
     }
 
     return response;
 }
 
-}
+} // namespace cradle

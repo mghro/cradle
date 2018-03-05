@@ -1,8 +1,8 @@
 #include <cradle/encodings/base64.hpp>
 
 #include <boost/scoped_array.hpp>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 
 namespace cradle {
 
@@ -20,8 +20,10 @@ get_base64_decoded_length(size_t encoded_length)
 
 void
 base64_encode(
-    char* dst, size_t* dst_size,
-    uint8_t const* src, size_t src_size,
+    char* dst,
+    size_t* dst_size,
+    uint8_t const* src,
+    size_t src_size,
     base64_character_set const& character_set)
 {
     uint8_t const* src_end = src + src_size;
@@ -62,31 +64,32 @@ base64_encode(
 
 string
 base64_encode(
-    uint8_t const* src, size_t src_size,
+    uint8_t const* src,
+    size_t src_size,
     base64_character_set const& character_set)
 {
-    boost::scoped_array<char> dst(new char[get_base64_encoded_length(src_size)]);
+    boost::scoped_array<char> dst(
+        new char[get_base64_encoded_length(src_size)]);
     size_t dst_size;
     base64_encode(dst.get(), &dst_size, src, src_size, character_set);
     return string(dst.get());
 }
 
 string
-base64_encode(
-    string const& source,
-    base64_character_set const& character_set)
+base64_encode(string const& source, base64_character_set const& character_set)
 {
-    return
-        base64_encode(
-            reinterpret_cast<uint8_t const*>(&source[0]),
-            source.length(),
-            character_set);
+    return base64_encode(
+        reinterpret_cast<uint8_t const*>(&source[0]),
+        source.length(),
+        character_set);
 }
 
 void
 base64_decode(
-    uint8_t* dst, size_t* dst_size,
-    char const* src, size_t src_size,
+    uint8_t* dst,
+    size_t* dst_size,
+    char const* src,
+    size_t src_size,
     base64_character_set const& character_set)
 {
     uint8_t reverse_mapping[0x100];
@@ -109,9 +112,9 @@ base64_decode(
         if (c0 > 63 || src == src_end)
         {
             CRADLE_THROW(
-                parsing_error() <<
-                    expected_format_info("base64") <<
-                    parsed_text_info(string(src_begin, src_end)));
+                parsing_error()
+                << expected_format_info("base64")
+                << parsed_text_info(string(src_begin, src_end)));
         }
 
         uint8_t c1 = reverse_mapping[uint8_t(*src)];
@@ -119,9 +122,9 @@ base64_decode(
         if (c1 > 63)
         {
             CRADLE_THROW(
-                parsing_error() <<
-                    expected_format_info("base64") <<
-                    parsed_text_info(string(src_begin, src_end)));
+                parsing_error()
+                << expected_format_info("base64")
+                << parsed_text_info(string(src_begin, src_end)));
         }
 
         *dst++ = (c0 << 2) | (c1 >> 4);
@@ -134,9 +137,9 @@ base64_decode(
         if (c2 > 63)
         {
             CRADLE_THROW(
-                parsing_error() <<
-                    expected_format_info("base64") <<
-                    parsed_text_info(string(src_begin, src_end)));
+                parsing_error()
+                << expected_format_info("base64")
+                << parsed_text_info(string(src_begin, src_end)));
         }
 
         *dst++ = ((c1 & 0xf) << 4) | (c2 >> 2);
@@ -149,9 +152,9 @@ base64_decode(
         if (c3 > 63)
         {
             CRADLE_THROW(
-                parsing_error() <<
-                    expected_format_info("base64") <<
-                    parsed_text_info(string(src_begin, src_end)));
+                parsing_error()
+                << expected_format_info("base64")
+                << parsed_text_info(string(src_begin, src_end)));
         }
 
         *dst++ = ((c2 & 0x3) << 6) | c3;
@@ -160,12 +163,10 @@ base64_decode(
 }
 
 string
-base64_decode(
-    string const& encoded,
-    base64_character_set const& character_set)
+base64_decode(string const& encoded, base64_character_set const& character_set)
 {
-    boost::scoped_array<char>
-        decoded(new char[get_base64_decoded_length(encoded.length())]);
+    boost::scoped_array<char> decoded(
+        new char[get_base64_decoded_length(encoded.length())]);
     size_t decoded_size;
     base64_decode(
         reinterpret_cast<uint8_t*>(decoded.get()),
@@ -176,4 +177,4 @@ base64_decode(
     return string(decoded.get(), decoded.get() + decoded_size);
 }
 
-}
+} // namespace cradle

@@ -11,7 +11,8 @@ strip_whitespace(string s)
     return s;
 }
 
-// Test that a JSON string can be translated to and from its expected dynamic form.
+// Test that a JSON string can be translated to and from its expected dynamic
+// form.
 static void
 test_json_encoding(string const& json, dynamic const& expected_value)
 {
@@ -31,8 +32,8 @@ test_json_encoding(string const& json, dynamic const& expected_value)
     REQUIRE(
         string(
             reinterpret_cast<char const*>(json_blob.data),
-            reinterpret_cast<char const*>(json_blob.data) + json_blob.size) ==
-        converted_json);
+            reinterpret_cast<char const*>(json_blob.data) + json_blob.size)
+        == converted_json);
 }
 
 TEST_CASE("basic JSON encoding", "[encodings][json]")
@@ -79,7 +80,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
         R"(
             [ 1, 2, 3 ]
         )",
-        dynamic({ integer(1), integer(2), integer(3) }));
+        dynamic({integer(1), integer(2), integer(3)}));
     test_json_encoding(
         R"(
             []
@@ -94,10 +95,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 "n": 4.125
             }
         )",
-        {
-            { "happy", true },
-            { "n", 4.125 }
-        });
+        {{"happy", true}, {"n", 4.125}});
 
     // Try a map with non-string keys.
     test_json_encoding(
@@ -113,11 +111,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 }
             ]
         )",
-        dynamic_map(
-            {
-                { false, "no" },
-                { true, "yes" }
-            }));
+        dynamic_map({{false, "no"}, {true, "yes"}}));
 
     // Try some other JSON that looks like the above.
     test_json_encoding(
@@ -131,14 +125,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 }
             ]
         )",
-        {
-            {
-                { "key", false }
-            },
-            {
-                { "key", true }
-            }
-        });
+        {{{"key", false}}, {{"key", true}}});
     test_json_encoding(
         R"(
             [
@@ -152,16 +139,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 }
             ]
         )",
-        {
-            {
-                { "key", false },
-                { "valu", "no" }
-            },
-            {
-                { "key", true },
-                { "valu", "yes" }
-            }
-        });
+        {{{"key", false}, {"valu", "no"}}, {{"key", true}, {"valu", "yes"}}});
     test_json_encoding(
         R"(
             [
@@ -175,16 +153,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 }
             ]
         )",
-        {
-            {
-                { "ke", false },
-                { "value", "no" }
-            },
-            {
-                { "ke", true },
-                { "value", "yes" }
-            }
-        });
+        {{{"ke", false}, {"value", "no"}}, {{"ke", true}, {"value", "yes"}}});
 
     // Try some ptimes.
     test_json_encoding(
@@ -192,19 +161,19 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
             "2017-04-26T01:02:03.000Z"
         )",
         ptime(
-            date(2017,boost::gregorian::Apr,26),
-            boost::posix_time::time_duration(1,2,3)));
+            date(2017, boost::gregorian::Apr, 26),
+            boost::posix_time::time_duration(1, 2, 3)));
     test_json_encoding(
         R"(
             "2017-05-26T13:02:03.456Z"
         )",
         ptime(
-            date(2017,boost::gregorian::May,26),
-            boost::posix_time::time_duration(13,2,3) +
-                boost::posix_time::milliseconds(456)));
+            date(2017, boost::gregorian::May, 26),
+            boost::posix_time::time_duration(13, 2, 3)
+                + boost::posix_time::milliseconds(456)));
 
-    // Try some thing that look like a ptime at first and check that they're just treated
-    // as strings.
+    // Try some thing that look like a ptime at first and check that they're
+    // just treated as strings.
     test_json_encoding(
         R"(
             "2017-05-26T13:13:03.456ZABC"
@@ -285,7 +254,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 "type": "blob"
             }
         )",
-        { { "type", "blob" }, { "blob", "asdf" } });
+        {{"type", "blob"}, {"blob", "asdf"}});
     test_json_encoding(
         R"(
             {
@@ -293,7 +262,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 "type": 12
             }
         )",
-        { { "type", integer(12) }, { "blob", "asdf" } });
+        {{"type", integer(12)}, {"blob", "asdf"}});
 }
 
 TEST_CASE("malformed JSON blob", "[encodings][json]")
@@ -311,11 +280,12 @@ TEST_CASE("malformed JSON blob", "[encodings][json]")
     catch (parsing_error& e)
     {
         REQUIRE(
-            get_required_error_info<expected_format_info>(e) == "base64-encoded-blob");
+            get_required_error_info<expected_format_info>(e)
+            == "base64-encoded-blob");
         REQUIRE(
-            strip_whitespace(get_required_error_info<parsed_text_info>(e)) ==
-            strip_whitespace(
-                R"(
+            strip_whitespace(get_required_error_info<parsed_text_info>(e))
+            == strip_whitespace(
+                   R"(
                     {
                         "type": "base64-encoded-blob"
                     }
@@ -340,11 +310,12 @@ TEST_CASE("malformed JSON blob", "[encodings][json]")
     catch (parsing_error& e)
     {
         REQUIRE(
-            get_required_error_info<expected_format_info>(e) == "base64-encoded-blob");
+            get_required_error_info<expected_format_info>(e)
+            == "base64-encoded-blob");
         REQUIRE(
-            strip_whitespace(get_required_error_info<parsed_text_info>(e)) ==
-            strip_whitespace(
-                R"(
+            strip_whitespace(get_required_error_info<parsed_text_info>(e))
+            == strip_whitespace(
+                   R"(
                     {
                         "blob": 4,
                         "type": "base64-encoded-blob"

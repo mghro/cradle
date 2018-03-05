@@ -23,15 +23,14 @@ create_directory_with_user_full_control_acl(string const& path)
     if (!CreateDirectory(lp_path, NULL))
         return false;
 
-    HANDLE h_dir =
-        CreateFile(
-            lp_path,
-            READ_CONTROL | WRITE_DAC,
-            0,
-            NULL,
-            OPEN_EXISTING,
-            FILE_FLAG_BACKUP_SEMANTICS,
-            NULL);
+    HANDLE h_dir = CreateFile(
+        lp_path,
+        READ_CONTROL | WRITE_DAC,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,
+        NULL);
     if (h_dir == INVALID_HANDLE_VALUE)
         return false;
 
@@ -39,12 +38,13 @@ create_directory_with_user_full_control_acl(string const& path)
     SECURITY_DESCRIPTOR* p_sd = NULL;
     GetSecurityInfo(
         h_dir,
-        SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,
+        SE_FILE_OBJECT,
+        DACL_SECURITY_INFORMATION,
         NULL,
         NULL,
         &p_old_dacl,
         NULL,
-        (void**)&p_sd);
+        (void**) &p_sd);
 
     PSID p_sid = NULL;
     SID_IDENTIFIER_AUTHORITY auth_nt = SECURITY_NT_AUTHORITY;
@@ -64,10 +64,10 @@ create_directory_with_user_full_control_acl(string const& path)
     EXPLICIT_ACCESS ea = {0};
     ea.grfAccessMode = GRANT_ACCESS;
     ea.grfAccessPermissions = GENERIC_ALL;
-    ea.grfInheritance = CONTAINER_INHERIT_ACE|OBJECT_INHERIT_ACE;
+    ea.grfInheritance = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE;
     ea.Trustee.TrusteeType = TRUSTEE_IS_GROUP;
     ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-    ea.Trustee.ptstrName = (LPTSTR)p_sid;
+    ea.Trustee.ptstrName = (LPTSTR) p_sid;
 
     ACL* p_new_dacl = 0;
     SetEntriesInAcl(1, &ea, p_old_dacl, &p_new_dacl);
@@ -76,7 +76,8 @@ create_directory_with_user_full_control_acl(string const& path)
     {
         SetSecurityInfo(
             h_dir,
-            SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION,
             NULL,
             NULL,
             p_new_dacl,
@@ -101,8 +102,7 @@ create_directory_if_needed(file_path const& dir, bool shared = false)
             if (!create_directory_with_user_full_control_acl(dir.string()))
             {
                 CRADLE_THROW(
-                    directory_creation_failure() <<
-                    directory_path_info(dir));
+                    directory_creation_failure() << directory_path_info(dir));
             }
         }
         else
@@ -130,8 +130,7 @@ get_app_dir(
     if (SHGetFolderPath(NULL, csidl_folder, NULL, 0, path) != S_OK)
     {
         CRADLE_THROW(
-            system_call_failed() <<
-            failed_system_call_info("SHGetFolderPath"));
+            system_call_failed() << failed_system_call_info("SHGetFolderPath"));
     }
     file_path app_data_dir(path, boost::filesystem::native);
     file_path app_dir;
@@ -154,23 +153,27 @@ get_app_dir(
 file_path
 get_user_config_dir(optional<string> const& author_name, string const& app_name)
 {
-    auto user_app_dir = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, true);
+    auto user_app_dir
+        = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, true);
     auto user_config_dir = user_app_dir / "config";
     create_directory_if_needed(user_config_dir);
     return user_config_dir;
 }
 
 std::vector<file_path>
-get_config_search_path(optional<string> const& author_name, string const& app_name)
+get_config_search_path(
+    optional<string> const& author_name, string const& app_name)
 {
     std::vector<file_path> path;
 
-    auto user_app_dir = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, false);
+    auto user_app_dir
+        = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, false);
     auto user_config_dir = user_app_dir / "config";
     if (exists(user_config_dir))
         path.push_back(user_config_dir);
 
-    auto shared_app_dir = get_app_dir(CSIDL_COMMON_APPDATA, author_name, app_name, false);
+    auto shared_app_dir
+        = get_app_dir(CSIDL_COMMON_APPDATA, author_name, app_name, false);
     auto shared_config_dir = shared_app_dir / "config";
     if (exists(shared_config_dir))
         path.push_back(shared_config_dir);
@@ -181,16 +184,19 @@ get_config_search_path(optional<string> const& author_name, string const& app_na
 file_path
 get_user_cache_dir(optional<string> const& author_name, string const& app_name)
 {
-    auto user_app_dir = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, true);
+    auto user_app_dir
+        = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, true);
     auto user_cache_dir = user_app_dir / "cache";
     create_directory_if_needed(user_cache_dir);
     return user_cache_dir;
 }
 
 file_path
-get_shared_cache_dir(optional<string> const& author_name, string const& app_name)
+get_shared_cache_dir(
+    optional<string> const& author_name, string const& app_name)
 {
-    auto shared_app_dir = get_app_dir(CSIDL_COMMON_APPDATA, author_name, app_name, true, true);
+    auto shared_app_dir
+        = get_app_dir(CSIDL_COMMON_APPDATA, author_name, app_name, true, true);
     auto shared_cache_dir = shared_app_dir / "cache";
     create_directory_if_needed(shared_cache_dir, true);
     return shared_cache_dir;
@@ -236,7 +242,8 @@ get_user_config_dir(optional<string> const& author_name, string const& app_name)
 }
 
 std::vector<file_path>
-get_config_search_path(optional<string> const& author_name, string const& app_name)
+get_config_search_path(
+    optional<string> const& author_name, string const& app_name)
 {
     std::vector<file_path> search_path;
 
@@ -250,7 +257,7 @@ get_config_search_path(optional<string> const& author_name, string const& app_na
     if (!xdg_config_dirs)
         xdg_config_dirs = "/etc/xdg";
     std::vector<string> dirs;
-    boost::split(dirs, *xdg_config_dirs, [ ](char c) { return c == ':'; });
+    boost::split(dirs, *xdg_config_dirs, [](char c) { return c == ':'; });
 
     // Filter for directories that contain a subdirectory for this app.
     for (auto const& dir : dirs)
@@ -290,7 +297,8 @@ get_user_cache_dir(optional<string> const& author_name, string const& app_name)
 }
 
 file_path
-get_shared_cache_dir(optional<string> const& author_name, string const& app_name)
+get_shared_cache_dir(
+    optional<string> const& author_name, string const& app_name)
 {
     return get_user_cache_dir(author_name, app_name);
 }
@@ -309,4 +317,4 @@ search_in_path(std::vector<file_path> const& search_path, file_path const& item)
     return none;
 }
 
-}
+} // namespace cradle

@@ -36,17 +36,17 @@ enum class {{type_info.name}}
 template<>
 struct type_info_query<{{type_info.name}}>
 {
-    void static
+    static void
     get(api_type_info* info);
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof({{type_info.name}} const& x)
 {
     return sizeof(int);
 }
 
-size_t static inline
+static inline size_t
 hash_value({{type_info.name}} const& x)
 {
     return size_t(x);

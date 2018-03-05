@@ -23,7 +23,8 @@ struct websocket_client
 
     void
     set_message_handler(
-        std::function<void(websocket_server_message const& message)> const& handler);
+        std::function<void(websocket_server_message const& message)> const&
+            handler);
 
     void
     set_open_handler(std::function<void()> const& handler);
@@ -41,6 +42,6 @@ struct websocket_client
     websocket_client_impl* impl_;
 };
 
-}
+} // namespace cradle
 
 #endif

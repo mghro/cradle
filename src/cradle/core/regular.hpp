@@ -3,19 +3,18 @@
 
 #include <boost/concept_check.hpp>
 
-#include <cradle/core/utilities.hpp>
 #include <cradle/core/type_interfaces.hpp>
+#include <cradle/core/utilities.hpp>
 
 namespace cradle {
 
 // The Regular concept describes CRADLE regular types.
 template<class T>
-struct Regular
-  : boost::DefaultConstructible<T>,
-    boost::Assignable<T>,
-    boost::CopyConstructible<T>,
-    boost::EqualityComparable<T>,
-    boost::LessThanComparable<T>
+struct Regular : boost::DefaultConstructible<T>,
+                 boost::Assignable<T>,
+                 boost::CopyConstructible<T>,
+                 boost::EqualityComparable<T>,
+                 boost::LessThanComparable<T>
 {
     BOOST_CONCEPT_USAGE(Regular)
     {
@@ -43,12 +42,14 @@ struct Regular
     // Check that the types of the two arguments are the same.
     // (Type deduction will fail if they're not.)
     template<class U>
-    void check_same_type(U const&, U const&)
-    {}
+    void
+    check_same_type(U const&, U const&)
+    {
+    }
 };
 
 typedef nil_t regular_archetype;
 
-}
+} // namespace cradle
 
 #endif

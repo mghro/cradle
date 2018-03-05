@@ -18,15 +18,21 @@ namespace cradle {
 
 static inline bool
 operator==(nil_t a, nil_t b)
-{ return true; }
+{
+    return true;
+}
 
 static inline bool
 operator!=(nil_t a, nil_t b)
-{ return false; }
+{
+    return false;
+}
 
 static inline bool
 operator<(nil_t a, nil_t b)
-{ return false; }
+{
+    return false;
+}
 
 template<>
 struct type_info_query<nil_t>
@@ -38,8 +44,7 @@ struct type_info_query<nil_t>
     }
 };
 
-static inline size_t
-deep_sizeof(nil_t)
+static inline size_t deep_sizeof(nil_t)
 {
     return 0;
 }
@@ -50,11 +55,13 @@ struct dynamic;
 // are required to provide a default-constructed dynamic, which is already nil.
 static inline void
 to_dynamic(dynamic* v, nil_t n)
-{}
+{
+}
 
 static inline void
 from_dynamic(nil_t* n, dynamic const& v)
-{}
+{
+}
 
 static inline size_t
 hash_value(nil_t x)
@@ -88,33 +95,31 @@ from_dynamic(bool* x, dynamic const& v);
 
 // INTEGERS AND FLOATS
 
-#define CRADLE_DECLARE_NUMBER_INTERFACE(T) \
-    void \
-    to_dynamic(dynamic* v, T x); \
-    \
-    void \
-    from_dynamic(T* x, dynamic const& v); \
-    \
-    static inline size_t \
-    deep_sizeof(T) { return sizeof(T); }
+#define CRADLE_DECLARE_NUMBER_INTERFACE(T)                                     \
+    void to_dynamic(dynamic* v, T x);                                          \
+                                                                               \
+    void from_dynamic(T* x, dynamic const& v);                                 \
+                                                                               \
+    static inline size_t deep_sizeof(T)                                        \
+    {                                                                          \
+        return sizeof(T);                                                      \
+    }
 
-#define CRADLE_DECLARE_INTEGER_INTERFACE(T) \
-    template<> \
-    struct type_info_query<T> \
-    { \
-        static void \
-        get(api_type_info* info) \
-        { \
-            *info = make_api_type_info_with_integer(api_integer_type()); \
-        } \
-    }; \
-    \
-    integer \
-    to_integer(T x); \
-    \
-    void \
-    from_integer(T* x, integer n); \
-    \
+#define CRADLE_DECLARE_INTEGER_INTERFACE(T)                                    \
+    template<>                                                                 \
+    struct type_info_query<T>                                                  \
+    {                                                                          \
+        static void                                                            \
+        get(api_type_info* info)                                               \
+        {                                                                      \
+            *info = make_api_type_info_with_integer(api_integer_type());       \
+        }                                                                      \
+    };                                                                         \
+                                                                               \
+    integer to_integer(T x);                                                   \
+                                                                               \
+    void from_integer(T* x, integer n);                                        \
+                                                                               \
     CRADLE_DECLARE_NUMBER_INTERFACE(T)
 
 CRADLE_DECLARE_INTEGER_INTERFACE(signed char)
@@ -128,16 +133,16 @@ CRADLE_DECLARE_INTEGER_INTERFACE(unsigned long)
 CRADLE_DECLARE_INTEGER_INTERFACE(signed long long)
 CRADLE_DECLARE_INTEGER_INTERFACE(unsigned long long)
 
-#define CRADLE_DECLARE_FLOAT_INTERFACE(T) \
-    template<> \
-    struct type_info_query<T> \
-    { \
-        static void \
-        get(api_type_info* info) \
-        { \
-            *info = make_api_type_info_with_float(api_float_type()); \
-        } \
-    }; \
+#define CRADLE_DECLARE_FLOAT_INTERFACE(T)                                      \
+    template<>                                                                 \
+    struct type_info_query<T>                                                  \
+    {                                                                          \
+        static void                                                            \
+        get(api_type_info* info)                                               \
+        {                                                                      \
+            *info = make_api_type_info_with_float(api_float_type());           \
+        }                                                                      \
+    };                                                                         \
     CRADLE_DECLARE_NUMBER_INTERFACE(T)
 
 CRADLE_DECLARE_FLOAT_INTERFACE(float)
@@ -172,7 +177,8 @@ from_dynamic(string* x, dynamic const& v);
 using boost::gregorian::date;
 
 // Get the preferred CRADLE string representation of a date (YYYY-MM-DD).
-string to_string(date const& d);
+string
+to_string(date const& d);
 
 void
 to_dynamic(dynamic* v, date const& x);
@@ -190,15 +196,15 @@ struct type_info_query<date>
     }
 };
 
-static inline size_t
-deep_sizeof(date)
+static inline size_t deep_sizeof(date)
 {
     return sizeof(date);
 }
 
-}
+} // namespace cradle
 
-namespace boost { namespace gregorian {
+namespace boost {
+namespace gregorian {
 
 static inline size_t
 hash_value(date const& x)
@@ -206,7 +212,8 @@ hash_value(date const& x)
     return cradle::invoke_hash(cradle::to_string(x));
 }
 
-}}
+} // namespace gregorian
+} // namespace boost
 
 namespace cradle {
 
@@ -215,7 +222,8 @@ namespace cradle {
 using boost::posix_time::ptime;
 
 // Get the preferred user-readable string representation of a ptime.
-string to_string(ptime const& t);
+string
+to_string(ptime const& t);
 
 // Get the preferred representation for encoding a ptime as a string.
 // (This preserves milliseconds.)
@@ -238,15 +246,15 @@ struct type_info_query<ptime>
     }
 };
 
-static inline size_t
-deep_sizeof(ptime)
+static inline size_t deep_sizeof(ptime)
 {
     return sizeof(ptime);
 }
 
-}
+} // namespace cradle
 
-namespace boost { namespace posix_time {
+namespace boost {
+namespace posix_time {
 
 static inline size_t
 hash_value(ptime const& x)
@@ -254,7 +262,8 @@ hash_value(ptime const& x)
     return cradle::invoke_hash(cradle::to_string(x));
 }
 
-}}
+} // namespace posix_time
+} // namespace boost
 
 namespace cradle {
 
@@ -265,7 +274,9 @@ operator==(blob const& a, blob const& b);
 
 static inline bool
 operator!=(blob const& a, blob const& b)
-{ return !(a == b); }
+{
+    return !(a == b);
+}
 
 bool
 operator<(blob const& a, blob const& b);
@@ -377,7 +388,7 @@ deep_sizeof(std::vector<T> const& x)
 
 template<class T, size_t N>
 void
-to_dynamic(dynamic* v, std::array<T,N> const& x)
+to_dynamic(dynamic* v, std::array<T, N> const& x)
 {
     dynamic_array l;
     l.resize(N);
@@ -390,7 +401,7 @@ to_dynamic(dynamic* v, std::array<T,N> const& x)
 
 template<class T, size_t N>
 void
-from_dynamic(std::array<T,N>* x, dynamic const& v)
+from_dynamic(std::array<T, N>* x, dynamic const& v)
 {
     if (N == 0)
     {
@@ -420,7 +431,7 @@ from_dynamic(std::array<T,N>* x, dynamic const& v)
 }
 
 template<class T, size_t N>
-struct type_info_query<std::array<T,N>>
+struct type_info_query<std::array<T, N>>
 {
     static void
     get(api_type_info* info)
@@ -434,7 +445,7 @@ struct type_info_query<std::array<T,N>>
 
 template<class T, size_t N>
 size_t
-deep_sizeof(std::array<T,N> const& x)
+deep_sizeof(std::array<T, N> const& x)
 {
     size_t size = 0;
     for (auto const& i : x)
@@ -446,7 +457,7 @@ deep_sizeof(std::array<T,N> const& x)
 
 template<class Key, class Value>
 void
-to_dynamic(dynamic* v, std::map<Key,Value> const& x)
+to_dynamic(dynamic* v, std::map<Key, Value> const& x)
 {
     dynamic_map map;
     for (auto const& i : x)
@@ -456,7 +467,7 @@ to_dynamic(dynamic* v, std::map<Key,Value> const& x)
 
 template<class Key, class Value>
 void
-from_dynamic(std::map<Key,Value>* x, dynamic const& v)
+from_dynamic(std::map<Key, Value>* x, dynamic const& v)
 {
     // Certain ways of encoding values (e.g., JSON) have the same
     // representation for empty arrays and empty maps, so if we encounter an
@@ -483,7 +494,7 @@ from_dynamic(std::map<Key,Value>* x, dynamic const& v)
 }
 
 template<class Key, class Value>
-struct type_info_query<std::map<Key,Value>>
+struct type_info_query<std::map<Key, Value>>
 {
     static void
     get(api_type_info* info)
@@ -497,9 +508,9 @@ struct type_info_query<std::map<Key,Value>>
 
 template<class Key, class Value>
 size_t
-deep_sizeof(std::map<Key,Value> const& x)
+deep_sizeof(std::map<Key, Value> const& x)
 {
-    size_t size = sizeof(std::map<Key,Value>);
+    size_t size = sizeof(std::map<Key, Value>);
     for (auto const& i : x)
         size += deep_sizeof(i.first) + deep_sizeof(i.second);
     return size;
@@ -567,7 +578,7 @@ from_dynamic(optional<T>* x, cradle::dynamic const& v)
     }
 }
 
-}
+} // namespace cradle
 
 namespace boost {
 
@@ -578,6 +589,6 @@ hash_value(optional<T> const& x)
     return x ? cradle::invoke_hash(x.get()) : 0;
 }
 
-}
+} // namespace boost
 
 #endif

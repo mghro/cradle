@@ -9,10 +9,8 @@ open_file(std::fstream& file, file_path const& path, std::ios::openmode mode)
     if (!file)
     {
         CRADLE_THROW(
-            open_file_error() <<
-                file_path_info(path) <<
-                open_mode_info(mode) <<
-                internal_error_message_info(strerror(errno)));
+            open_file_error() << file_path_info(path) << open_mode_info(mode)
+                              << internal_error_message_info(strerror(errno)));
     }
     file.exceptions(std::ios::eofbit | std::ios::failbit | std::ios::badbit);
 }
@@ -23,10 +21,8 @@ open_file(std::ifstream& file, file_path const& path, std::ios::openmode mode)
     if (!file)
     {
         CRADLE_THROW(
-            open_file_error() <<
-                file_path_info(path) <<
-                open_mode_info(mode) <<
-                internal_error_message_info(strerror(errno)));
+            open_file_error() << file_path_info(path) << open_mode_info(mode)
+                              << internal_error_message_info(strerror(errno)));
     }
     file.exceptions(std::ios::eofbit | std::ios::failbit | std::ios::badbit);
 }
@@ -37,10 +33,8 @@ open_file(std::ofstream& file, file_path const& path, std::ios::openmode mode)
     if (!file)
     {
         CRADLE_THROW(
-            open_file_error() <<
-                file_path_info(path) <<
-                open_mode_info(mode) <<
-                internal_error_message_info(strerror(errno)));
+            open_file_error() << file_path_info(path) << open_mode_info(mode)
+                              << internal_error_message_info(strerror(errno)));
     }
     file.exceptions(std::ios::eofbit | std::ios::failbit | std::ios::badbit);
 }
@@ -67,4 +61,4 @@ dump_string_to_file(file_path const& path, string const& contents)
     output << contents;
 }
 
-}
+} // namespace cradle

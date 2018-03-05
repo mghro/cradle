@@ -70,29 +70,29 @@ make_{{type_info.name}}(Args ...args)
 template<>
 struct type_info_query<{{type_info.name}}>
 {
-    void static
+    static void
     get(api_type_info* info);
 };
 
 bool
 operator==({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-bool static inline
+static inline bool
 operator!=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a == b); }
 
 bool
 operator<({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-bool static inline
+static inline bool
 operator<=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(b < a); }
 
-bool static inline
+static inline bool
 operator>({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return b < a; }
 
-bool static inline
+static inline bool
 operator>=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a < b); }
 

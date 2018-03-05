@@ -51,7 +51,7 @@ retrieve_calculation_request(
 void
 long_poll_calculation_status(
     check_in_interface& check_in,
-    std::function<void (calculation_status const&)> const& process_status,
+    std::function<void(calculation_status const&)> const& process_status,
     http_connection_interface& connection,
     thinknode_session const& session,
     string const& context_id,
@@ -60,7 +60,7 @@ long_poll_calculation_status(
 // Substitute the variables in a Thinknode request for new requests.
 calculation_request
 substitute_variables(
-    std::map<string,calculation_request> const& substitutions,
+    std::map<string, calculation_request> const& substitutions,
     calculation_request const& request);
 
 struct calculation_submission_interface
@@ -78,7 +78,8 @@ struct calculation_submission_interface
         thinknode_session const& session,
         string const& context_id,
         calculation_request const& request,
-        bool dry_run) = 0;
+        bool dry_run)
+        = 0;
 };
 
 // This is an alternative to Thinknode's meta request functionality that uses
@@ -110,6 +111,6 @@ submit_let_calculation_request(
     augmented_calculation_request const& request,
     bool dry_run = false);
 
-}
+} // namespace cradle
 
 #endif

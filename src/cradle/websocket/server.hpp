@@ -29,6 +29,6 @@ struct websocket_server
     websocket_server_impl* impl_;
 };
 
-}
+} // namespace cradle
 
 #endif

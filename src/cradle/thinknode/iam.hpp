@@ -14,6 +14,6 @@ get_context_contents(
     thinknode_session const& session,
     string const& context_id);
 
-}
+} // namespace cradle
 
 #endif

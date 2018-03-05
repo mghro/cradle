@@ -1,8 +1,8 @@
 #ifndef CRADLE_FS_TYPES_HPP
 #define CRADLE_FS_TYPES_HPP
 
-#include <cradle/common.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cradle/common.hpp>
 
 namespace cradle {
 
@@ -12,6 +12,6 @@ namespace cradle {
 // pretty common usage (e.g., Chromium does it too).)
 typedef boost::filesystem::path file_path;
 
-}
+} // namespace cradle
 
 #endif

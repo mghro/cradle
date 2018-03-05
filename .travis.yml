@@ -18,3 +18,4 @@ script:
   - python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
   - ./fips make unit_test_coverage
   - ./fips make integration_tests
+  - scripts/check-code-styling.sh

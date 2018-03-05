@@ -1,10 +1,10 @@
 #include <cradle/disk_cache.hpp>
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/mutex.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include <sqlite3.h>
 
@@ -56,22 +56,23 @@ open_db(sqlite3** db, file_path const& file)
     if (sqlite3_open(file.string().c_str(), db) != SQLITE_OK)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(file.parent_path()) <<
-                internal_error_message_info("failed to create disk cache index file (index.db)"));
+            disk_cache_failure()
+            << disk_cache_path_info(file.parent_path())
+            << internal_error_message_info(
+                   "failed to create disk cache index file (index.db)"));
     }
 }
 
 static void
-throw_query_error(disk_cache_impl const& cache, string const& sql, string const& error)
+throw_query_error(
+    disk_cache_impl const& cache, string const& sql, string const& error)
 {
     CRADLE_THROW(
-        disk_cache_failure() <<
-            disk_cache_path_info(cache.dir) <<
-            internal_error_message_info(
-                "error executing SQL query in index.db\n"
-                "SQL query: " + sql + "\n" +
-                "error: " + error));
+        disk_cache_failure() << disk_cache_path_info(cache.dir)
+                             << internal_error_message_info(
+                                    "error executing SQL query in index.db\n"
+                                    "SQL query: "
+                                    + sql + "\n" + "error: " + error));
 }
 
 static string
@@ -90,7 +91,7 @@ copy_and_free_message(char* msg)
 static void
 execute_sql(disk_cache_impl const& cache, string const& sql)
 {
-    char *msg;
+    char* msg;
     int code = sqlite3_exec(cache.db, sql.c_str(), 0, 0, &msg);
     string error = copy_and_free_message(msg);
     if (code != SQLITE_OK)
@@ -104,10 +105,10 @@ check_sqlite_code(disk_cache_impl const& cache, int code)
     if (code != SQLITE_OK)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info(
-                    string("SQLite error: ") + sqlite3_errstr(code)));
+            disk_cache_failure()
+            << disk_cache_path_info(cache.dir)
+            << internal_error_message_info(
+                   string("SQLite error: ") + sqlite3_errstr(code)));
     }
 }
 
@@ -118,21 +119,23 @@ static sqlite3_stmt*
 prepare_statement(disk_cache_impl const& cache, string const& sql)
 {
     sqlite3_stmt* statement;
-    auto code =
-        sqlite3_prepare_v2(
-            cache.db,
-            sql.c_str(), boost::numeric_cast<int>(sql.length()),
-            &statement,
-            nullptr);
+    auto code = sqlite3_prepare_v2(
+        cache.db,
+        sql.c_str(),
+        boost::numeric_cast<int>(sql.length()),
+        &statement,
+        nullptr);
     if (code != SQLITE_OK)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info(
-                    "error preparing SQL query\n"
-                    "SQL query: " + sql + "\n"
-                    "error: " + sqlite3_errstr(code)));
+            disk_cache_failure() << disk_cache_path_info(cache.dir)
+                                 << internal_error_message_info(
+                                        "error preparing SQL query\n"
+                                        "SQL query: "
+                                        + sql
+                                        + "\n"
+                                          "error: "
+                                        + sqlite3_errstr(code)));
     }
     return statement;
 }
@@ -146,8 +149,7 @@ bind_int32(
     int value)
 {
     check_sqlite_code(
-        cache,
-        sqlite3_bind_int(statement, parameter_index, value));
+        cache, sqlite3_bind_int(statement, parameter_index, value));
 }
 
 // Bind a 64-bit integer to a parameter of a prepared statement.
@@ -159,8 +161,7 @@ bind_int64(
     int64_t value)
 {
     check_sqlite_code(
-        cache,
-        sqlite3_bind_int64(statement, parameter_index, value));
+        cache, sqlite3_bind_int64(statement, parameter_index, value));
 }
 
 // Bind a string to a parameter of a prepared statement.
@@ -204,17 +205,17 @@ bind_blob(
 // that it finished successfully.
 // This should only be used for statements that don't return results.
 static void
-execute_prepared_statement(disk_cache_impl const& cache, sqlite3_stmt* statement)
+execute_prepared_statement(
+    disk_cache_impl const& cache, sqlite3_stmt* statement)
 {
     auto code = sqlite3_step(statement);
     if (code != SQLITE_DONE)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info(
-                    string("SQL query failed\n") +
-                    "error: " + sqlite3_errstr(code)));
+            disk_cache_failure() << disk_cache_path_info(cache.dir)
+                                 << internal_error_message_info(
+                                        string("SQL query failed\n")
+                                        + "error: " + sqlite3_errstr(code)));
     }
     check_sqlite_code(cache, sqlite3_reset(statement));
 }
@@ -251,17 +252,15 @@ read_int64(sqlite_row& row, int column_index)
 static string
 read_string(sqlite_row& row, int column_index)
 {
-    return
-        reinterpret_cast<char const*>(
-            sqlite3_column_text(row.statement, column_index));
+    return reinterpret_cast<char const*>(
+        sqlite3_column_text(row.statement, column_index));
 }
 
 static string
 read_blob(sqlite_row& row, int column_index)
 {
-    return
-        reinterpret_cast<char const*>(
-            sqlite3_column_blob(row.statement, column_index));
+    return reinterpret_cast<char const*>(
+        sqlite3_column_blob(row.statement, column_index));
 }
 
 // Execute a prepared statement (with variables already bound to it), pass all
@@ -294,10 +293,10 @@ execute_prepared_statement(
             if (sqlite3_column_count(statement) != expected_columns.value)
             {
                 CRADLE_THROW(
-                    disk_cache_failure() <<
-                        disk_cache_path_info(cache.dir) <<
-                        internal_error_message_info(
-                            string("SQL query result column count incorrect\n")));
+                    disk_cache_failure()
+                    << disk_cache_path_info(cache.dir)
+                    << internal_error_message_info(string(
+                           "SQL query result column count incorrect\n")));
             }
             sqlite_row row;
             row.statement = statement;
@@ -312,19 +311,17 @@ execute_prepared_statement(
     if (code != SQLITE_DONE)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info(
-                    string("SQL query failed\n") +
-                    "error: " + sqlite3_errstr(code)));
+            disk_cache_failure() << disk_cache_path_info(cache.dir)
+                                 << internal_error_message_info(
+                                        string("SQL query failed\n")
+                                        + "error: " + sqlite3_errstr(code)));
     }
     if (single_row.value && row_count != 1)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info(
-                    string("SQL query row count incorrect\n")));
+            disk_cache_failure() << disk_cache_path_info(cache.dir)
+                                 << internal_error_message_info(string(
+                                        "SQL query row count incorrect\n")));
     }
     check_sqlite_code(cache, sqlite3_reset(statement));
 }
@@ -341,10 +338,7 @@ get_cache_size(disk_cache_impl& cache)
         cache.cache_size_query,
         expected_column_count{1},
         single_row_result{true},
-        [&](sqlite_row& row)
-        {
-            size = read_int64(row, 0);
-        });
+        [&](sqlite_row& row) { size = read_int64(row, 0); });
     return size;
 }
 
@@ -358,16 +352,12 @@ get_cache_entry_count(disk_cache_impl& cache)
         cache.entry_count_query,
         expected_column_count{1},
         single_row_result{true},
-        [&](sqlite_row& row)
-        {
-            count = read_int64(row, 0);
-        });
+        [&](sqlite_row& row) { count = read_int64(row, 0); });
     return count;
 }
 
 // Get a list of entries in the cache.
-std::vector<disk_cache_entry> static
-get_entry_list(disk_cache_impl& cache)
+std::vector<disk_cache_entry> static get_entry_list(disk_cache_impl& cache)
 {
     std::vector<disk_cache_entry> entries;
     execute_prepared_statement(
@@ -375,8 +365,7 @@ get_entry_list(disk_cache_impl& cache)
         cache.entry_list_query,
         expected_column_count{5},
         single_row_result{false},
-        [&](sqlite_row& row)
-        {
+        [&](sqlite_row& row) {
             disk_cache_entry e;
             e.key = read_string(row, 0);
             e.id = read_int64(row, 1);
@@ -404,8 +393,7 @@ get_lru_entries(disk_cache_impl& cache)
         cache.lru_entry_list_query,
         expected_column_count{3},
         single_row_result{false},
-        [&](sqlite_row& row)
-        {
+        [&](sqlite_row& row) {
             lru_entry e;
             e.id = read_int64(row, 0);
             e.size = has_value(row, 1) ? read_int64(row, 1) : 0;
@@ -416,11 +404,8 @@ get_lru_entries(disk_cache_impl& cache)
 }
 
 // Get the entry associated with a particular key (if any).
-optional<disk_cache_entry> static
-look_up(
-    disk_cache_impl const& cache,
-    string const& key,
-    bool only_if_valid)
+optional<disk_cache_entry> static look_up(
+    disk_cache_impl const& cache, string const& key, bool only_if_valid)
 {
     bool exists = false;
     int64_t id = 0;
@@ -436,8 +421,7 @@ look_up(
         cache.look_up_entry_query,
         expected_column_count{6},
         single_row_result{false},
-        [&](sqlite_row& row)
-        {
+        [&](sqlite_row& row) {
             id = read_int64(row, 0);
             valid = read_bool(row, 1);
             in_db = has_value(row, 2) && read_bool(row, 2);
@@ -447,10 +431,9 @@ look_up(
             exists = true;
         });
 
-    return
-        (exists && (!only_if_valid || valid))
-      ? some(make_disk_cache_entry(key, id, in_db, value, size, crc32))
-      : none;
+    return (exists && (!only_if_valid || valid))
+               ? some(make_disk_cache_entry(key, id, in_db, value, size, crc32))
+               : none;
 }
 
 // OTHER UTILITIES
@@ -470,9 +453,7 @@ remove_entry(disk_cache_impl& cache, int64_t id, bool remove_file = true)
         remove(path);
 
     bind_int64(cache, cache.remove_entry_statement, 1, id);
-    execute_prepared_statement(
-        cache,
-        cache.remove_entry_statement);
+    execute_prepared_statement(cache, cache.remove_entry_statement);
 }
 
 static void
@@ -484,9 +465,8 @@ enforce_cache_size_limit(disk_cache_impl& cache)
         if (size > cache.size_limit)
         {
             auto lru_entries = get_lru_entries(cache);
-            std::vector<lru_entry>::const_iterator
-                i = lru_entries.begin(),
-                end_i = lru_entries.end();
+            std::vector<lru_entry>::const_iterator i = lru_entries.begin(),
+                                                   end_i = lru_entries.end();
             while (size > cache.size_limit && i != end_i)
             {
                 try
@@ -517,9 +497,7 @@ static void
 record_usage_to_db(disk_cache_impl const& cache, int64_t id)
 {
     bind_int64(cache, cache.record_usage_statement, 1, id);
-    execute_prepared_statement(
-        cache,
-        cache.record_usage_statement);
+    execute_prepared_statement(cache, cache.record_usage_statement);
 }
 
 static void
@@ -534,8 +512,9 @@ void
 record_cache_growth(disk_cache_impl& cache, size_t size)
 {
     cache.bytes_inserted_since_last_sweep += size;
-    // Allow the cache to write out roughly 1% of its capacity between size checks.
-    // (So it could exceed its limit slightly, but only temporarily, and not by much.)
+    // Allow the cache to write out roughly 1% of its capacity between size
+    // checks. (So it could exceed its limit slightly, but only temporarily, and
+    // not by much.)
     if (cache.bytes_inserted_since_last_sweep > cache.size_limit / 0x80)
         enforce_cache_size_limit(cache);
 }
@@ -572,22 +551,21 @@ open_and_check_db(disk_cache_impl& cache)
     open_db(&cache.db, cache.dir / "index.db");
 
     // Get the version number embedded in the database.
-    cache.database_version_query = prepare_statement(cache, "pragma user_version;");
+    cache.database_version_query
+        = prepare_statement(cache, "pragma user_version;");
     int database_version;
     execute_prepared_statement(
         cache,
         cache.database_version_query,
         expected_column_count{1},
         single_row_result{true},
-        [&](sqlite_row& row)
-        {
-            database_version = read_int32(row, 0);
-        });
+        [&](sqlite_row& row) { database_version = read_int32(row, 0); });
 
     // A database_version of 0 indicates a fresh database, so initialize it.
     if (database_version == 0)
     {
-        execute_sql(cache,
+        execute_sql(
+            cache,
             "create table entries("
             " id integer primary key,"
             " key text unique not null,"
@@ -597,23 +575,26 @@ open_and_check_db(disk_cache_impl& cache)
             " value blob,"
             " size integer,"
             " crc32 integer);");
-        execute_sql(cache,
-            "pragma user_version = " + lexical_cast<string>(expected_database_version) + ";");
+        execute_sql(
+            cache,
+            "pragma user_version = "
+                + lexical_cast<string>(expected_database_version) + ";");
     }
     // If we find a database from a different version, abort.
     else if (database_version != expected_database_version)
     {
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info("incompatible database"));
+            disk_cache_failure()
+            << disk_cache_path_info(cache.dir)
+            << internal_error_message_info("incompatible database"));
     }
 }
 
 static void
 initialize(disk_cache_impl& cache, disk_cache_config const& config)
 {
-    cache.dir = config.directory ? *config.directory : get_shared_cache_dir(none, "cradle");
+    cache.dir = config.directory ? *config.directory
+                                 : get_shared_cache_dir(none, "cradle");
     // Create the directory if it doesn't exist.
     if (!exists(cache.dir))
         create_directory(cache.dir);
@@ -631,59 +612,55 @@ initialize(disk_cache_impl& cache, disk_cache_config const& config)
         // database, so shut everything down, clear out the directory, and try
         // again.
         shut_down(cache);
-        for (boost::filesystem::directory_iterator end, i(cache.dir); i != end; ++i)
+        for (boost::filesystem::directory_iterator end, i(cache.dir); i != end;
+             ++i)
             remove_all(i->path());
         open_and_check_db(cache);
     }
 
     // Set various performance tuning flags.
-    execute_sql(cache,
-        "pragma synchronous = off;");
-    execute_sql(cache,
-        "pragma locking_mode = exclusive;");
-    execute_sql(cache,
-        "pragma journal_mode = memory;");
+    execute_sql(cache, "pragma synchronous = off;");
+    execute_sql(cache, "pragma locking_mode = exclusive;");
+    execute_sql(cache, "pragma journal_mode = memory;");
 
     // Initialize our prepared statements.
-    cache.record_usage_statement =
-        prepare_statement(cache,
-            "update entries set last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now') where id=?1;");
-    cache.update_entry_value_statement =
-        prepare_statement(cache,
-            "update entries set valid=1, in_db=1, size=?1, value=?2,"
-            " last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now')"
-            " where id=?3;");
-    cache.insert_new_value_statement =
-        prepare_statement(cache,
-            "insert into entries(key, valid, in_db, size, value, last_accessed)"
-            " values(?1, 1, 1, ?2, ?3, strftime('%Y-%m-%d %H:%M:%f', 'now'));");
-    cache.initiate_insert_statement =
-        prepare_statement(cache,
-            "insert into entries(key, valid, in_db) values (?1, 0, 0);");
-    cache.finish_insert_statement =
-        prepare_statement(cache,
-            "update entries set valid=1, in_db=0, size=?1, crc32=?2,"
-            " last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now')"
-            " where id=?3;");
-    cache.remove_entry_statement =
-        prepare_statement(cache,
-            "delete from entries where id=?1;");
-    cache.look_up_entry_query =
-        prepare_statement(cache,
-            "select id, valid, in_db, value, size, crc32 from entries where key=?1;");
-    cache.cache_size_query =
-        prepare_statement(cache,
-            "select sum(size) from entries;");
-    cache.entry_count_query =
-        prepare_statement(cache,
-            "select count(id) from entries where valid = 1;");
-    cache.entry_list_query =
-        prepare_statement(cache,
-            "select key, id, in_db, size, crc32 from entries where valid = 1"
-            " order by last_accessed;");
-    cache.lru_entry_list_query =
-        prepare_statement(cache,
-            "select id, size, in_db from entries order by valid, last_accessed;");
+    cache.record_usage_statement = prepare_statement(
+        cache,
+        "update entries set last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now') "
+        "where id=?1;");
+    cache.update_entry_value_statement = prepare_statement(
+        cache,
+        "update entries set valid=1, in_db=1, size=?1, value=?2,"
+        " last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now')"
+        " where id=?3;");
+    cache.insert_new_value_statement = prepare_statement(
+        cache,
+        "insert into entries(key, valid, in_db, size, value, last_accessed)"
+        " values(?1, 1, 1, ?2, ?3, strftime('%Y-%m-%d %H:%M:%f', 'now'));");
+    cache.initiate_insert_statement = prepare_statement(
+        cache, "insert into entries(key, valid, in_db) values (?1, 0, 0);");
+    cache.finish_insert_statement = prepare_statement(
+        cache,
+        "update entries set valid=1, in_db=0, size=?1, crc32=?2,"
+        " last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now')"
+        " where id=?3;");
+    cache.remove_entry_statement
+        = prepare_statement(cache, "delete from entries where id=?1;");
+    cache.look_up_entry_query = prepare_statement(
+        cache,
+        "select id, valid, in_db, value, size, crc32 from entries where "
+        "key=?1;");
+    cache.cache_size_query
+        = prepare_statement(cache, "select sum(size) from entries;");
+    cache.entry_count_query = prepare_statement(
+        cache, "select count(id) from entries where valid = 1;");
+    cache.entry_list_query = prepare_statement(
+        cache,
+        "select key, id, in_db, size, crc32 from entries where valid = 1"
+        " order by last_accessed;");
+    cache.lru_entry_list_query = prepare_statement(
+        cache,
+        "select id, size, in_db from entries order by valid, last_accessed;");
 
     // Do initial housekeeping.
     record_activity(cache);
@@ -698,7 +675,6 @@ check_initialization(disk_cache_impl& cache)
         CRADLE_THROW(disk_cache_uninitialized());
     }
 }
-
 
 // API
 
@@ -867,9 +843,9 @@ disk_cache::initiate_insert(string const& key)
         // Since we checked that the insert succceeded, we really shouldn't
         // get here.
         CRADLE_THROW(
-            disk_cache_failure() <<
-                disk_cache_path_info(cache.dir) <<
-                internal_error_message_info("failed to create entry in index.db"));
+            disk_cache_failure() << disk_cache_path_info(cache.dir)
+                                 << internal_error_message_info(
+                                        "failed to create entry in index.db"));
     }
 
     return entry->id;
@@ -931,12 +907,14 @@ disk_cache::do_idle_processing()
     boost::lock_guard<boost::mutex> lock(cache.mutex);
     check_initialization(cache);
 
-    if (!cache.usage_record_buffer.empty() &&
-        (boost::posix_time::microsec_clock::local_time() -
-            cache.latest_activity).total_milliseconds() > 1000)
+    if (!cache.usage_record_buffer.empty()
+        && (boost::posix_time::microsec_clock::local_time()
+            - cache.latest_activity)
+                   .total_milliseconds()
+               > 1000)
     {
         cradle::write_usage_records(cache);
     }
 }
 
-}
+} // namespace cradle
