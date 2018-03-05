@@ -9,7 +9,7 @@
 
 using namespace cradle;
 
-void static
+static void
 show_version_info()
 {
     if (is_tagged_version(version_info))

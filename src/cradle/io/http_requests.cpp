@@ -44,7 +44,7 @@ make_http_200_response(string const& body)
     return response;
 }
 
-string static
+static string
 get_method_name(http_request_method method)
 {
     return boost::to_upper_copy(string(get_value_id(method)));
@@ -129,7 +129,7 @@ struct send_transmission_state
     {}
 };
 
-size_t static
+static size_t
 transmit_request_body(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
     send_transmission_state& state =
@@ -158,7 +158,7 @@ struct receive_transmission_state
     {}
 };
 
-size_t static
+static size_t
 record_http_response(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
     receive_transmission_state& state =
@@ -195,7 +195,7 @@ record_http_response(void* ptr, size_t size, size_t nmemb, void* userdata)
     return n_bytes;
 }
 
-void static
+static void
 set_up_send_transmission(
     CURL* curl, send_transmission_state& send_state,
     http_request const& request)
@@ -212,7 +212,7 @@ struct curl_progress_data
     progress_reporter_interface* reporter;
 };
 
-int static
+static int
 curl_progress_callback(
     void *clientp, double dltotal, double dlnow, double ultotal, double ulnow)
 {
@@ -236,7 +236,7 @@ struct scoped_curl_slist
     curl_slist* list;
 };
 
-blob static
+static blob
 make_blob(receive_transmission_state&& transmission)
 {
     blob result;

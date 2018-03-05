@@ -116,9 +116,7 @@ types:
     - schema:
         doc: ''
         schema:
-          named:
-            app: cradle
-            name: thinknode_type_info
+          string: {}
     - object:
         doc: ''
         schema:

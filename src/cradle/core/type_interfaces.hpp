@@ -16,29 +16,29 @@ namespace cradle {
 
 // NIL
 
-bool static inline
+static inline bool
 operator==(nil_t a, nil_t b)
 { return true; }
 
-bool static inline
+static inline bool
 operator!=(nil_t a, nil_t b)
 { return false; }
 
-bool static inline
+static inline bool
 operator<(nil_t a, nil_t b)
 { return false; }
 
 template<>
 struct type_info_query<nil_t>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_nil(api_nil_type());
     }
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof(nil_t)
 {
     return 0;
@@ -48,15 +48,15 @@ struct dynamic;
 
 // Note that we don't have to do anything here because callers of to_dynamic
 // are required to provide a default-constructed dynamic, which is already nil.
-void static inline
+static inline void
 to_dynamic(dynamic* v, nil_t n)
 {}
 
-void static inline
+static inline void
 from_dynamic(nil_t* n, dynamic const& v)
 {}
 
-size_t static inline
+static inline size_t
 hash_value(nil_t x)
 {
     return 0;
@@ -67,14 +67,14 @@ hash_value(nil_t x)
 template<>
 struct type_info_query<bool>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_boolean(api_boolean_type());
     }
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof(bool)
 {
     return sizeof(bool);
@@ -95,14 +95,14 @@ from_dynamic(bool* x, dynamic const& v);
     void \
     from_dynamic(T* x, dynamic const& v); \
     \
-    size_t static inline \
+    static inline size_t \
     deep_sizeof(T) { return sizeof(T); }
 
 #define CRADLE_DECLARE_INTEGER_INTERFACE(T) \
     template<> \
     struct type_info_query<T> \
     { \
-        void static \
+        static void \
         get(api_type_info* info) \
         { \
             *info = make_api_type_info_with_integer(api_integer_type()); \
@@ -132,7 +132,7 @@ CRADLE_DECLARE_INTEGER_INTERFACE(unsigned long long)
     template<> \
     struct type_info_query<T> \
     { \
-        void static \
+        static void \
         get(api_type_info* info) \
         { \
             *info = make_api_type_info_with_float(api_float_type()); \
@@ -148,14 +148,14 @@ CRADLE_DECLARE_FLOAT_INTERFACE(double)
 template<>
 struct type_info_query<string>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_string(api_string_type());
     }
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof(string const& x)
 {
     return sizeof(string) + sizeof(char) * x.length();
@@ -183,14 +183,14 @@ from_dynamic(date* x, dynamic const& v);
 template<>
 struct type_info_query<date>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_string(api_string_type());
     }
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof(date)
 {
     return sizeof(date);
@@ -200,7 +200,7 @@ deep_sizeof(date)
 
 namespace boost { namespace gregorian {
 
-size_t static inline
+static inline size_t
 hash_value(date const& x)
 {
     return cradle::invoke_hash(cradle::to_string(x));
@@ -231,14 +231,14 @@ from_dynamic(ptime* x, dynamic const& v);
 template<>
 struct type_info_query<ptime>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_datetime(api_datetime_type());
     }
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof(ptime)
 {
     return sizeof(ptime);
@@ -248,7 +248,7 @@ deep_sizeof(ptime)
 
 namespace boost { namespace posix_time {
 
-size_t static inline
+static inline size_t
 hash_value(ptime const& x)
 {
     return cradle::invoke_hash(cradle::to_string(x));
@@ -263,7 +263,7 @@ namespace cradle {
 bool
 operator==(blob const& a, blob const& b);
 
-bool static inline
+static inline bool
 operator!=(blob const& a, blob const& b)
 { return !(a == b); }
 
@@ -273,14 +273,14 @@ operator<(blob const& a, blob const& b);
 template<>
 struct type_info_query<blob>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_blob(api_blob_type());
     }
 };
 
-size_t static inline
+static inline size_t
 deep_sizeof(blob const& b)
 {
     // This ignores the size of the ownership holder, but that's not a big deal.
@@ -353,7 +353,7 @@ from_dynamic(std::vector<T>* x, dynamic const& v)
 template<class T>
 struct type_info_query<std::vector<T>>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         api_array_info array_info;
@@ -422,7 +422,7 @@ from_dynamic(std::array<T,N>* x, dynamic const& v)
 template<class T, size_t N>
 struct type_info_query<std::array<T,N>>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         api_array_info array_info;
@@ -485,7 +485,7 @@ from_dynamic(std::map<Key,Value>* x, dynamic const& v)
 template<class Key, class Value>
 struct type_info_query<std::map<Key,Value>>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         api_map_info map_info;
@@ -510,7 +510,7 @@ deep_sizeof(std::map<Key,Value> const& x)
 template<class T>
 struct type_info_query<optional<T>>
 {
-    void static
+    static void
     get(api_type_info* info)
     {
         *info = make_api_type_info_with_optional(get_type_info<T>());

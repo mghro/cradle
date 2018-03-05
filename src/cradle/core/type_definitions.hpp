@@ -16,22 +16,22 @@ namespace cradle {
 template<class Arg>
 struct is_hana_pair
 {
-    bool static const value = false;
+    static bool const value = false;
 };
 template<class First, class Second>
 struct is_hana_pair<boost::hana::pair<First,Second>>
 {
-    bool static const value = true;
+    static bool const value = true;
 };
 template<class ...Args>
 struct has_hana_pair
 {
-    bool static const value = false;
+    static bool const value = false;
 };
 template<class Arg, class ...Rest>
 struct has_hana_pair<Arg,Rest...>
 {
-    bool static const value =
+    static bool const value =
         is_hana_pair<Arg>::value ||
         has_hana_pair<Rest...>::value;
 };

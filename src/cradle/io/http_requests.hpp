@@ -20,7 +20,7 @@ typedef std::map<string,string> http_header_list;
 typedef blob http_body;
 
 // Construct a GET request (in a convenient way).
-http_request static inline
+static inline http_request
 make_get_request(string const& url, http_header_list const& headers)
 {
     return make_http_request(http_request_method::GET, url, headers, http_body());

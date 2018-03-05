@@ -4,12 +4,12 @@
 
 // Boost.Crc triggers some warnings on MSVC.
 #if defined(_MSC_VER)
-    #pragma warning(push)
-    #pragma warning(disable:4245)
-    #include <boost/crc.hpp>
-    #pragma warning(pop)
+#pragma warning(push)
+#pragma warning(disable : 4245)
+#include <boost/crc.hpp>
+#pragma warning(pop)
 #else
-    #include <boost/crc.hpp>
+#include <boost/crc.hpp>
 #endif
 
 #include <picosha2.h>
@@ -17,25 +17,27 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
+#include <cradle/disk_cache.hpp>
 #include <cradle/encodings/base64.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/encodings/msgpack.hpp>
-#include <cradle/disk_cache.hpp>
 #include <cradle/fs/file_io.hpp>
 #include <cradle/io/http_requests.hpp>
+#include <cradle/thinknode/apm.hpp>
 #include <cradle/thinknode/calc.hpp>
+#include <cradle/thinknode/iam.hpp>
 #include <cradle/thinknode/iss.hpp>
+#include <cradle/thinknode/utilities.hpp>
 #include <cradle/websocket/messages.hpp>
 
 typedef websocketpp::server<websocketpp::config::asio> ws_server_type;
 
 using websocketpp::connection_hdl;
+using websocketpp::lib::bind;
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
 
 namespace cradle {
-
 template<class Job>
 struct synchronized_job_queue
 {
@@ -81,11 +83,12 @@ struct client_connection
 
 struct client_connection_list
 {
-    std::map<connection_hdl,client_connection,std::owner_less<connection_hdl>> connections;
+    std::map<connection_hdl, client_connection, std::owner_less<connection_hdl>>
+        connections;
     std::mutex mutex;
 };
 
-void static
+static void
 add_client(
     client_connection_list& list,
     connection_hdl hdl,
@@ -95,14 +98,14 @@ add_client(
     list.connections[hdl] = client;
 }
 
-void static
+static void
 remove_client(client_connection_list& list, connection_hdl hdl)
 {
     std::lock_guard<std::mutex> lock(list.mutex);
     list.connections.erase(hdl);
 }
 
-client_connection static
+static client_connection
 get_client(client_connection_list& list, connection_hdl hdl)
 {
     std::lock_guard<std::mutex> lock(list.mutex);
@@ -144,8 +147,11 @@ struct websocket_server_impl
     synchronized_job_queue<client_request> requests;
 };
 
-void static
-send(websocket_server_impl& server, connection_hdl hdl, websocket_server_message const& message)
+static void
+send(
+    websocket_server_impl& server,
+    connection_hdl hdl,
+    websocket_server_message const& message)
 {
     auto dynamic = to_dynamic(message);
     auto json = value_to_json(dynamic);
@@ -154,12 +160,12 @@ send(websocket_server_impl& server, connection_hdl hdl, websocket_server_message
     if (ec)
     {
         CRADLE_THROW(
-            websocket_server_error() <<
-                internal_error_message_info(ec.message()));
+            websocket_server_error()
+            << internal_error_message_info(ec.message()));
     }
 }
 
-uint32_t static
+static uint32_t
 compute_crc32(string const& s)
 {
     boost::crc_32_type crc;
@@ -167,7 +173,7 @@ compute_crc32(string const& s)
     return crc.checksum();
 }
 
-dynamic static
+static dynamic
 retrieve_immutable(
     disk_cache& cache,
     http_connection& connection,
@@ -176,10 +182,8 @@ retrieve_immutable(
     string const& immutable_id)
 {
     // Try the disk cache.
-    auto cache_key =
-        picosha2::hash256_hex_string(
-            value_to_msgpack_string(
-                dynamic({ "retrieve_immutable", session.api_url, immutable_id })));
+    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
+        dynamic({"retrieve_immutable", session.api_url, immutable_id})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -200,7 +204,8 @@ retrieve_immutable(
     }
 
     // Query Thinknode.
-    auto object = retrieve_immutable(connection, session, context_id, immutable_id);
+    auto object
+        = retrieve_immutable(connection, session, context_id, immutable_id);
 
     // Cache the result.
     auto cache_id = cache.initiate_insert(cache_key);
@@ -208,7 +213,10 @@ retrieve_immutable(
     {
         auto entry_path = cache.get_path_for_id(cache_id);
         std::ofstream output;
-        open_file(output, entry_path, std::ios::out | std::ios::trunc | std::ios::binary);
+        open_file(
+            output,
+            entry_path,
+            std::ios::out | std::ios::trunc | std::ios::binary);
         output << msgpack;
     }
     cache.finish_insert(cache_id, compute_crc32(msgpack));
@@ -216,7 +224,7 @@ retrieve_immutable(
     return object;
 }
 
-string static
+static string
 resolve_iss_object_to_immutable(
     disk_cache& cache,
     http_connection& connection,
@@ -226,16 +234,11 @@ resolve_iss_object_to_immutable(
     bool ignore_upgrades)
 {
     // Try the disk cache.
-    auto cache_key =
-        picosha2::hash256_hex_string(
-            value_to_msgpack_string(
-                dynamic(
-                    {
-                        "resolve_iss_object_to_immutable",
-                        session.api_url,
-                        ignore_upgrades ?  "n/a" : context_id,
-                        object_id
-                    })));
+    auto cache_key = picosha2::hash256_hex_string(
+        value_to_msgpack_string(dynamic({"resolve_iss_object_to_immutable",
+                                         session.api_url,
+                                         ignore_upgrades ? "n/a" : context_id,
+                                         object_id})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -253,13 +256,8 @@ resolve_iss_object_to_immutable(
     }
 
     // Query Thinknode.
-    auto immutable_id =
-        resolve_iss_object_to_immutable(
-            connection,
-            session,
-            context_id,
-            object_id,
-            ignore_upgrades);
+    auto immutable_id = resolve_iss_object_to_immutable(
+        connection, session, context_id, object_id, ignore_upgrades);
 
     // Cache the result.
     cache.insert(cache_key, immutable_id);
@@ -267,7 +265,7 @@ resolve_iss_object_to_immutable(
     return immutable_id;
 }
 
-dynamic static
+static dynamic
 get_iss_object(
     disk_cache& cache,
     http_connection& connection,
@@ -276,22 +274,159 @@ get_iss_object(
     string const& object_id,
     bool ignore_upgrades = false)
 {
-    return
-        retrieve_immutable(
+    return retrieve_immutable(
+        cache,
+        connection,
+        session,
+        context_id,
+        resolve_iss_object_to_immutable(
             cache,
             connection,
             session,
             context_id,
-            resolve_iss_object_to_immutable(
+            object_id,
+            ignore_upgrades));
+}
+
+thinknode_app_version_info
+get_app_version_info(
+    disk_cache& cache,
+    http_connection_interface& connection,
+    thinknode_session const& session,
+    string const& account,
+    string const& app,
+    string const& version)
+{
+    // Try the disk cache.
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"get_app_version_info", session.api_url, account, app, version})));
+    try
+    {
+        auto entry = cache.find(cache_key);
+        // Cached app version info is stored externally in files.
+        if (entry && !entry->value)
+        {
+            auto data = read_file_contents(cache.get_path_for_id(entry->id));
+            if (compute_crc32(data) == entry->crc32)
+            {
+                return from_dynamic<thinknode_app_version_info>(
+                    parse_msgpack_value(data));
+            }
+        }
+    }
+    catch (...)
+    {
+        // Something went wrong trying to load the cached value, so just
+        // pretend it's not there. (It will be overwritten.)
+    }
+
+    // Query Thinknode.
+    auto version_info
+        = get_app_version_info(connection, session, account, app, version);
+
+    // Cache the result.
+    auto cache_id = cache.initiate_insert(cache_key);
+    auto msgpack = value_to_msgpack_string(to_dynamic(version_info));
+    {
+        auto entry_path = cache.get_path_for_id(cache_id);
+        std::ofstream output;
+        open_file(
+            output,
+            entry_path,
+            std::ios::out | std::ios::trunc | std::ios::binary);
+        output << msgpack;
+    }
+    cache.finish_insert(cache_id, compute_crc32(msgpack));
+
+    return version_info;
+}
+
+thinknode_context_contents
+get_context_contents(
+    disk_cache& cache,
+    http_connection_interface& connection,
+    thinknode_session const& session,
+    string const& context_id)
+{
+    // Try the disk cache.
+    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
+        dynamic({"get_context_contents", session.api_url, context_id})));
+    try
+    {
+        auto entry = cache.find(cache_key);
+        // Cached contexts are stored internally, so if the entry exists,
+        // there should also be a value.
+        if (entry && entry->value)
+        {
+            return from_dynamic<thinknode_context_contents>(parse_msgpack_value(
+                base64_decode(*entry->value, get_mime_base64_character_set())));
+        }
+    }
+    catch (...)
+    {
+        // Something went wrong trying to load the cached value, so just
+        // pretend it's not there. (It will be overwritten.)
+    }
+
+    // Query Thinknode.
+    auto context_contents
+        = get_context_contents(connection, session, context_id);
+
+    // Cache the result.
+    cache.insert(
+        cache_key,
+        base64_encode(
+            value_to_msgpack_string(to_dynamic(context_contents)),
+            get_mime_base64_character_set()));
+
+    return context_contents;
+}
+
+static api_type_info
+resolve_named_type_reference(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    api_named_type_reference const& ref)
+{
+    auto context = get_context_contents(cache, connection, session, context_id);
+    for (auto const& app_info : context.contents)
+    {
+        if (app_info.account == ref.account && app_info.app == ref.app)
+        {
+            if (!is_version(app_info.source))
+            {
+                CRADLE_THROW(
+                    websocket_server_error() << internal_error_message_info(
+                        "apps must be installed as versions"));
+            }
+            auto version_info = get_app_version_info(
                 cache,
                 connection,
                 session,
-                context_id,
-                object_id,
-                ignore_upgrades));
+                ref.account,
+                ref.app,
+                as_version(app_info.source));
+            for (auto const& type : version_info.manifest->types)
+            {
+                if (type.name == ref.name)
+                {
+                    return as_api_type(type.schema);
+                }
+            }
+            CRADLE_THROW(
+                websocket_server_error()
+                << internal_error_message_info("type not found in app"));
+        }
+    }
+    CRADLE_THROW(
+        websocket_server_error()
+        << internal_error_message_info("app not found in context"));
 }
 
-string static
+static string
 post_iss_object(
     disk_cache& cache,
     http_connection& connection,
@@ -300,18 +435,22 @@ post_iss_object(
     thinknode_type_info const& schema,
     dynamic const& object)
 {
+    // Apply type coercion.
+    auto coerced_object = coerce_value(
+        [&](api_named_type_reference const& ref) {
+            return resolve_named_type_reference(
+                cache, connection, session, context_id, ref);
+        },
+        as_api_type(schema),
+        object);
+
     // Try the disk cache.
-    auto cache_key =
-        picosha2::hash256_hex_string(
-            value_to_msgpack_string(
-                dynamic(
-                    {
-                        "post_iss_object",
-                        session.api_url,
-                        context_id,
-                        to_dynamic(schema),
-                        object
-                    })));
+    auto cache_key = picosha2::hash256_hex_string(
+        value_to_msgpack_string(dynamic({"post_iss_object",
+                                         session.api_url,
+                                         context_id,
+                                         to_dynamic(schema),
+                                         coerced_object})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -329,8 +468,8 @@ post_iss_object(
     }
 
     // Query Thinknode.
-    auto object_id =
-        post_iss_object(connection, session, context_id, schema, object);
+    auto object_id = post_iss_object(
+        connection, session, context_id, schema, coerced_object);
 
     // Cache the result.
     cache.insert(cache_key, object_id);
@@ -338,7 +477,7 @@ post_iss_object(
     return object_id;
 }
 
-calculation_request static
+static calculation_request
 get_calculation_request(
     disk_cache& cache,
     http_connection& connection,
@@ -347,10 +486,8 @@ get_calculation_request(
     string const& calculation_id)
 {
     // Try the disk cache.
-    auto cache_key =
-        picosha2::hash256_hex_string(
-            value_to_msgpack_string(
-                dynamic({ "get_calculation_request", session.api_url, calculation_id })));
+    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
+        dynamic({"get_calculation_request", session.api_url, calculation_id})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -358,10 +495,8 @@ get_calculation_request(
         // there should also be a value.
         if (entry && entry->value)
         {
-            return
-                from_dynamic<calculation_request>(
-                    parse_msgpack_value(
-                        base64_decode(*entry->value, get_mime_base64_character_set())));
+            return from_dynamic<calculation_request>(parse_msgpack_value(
+                base64_decode(*entry->value, get_mime_base64_character_set())));
         }
     }
     catch (...)
@@ -371,7 +506,8 @@ get_calculation_request(
     }
 
     // Query Thinknode.
-    auto request = retrieve_calculation_request(connection, session, context_id, calculation_id);
+    auto request = retrieve_calculation_request(
+        connection, session, context_id, calculation_id);
 
     // Cache the result.
     cache.insert(
@@ -383,7 +519,7 @@ get_calculation_request(
     return request;
 }
 
-string static
+static string
 post_calculation(
     disk_cache& cache,
     http_connection& connection,
@@ -392,16 +528,11 @@ post_calculation(
     calculation_request const& calculation)
 {
     // Try the disk cache.
-    auto cache_key =
-        picosha2::hash256_hex_string(
-            value_to_msgpack_string(
-                dynamic(
-                    {
-                        "post_calculation",
-                        session.api_url,
-                        context_id,
-                        to_dynamic(calculation)
-                    })));
+    auto cache_key = picosha2::hash256_hex_string(
+        value_to_msgpack_string(dynamic({"post_calculation",
+                                         session.api_url,
+                                         context_id,
+                                         to_dynamic(calculation)})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -419,8 +550,8 @@ post_calculation(
     }
 
     // Query Thinknode.
-    auto calculation_id =
-        post_calculation(connection, session, context_id, calculation);
+    auto calculation_id
+        = post_calculation(connection, session, context_id, calculation);
 
     // Cache the result.
     cache.insert(cache_key, calculation_id);
@@ -433,10 +564,8 @@ struct simple_calculation_submitter : calculation_submission_interface
     disk_cache& cache;
     http_connection& connection;
 
-    simple_calculation_submitter(
-        disk_cache& cache,
-        http_connection& connection)
-     : cache(cache), connection(connection)
+    simple_calculation_submitter(disk_cache& cache, http_connection& connection)
+        : cache(cache), connection(connection)
     {
     }
 
@@ -447,16 +576,18 @@ struct simple_calculation_submitter : calculation_submission_interface
         calculation_request const& request,
         bool dry_run)
     {
-        // If the calculation is simply a reference, just return the ID directly.
+        // If the calculation is simply a reference, just return the ID
+        // directly.
         if (is_reference(request))
             return as_reference(request);
 
         assert(!dry_run);
-        return some(post_calculation(cache, connection, session, context_id, request));
+        return some(
+            post_calculation(cache, connection, session, context_id, request));
     }
 };
 
-string static
+static string
 resolve_meta_chain(
     disk_cache& cache,
     http_connection& connection,
@@ -467,32 +598,30 @@ resolve_meta_chain(
     simple_calculation_submitter submitter(cache, connection);
     while (is_meta(request))
     {
-        auto const& generator = as_meta(request).generator; // Should be moved out to avoid copies.
-        auto submission_info =
-            submit_let_calculation_request(
-                submitter,
-                session,
-                context_id,
-                augmented_calculation_request{ generator, {} });
-        request =
-            from_dynamic<calculation_request>(
-                get_iss_object(
-                    cache,
-                    connection,
-                    session,
-                    context_id,
-                    submission_info->main_calc_id));
-    }
-    auto submission_info =
-        submit_let_calculation_request(
+        auto const& generator
+            = as_meta(request)
+                  .generator; // Should be moved out to avoid copies.
+        auto submission_info = submit_let_calculation_request(
             submitter,
             session,
             context_id,
-            augmented_calculation_request{ std::move(request), {} });
+            augmented_calculation_request{generator, {}});
+        request = from_dynamic<calculation_request>(get_iss_object(
+            cache,
+            connection,
+            session,
+            context_id,
+            submission_info->main_calc_id));
+    }
+    auto submission_info = submit_let_calculation_request(
+        submitter,
+        session,
+        context_id,
+        augmented_calculation_request{std::move(request), {}});
     return submission_info->main_calc_id;
 }
 
-void static
+static void
 process_message(
     websocket_server_impl& server,
     http_connection& connection,
@@ -500,130 +629,140 @@ process_message(
 {
     switch (get_tag(request.message))
     {
-     case websocket_client_message_tag::REGISTRATION:
-      {
-        auto const& registration = as_registration(request.message);
-        access_client(server.clients, request.client,
-            [&](auto& client)
-            {
+        case websocket_client_message_tag::REGISTRATION:
+        {
+            auto const& registration = as_registration(request.message);
+            access_client(server.clients, request.client, [&](auto& client) {
                 client.name = registration.name;
                 client.session = registration.session;
             });
-        break;
-      }
-     case websocket_client_message_tag::TEST:
-      {
-        websocket_test_response response;
-        response.name = get_client(server.clients, request.client).name;
-        response.message = as_test(request.message).message;
-        send(server, request.client, make_websocket_server_message_with_test(response));
-        break;
-      }
-     case websocket_client_message_tag::CACHE_INSERT:
-      {
-        auto& insertion = as_cache_insert(request.message);
-        server.cache.insert(insertion.key, insertion.value);
-        break;
-      }
-     case websocket_client_message_tag::CACHE_QUERY:
-      {
-        auto const& key = as_cache_query(request.message);
-        auto entry = server.cache.find(key);
-        send(server, request.client,
-            make_websocket_server_message_with_cache_response(
-                make_websocket_cache_response(key, entry ? entry->value : none)));
-        break;
-      }
-     case websocket_client_message_tag::GET_ISS_OBJECT:
-      {
-        auto const& gio = as_get_iss_object(request.message);
-        auto object =
-            get_iss_object(
+            break;
+        }
+        case websocket_client_message_tag::TEST:
+        {
+            websocket_test_response response;
+            response.name = get_client(server.clients, request.client).name;
+            response.message = as_test(request.message).message;
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_test(response));
+            break;
+        }
+        case websocket_client_message_tag::CACHE_INSERT:
+        {
+            auto& insertion = as_cache_insert(request.message);
+            server.cache.insert(insertion.key, insertion.value);
+            break;
+        }
+        case websocket_client_message_tag::CACHE_QUERY:
+        {
+            auto const& key = as_cache_query(request.message);
+            auto entry = server.cache.find(key);
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_cache_response(
+                    make_websocket_cache_response(
+                        key, entry ? entry->value : none)));
+            break;
+        }
+        case websocket_client_message_tag::GET_ISS_OBJECT:
+        {
+            auto const& gio = as_get_iss_object(request.message);
+            auto object = get_iss_object(
                 server.cache,
                 connection,
                 get_client(server.clients, request.client).session,
                 gio.context_id,
                 gio.object_id,
                 gio.ignore_upgrades);
-        send(server, request.client,
-            make_websocket_server_message_with_get_iss_object_response(
-                get_iss_object_response{gio.request_id, std::move(object)}));
-        break;
-      }
-     case websocket_client_message_tag::POST_ISS_OBJECT:
-      {
-        auto const& pio = as_post_iss_object(request.message);
-        auto object_id =
-            post_iss_object(
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_get_iss_object_response(
+                    get_iss_object_response{gio.request_id,
+                                            std::move(object)}));
+            break;
+        }
+        case websocket_client_message_tag::POST_ISS_OBJECT:
+        {
+            auto const& pio = as_post_iss_object(request.message);
+            auto object_id = post_iss_object(
                 server.cache,
                 connection,
                 get_client(server.clients, request.client).session,
                 pio.context_id,
-                pio.schema,
+                parse_url_type_string(pio.schema),
                 pio.object);
-        send(server, request.client,
-            make_websocket_server_message_with_post_iss_object_response(
-                make_post_iss_object_response(pio.request_id, object_id)));
-        break;
-      }
-     case websocket_client_message_tag::GET_CALCULATION_REQUEST:
-      {
-        auto const& gcr = as_get_calculation_request(request.message);
-        auto calc =
-            get_calculation_request(
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_post_iss_object_response(
+                    make_post_iss_object_response(pio.request_id, object_id)));
+            break;
+        }
+        case websocket_client_message_tag::GET_CALCULATION_REQUEST:
+        {
+            auto const& gcr = as_get_calculation_request(request.message);
+            auto calc = get_calculation_request(
                 server.cache,
                 connection,
                 get_client(server.clients, request.client).session,
                 gcr.context_id,
                 gcr.calculation_id);
-        send(server, request.client,
-            make_websocket_server_message_with_get_calculation_request_response(
-                make_get_calculation_request_response(gcr.request_id, calc)));
-        break;
-      }
-     case websocket_client_message_tag::POST_CALCULATION:
-      {
-        auto const& pc = as_post_calculation(request.message);
-        auto calc_id =
-            post_calculation(
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_get_calculation_request_response(
+                    make_get_calculation_request_response(
+                        gcr.request_id, calc)));
+            break;
+        }
+        case websocket_client_message_tag::POST_CALCULATION:
+        {
+            auto const& pc = as_post_calculation(request.message);
+            auto calc_id = post_calculation(
                 server.cache,
                 connection,
                 get_client(server.clients, request.client).session,
                 pc.context_id,
                 pc.calculation);
-        send(server, request.client,
-            make_websocket_server_message_with_post_calculation_response(
-                make_post_calculation_response(pc.request_id, calc_id)));
-        break;
-      }
-     case websocket_client_message_tag::RESOLVE_META_CHAIN:
-      {
-        auto const& rmc = as_resolve_meta_chain(request.message);
-        auto calc_id =
-            resolve_meta_chain(
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_post_calculation_response(
+                    make_post_calculation_response(pc.request_id, calc_id)));
+            break;
+        }
+        case websocket_client_message_tag::RESOLVE_META_CHAIN:
+        {
+            auto const& rmc = as_resolve_meta_chain(request.message);
+            auto calc_id = resolve_meta_chain(
                 server.cache,
                 connection,
                 get_client(server.clients, request.client).session,
                 rmc.context_id,
-                make_calculation_request_with_meta(
-                    meta_calculation_request{
-                        std::move(rmc.generator),
-                        // This isn't used.
-                        make_thinknode_type_info_with_dynamic_type(thinknode_dynamic_type())
-                    }));
-        send(server, request.client,
-            make_websocket_server_message_with_resolve_meta_chain_response(
-                make_resolve_meta_chain_response(rmc.request_id, calc_id)));
-        break;
-      }
-     case websocket_client_message_tag::KILL:
-      {
-        break;
-      }
+                make_calculation_request_with_meta(meta_calculation_request{
+                    std::move(rmc.generator),
+                    // This isn't used.
+                    make_thinknode_type_info_with_dynamic_type(
+                        thinknode_dynamic_type())}));
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_resolve_meta_chain_response(
+                    make_resolve_meta_chain_response(rmc.request_id, calc_id)));
+            break;
+        }
+        case websocket_client_message_tag::KILL:
+        {
+            break;
+        }
     }
 }
 
-void static
+static void
 process_messages(websocket_server_impl& server)
 {
     http_connection connection(server.http_system);
@@ -640,25 +779,27 @@ process_messages(websocket_server_impl& server)
         }
         catch (std::exception& e)
         {
-            send(server, request.client,
+            send(
+                server,
+                request.client,
                 make_websocket_server_message_with_error(e.what()));
         }
     }
 }
 
-void static
+static void
 on_open(websocket_server_impl& server, connection_hdl hdl)
 {
     add_client(server.clients, hdl);
 }
 
-void static
+static void
 on_close(websocket_server_impl& server, connection_hdl hdl)
 {
     remove_client(server.clients, hdl);
 }
 
-void static
+static void
 on_message(
     websocket_server_impl& server,
     connection_hdl hdl,
@@ -671,10 +812,11 @@ on_message(
         enqueue_job(server.requests, client_request{hdl, message});
         if (is_kill(message))
         {
-            for_each_client(server.clients,
-                [&](connection_hdl hdl, client_connection const& client)
-                {
-                    server.ws.close(hdl, websocketpp::close::status::going_away, "killed");
+            for_each_client(
+                server.clients,
+                [&](connection_hdl hdl, client_connection const& client) {
+                    server.ws.close(
+                        hdl, websocketpp::close::status::going_away, "killed");
                 });
             server.ws.stop();
         }
@@ -685,34 +827,27 @@ on_message(
     }
 }
 
-void static
+static void
 initialize(websocket_server_impl& server, server_config const& config)
 {
     server.config = config;
 
     if (config.cacert_file)
-        server.http_system.set_cacert_path(some(file_path(*config.cacert_file)));
+        server.http_system.set_cacert_path(
+            some(file_path(*config.cacert_file)));
 
     server.cache.reset(
-        config.disk_cache ?
-            *config.disk_cache :
-            make_disk_cache_config(none, 0x1'00'00'00'00));
+        config.disk_cache ? *config.disk_cache
+                          : make_disk_cache_config(none, 0x1'00'00'00'00));
 
     server.ws.clear_access_channels(websocketpp::log::alevel::all);
     server.ws.init_asio();
     server.ws.set_open_handler(
-        [&](connection_hdl hdl)
-        {
-            on_open(server, hdl);
-        });
+        [&](connection_hdl hdl) { on_open(server, hdl); });
     server.ws.set_close_handler(
-        [&](connection_hdl hdl)
-        {
-            on_close(server, hdl);
-        });
+        [&](connection_hdl hdl) { on_close(server, hdl); });
     server.ws.set_message_handler(
-        [&](connection_hdl hdl, ws_server_type::message_ptr message)
-        {
+        [&](connection_hdl hdl, ws_server_type::message_ptr message) {
             on_message(server, hdl, message);
         });
 }
@@ -740,10 +875,8 @@ websocket_server::listen()
     }
     else
     {
-        server.ws.listen(
-            boost::asio::ip::tcp::endpoint(
-                boost::asio::ip::address::from_string("127.0.0.1"),
-                port));
+        server.ws.listen(boost::asio::ip::tcp::endpoint(
+            boost::asio::ip::address::from_string("127.0.0.1"), port));
     }
     server.ws.start_accept();
 }
@@ -754,16 +887,11 @@ websocket_server::run()
     auto& server = *impl_;
 
     // Start a thread to process messages.
-    std::thread
-        processing_thread(
-            [&]()
-            {
-                process_messages(server);
-            });
+    std::thread processing_thread([&]() { process_messages(server); });
 
     server.ws.run();
 
     processing_thread.join();
 }
 
-}
+} // namespace cradle

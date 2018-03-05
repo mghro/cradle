@@ -821,9 +821,9 @@ types:
             name: thinknode_app_manifest
         omissible: true
     - created_by:
-        doc: The user that created the branch.
+        doc: The user that created the version.
         schema:
-          string: {}
+          dynamic: {}
     - created_at:
         doc: Indicates the date and time when the version was created.
         schema:

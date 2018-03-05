@@ -171,7 +171,7 @@ typedef std::pair<token_iter_t,token_iter_t> token_range_t;
 
 // Get (and consume) the next from the token range.
 // If none is available, an exception is thrown.
-string static
+static string
 get_token(token_range_t& tokens)
 {
     if (tokens.first == tokens.second)
@@ -181,7 +181,7 @@ get_token(token_range_t& tokens)
     return token;
 }
 
-thinknode_type_info static
+static thinknode_type_info
 parse_url_type(token_range_t& tokens)
 {
     auto type_code = get_token(tokens);

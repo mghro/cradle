@@ -4,7 +4,7 @@
 
 using namespace cradle;
 
-string static
+static string
 strip_whitespace(string s)
 {
     s.erase(std::remove_if(s.begin(), s.end(), isspace), s.end());
@@ -12,7 +12,7 @@ strip_whitespace(string s)
 }
 
 // Test that a JSON string can be translated to and from its expected dynamic form.
-void static
+static void
 test_json_encoding(string const& json, dynamic const& expected_value)
 {
     CAPTURE(json)
@@ -354,7 +354,7 @@ TEST_CASE("malformed JSON blob", "[encodings][json]")
     }
 }
 
-void static
+static void
 test_malformed_json(string const& malformed_json)
 {
     CAPTURE(malformed_json);

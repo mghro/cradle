@@ -8,7 +8,7 @@
 using namespace cradle;
 
 // Test that some MessagePack data can be translated to and from its expected dynamic form.
-void static
+static void
 test_msgpack_encoding(uint8_t const* msgpack, size_t size, dynamic const& expected_value)
 {
     // Parse it and check that it matches.

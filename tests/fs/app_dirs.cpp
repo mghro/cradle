@@ -5,7 +5,7 @@
 
 using namespace cradle;
 
-void static
+static void
 reset_directory(file_path const& dir)
 {
     if (exists(dir))

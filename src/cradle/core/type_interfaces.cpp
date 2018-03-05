@@ -94,7 +94,7 @@ CRADLE_DEFINE_FLOAT_INTERFACE(float)
 
 // DATE
 
-date static
+static date
 parse_date(std::string const& s)
 {
     namespace bg = boost::gregorian;

@@ -50,7 +50,7 @@ struct disk_cache_impl
 
 // SQLITE UTILITIES
 
-void static
+static void
 open_db(sqlite3** db, file_path const& file)
 {
     if (sqlite3_open(file.string().c_str(), db) != SQLITE_OK)
@@ -62,7 +62,7 @@ open_db(sqlite3** db, file_path const& file)
     }
 }
 
-void static
+static void
 throw_query_error(disk_cache_impl const& cache, string const& sql, string const& error)
 {
     CRADLE_THROW(
@@ -74,7 +74,7 @@ throw_query_error(disk_cache_impl const& cache, string const& sql, string const&
                 "error: " + error));
 }
 
-string static
+static string
 copy_and_free_message(char* msg)
 {
     if (msg)
@@ -87,7 +87,7 @@ copy_and_free_message(char* msg)
         return "";
 }
 
-void static
+static void
 execute_sql(disk_cache_impl const& cache, string const& sql)
 {
     char *msg;
@@ -98,7 +98,7 @@ execute_sql(disk_cache_impl const& cache, string const& sql)
 }
 
 // Check a return code from SQLite.
-void static
+static void
 check_sqlite_code(disk_cache_impl const& cache, int code)
 {
     if (code != SQLITE_OK)
@@ -138,7 +138,7 @@ prepare_statement(disk_cache_impl const& cache, string const& sql)
 }
 
 // Bind a 32-bit integer to a parameter of a prepared statement.
-void static
+static void
 bind_int32(
     disk_cache_impl const& cache,
     sqlite3_stmt* statement,
@@ -151,7 +151,7 @@ bind_int32(
 }
 
 // Bind a 64-bit integer to a parameter of a prepared statement.
-void static
+static void
 bind_int64(
     disk_cache_impl const& cache,
     sqlite3_stmt* statement,
@@ -164,7 +164,7 @@ bind_int64(
 }
 
 // Bind a string to a parameter of a prepared statement.
-void static
+static void
 bind_string(
     disk_cache_impl const& cache,
     sqlite3_stmt* statement,
@@ -183,7 +183,7 @@ bind_string(
 }
 
 // Bind a blob to a parameter of a prepared statement.
-void static
+static void
 bind_blob(
     disk_cache_impl const& cache,
     sqlite3_stmt* statement,
@@ -203,7 +203,7 @@ bind_blob(
 // Execute a prepared statement (with variables already bound to it) and check
 // that it finished successfully.
 // This should only be used for statements that don't return results.
-void static
+static void
 execute_prepared_statement(disk_cache_impl const& cache, sqlite3_stmt* statement)
 {
     auto code = sqlite3_step(statement);
@@ -224,31 +224,31 @@ struct sqlite_row
     sqlite3_stmt* statement;
 };
 
-bool static
+static bool
 has_value(sqlite_row& row, int column_index)
 {
     return sqlite3_column_type(row.statement, column_index) != SQLITE_NULL;
 }
 
-bool static
+static bool
 read_bool(sqlite_row& row, int column_index)
 {
     return sqlite3_column_int(row.statement, column_index) != 0;
 }
 
-int static
+static int
 read_int32(sqlite_row& row, int column_index)
 {
     return sqlite3_column_int(row.statement, column_index);
 }
 
-int64_t static
+static int64_t
 read_int64(sqlite_row& row, int column_index)
 {
     return sqlite3_column_int64(row.statement, column_index);
 }
 
-string static
+static string
 read_string(sqlite_row& row, int column_index)
 {
     return
@@ -256,7 +256,7 @@ read_string(sqlite_row& row, int column_index)
             sqlite3_column_text(row.statement, column_index));
 }
 
-string static
+static string
 read_blob(sqlite_row& row, int column_index)
 {
     return
@@ -276,7 +276,7 @@ struct single_row_result
     bool value;
 };
 template<class RowHandler>
-void static
+static void
 execute_prepared_statement(
     disk_cache_impl const& cache,
     sqlite3_stmt* statement,
@@ -332,7 +332,7 @@ execute_prepared_statement(
 // QUERIES
 
 // Get the total size of all entries in the cache.
-int64_t static
+static int64_t
 get_cache_size(disk_cache_impl& cache)
 {
     int64_t size;
@@ -349,7 +349,7 @@ get_cache_size(disk_cache_impl& cache)
 }
 
 // Get the total number of valid entries in the cache.
-int64_t static
+static int64_t
 get_cache_entry_count(disk_cache_impl& cache)
 {
     int64_t count;
@@ -395,7 +395,7 @@ struct lru_entry
     bool in_db;
 };
 typedef std::vector<lru_entry> lru_entry_list;
-lru_entry_list static
+static lru_entry_list
 get_lru_entries(disk_cache_impl& cache)
 {
     lru_entry_list entries;
@@ -455,14 +455,14 @@ look_up(
 
 // OTHER UTILITIES
 
-file_path static
+static file_path
 get_path_for_id(disk_cache_impl& cache, int64_t id)
 {
     hashidsxx::Hashids hash("cradle", 6);
     return cache.dir / hash.encode(&id, &id + 1);
 }
 
-void static
+static void
 remove_entry(disk_cache_impl& cache, int64_t id, bool remove_file = true)
 {
     file_path path = get_path_for_id(cache, id);
@@ -475,7 +475,7 @@ remove_entry(disk_cache_impl& cache, int64_t id, bool remove_file = true)
         cache.remove_entry_statement);
 }
 
-void static
+static void
 enforce_cache_size_limit(disk_cache_impl& cache)
 {
     try
@@ -507,13 +507,13 @@ enforce_cache_size_limit(disk_cache_impl& cache)
     }
 }
 
-void static
+static void
 record_activity(disk_cache_impl& cache)
 {
     cache.latest_activity = boost::posix_time::microsec_clock::local_time();
 }
 
-void static
+static void
 record_usage_to_db(disk_cache_impl const& cache, int64_t id)
 {
     bind_int64(cache, cache.record_usage_statement, 1, id);
@@ -522,7 +522,7 @@ record_usage_to_db(disk_cache_impl const& cache, int64_t id)
         cache.record_usage_statement);
 }
 
-void static
+static void
 write_usage_records(disk_cache_impl& cache)
 {
     for (auto const& record : cache.usage_record_buffer)
@@ -540,7 +540,7 @@ record_cache_growth(disk_cache_impl& cache, size_t size)
         enforce_cache_size_limit(cache);
 }
 
-void static
+static void
 shut_down(disk_cache_impl& cache)
 {
     if (cache.db)
@@ -564,7 +564,7 @@ shut_down(disk_cache_impl& cache)
 
 // Open (or create) the database file and verify that the version number is
 // what we expect.
-void static
+static void
 open_and_check_db(disk_cache_impl& cache)
 {
     int const expected_database_version = 1;
@@ -610,7 +610,7 @@ open_and_check_db(disk_cache_impl& cache)
     }
 }
 
-void static
+static void
 initialize(disk_cache_impl& cache, disk_cache_config const& config)
 {
     cache.dir = config.directory ? *config.directory : get_shared_cache_dir(none, "cradle");
@@ -690,7 +690,7 @@ initialize(disk_cache_impl& cache, disk_cache_config const& config)
     enforce_cache_size_limit(cache);
 }
 
-void static
+static void
 check_initialization(disk_cache_impl& cache)
 {
     if (!cache.db)

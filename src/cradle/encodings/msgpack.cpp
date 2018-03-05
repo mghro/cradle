@@ -4,7 +4,7 @@
 
 namespace cradle {
 
-dynamic static
+static dynamic
 read_msgpack_value(
     ownership_holder const& ownership,
     msgpack::object const& object)
@@ -141,7 +141,7 @@ parse_msgpack_value(string const& msgpack)
 // This is passed to the msgpack unpacker to tell it whether different types
 // of objects should be copied out of the packed buffer or referenced
 // directly.
-bool static
+static bool
 msgpack_unpack_reference_type(
     msgpack::type::object_type type,
     size_t length,

@@ -24,7 +24,7 @@ find_testing_cacert_file()
     }
 }
 
-http_request_system static
+static http_request_system
 the_http_request_system(some(find_testing_cacert_file()));
 
 http_response

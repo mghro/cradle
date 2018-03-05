@@ -10,7 +10,7 @@
 
 using namespace cradle;
 
-void static
+static void
 reset_directory(file_path const& dir)
 {
     if (exists(dir))
@@ -32,7 +32,7 @@ TEST_CASE("uninitialized disk cache", "[disk_cache]")
     }
 }
 
-void static
+static void
 init_disk_cache(disk_cache& cache, string const& cache_dir = "disk_cache")
 {
     reset_directory(cache_dir);
@@ -54,14 +54,14 @@ init_disk_cache(disk_cache& cache, string const& cache_dir = "disk_cache")
 }
 
 // Generate some (meaningless) key string for the item with the given ID.
-string static
+static string
 generate_key_string(int item_id)
 {
     return "meaningless_key_string_" + lexical_cast<string>(item_id);
 }
 
 // Generate some (meaningless) value string for the item with the given ID.
-string static
+static string
 generate_value_string(int item_id)
 {
     return "meaningless_value_string_" + lexical_cast<string>(item_id);
@@ -78,7 +78,7 @@ generate_value_string(int item_id)
 //
 // The return value indicates whether or not the item was already cached.
 //
-bool static
+static bool
 test_item_access(disk_cache& cache, int item_id)
 {
     auto key = generate_key_string(item_id);

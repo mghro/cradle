@@ -8,21 +8,25 @@ import websocket
 import uuid
 from array import array
 
+
 def assert_success(res):
     """Check that a response represents success and abort (with a message) if not."""
     if res.status_code != 200:
         print(str(res.status_code) + " " + res.text)
         sys.exit(1)
 
+
 def union_tag(obj):
     """Get the tag of a union object."""
     return next(iter(obj))
+
 
 def raise_(ex):
     """Raise the specified exception.
 
     This allows exceptions to be raised from expressions."""
     raise ex
+
 
 def get_service_id(id):
     """Get the service associated with the given Thinknode ID."""
@@ -39,6 +43,7 @@ def get_service_id(id):
         6: 'rks',
         7: 'immutable'}
     return type_mapping.get(type_code, 'unknown')
+
 
 class Session:
     """This represents a Thinknode session."""
@@ -178,7 +183,8 @@ class Session:
             context = self.realm_context()
         while True:
             status = \
-                self.get("/calc/" + calc_id + "/status?context=" + context + "&status=completed")
+                self.get("/calc/" + calc_id + "/status?context=" +
+                         context + "&status=completed")
             if union_tag(status) == "failed":
                 print(json.dumps(status, indent=4), file=sys.stderr)
                 sys.exit(1)
@@ -190,11 +196,25 @@ class Session:
         print("POSTING ISS OBJECT", file=sys.stderr)
         if context is None:
             context = self.realm_context()
-        response = \
-            self.post(
-                "/iss/" + schema + "?context=" + context,
-                content=json.dumps(obj, indent=4))
-        return response["id"]
+        request_id = uuid.uuid4().hex
+        self.ws.send(
+            json.dumps(
+                {
+                    "post_iss_object": {
+                        "request_id": request_id,
+                        "context_id": context,
+                        "schema": schema,
+                        "object": obj}
+                }))
+        response = json.loads(self.ws.recv())
+        if union_tag(response) == "error":
+            print(json.dumps(response, indent=4))
+            sys.exit(1)
+        pio = response["post_iss_object_response"]
+        if pio["request_id"] != request_id:
+            print("mismatched request IDs")
+            sys.exit(1)
+        return pio["object_id"]
 
     def post_calc(self, calc, context=None):
         """Post a calculation and return its ID."""
@@ -248,15 +268,18 @@ class Session:
         """Substitute all instances of an old ID within a parent calc with a new ID."""
 
         def substitute_in_calc(calc):
-            """Apply the old_id->new_id subtitution to a calculation request."""
+            """Apply the old_id->new_id substitution to a calculation request."""
             # These are all the cases for handling different types of calcs.
             cases = {
                 "array":
-                    lambda array: {**array, 'items': list(map(substitute_in_calc, array['items']))},
+                    lambda array: {
+                        **array, 'items': list(map(substitute_in_calc, array['items']))},
                 "cast":
-                    lambda cast: {**cast, 'object': substitute_in_calc(cast['object'])},
+                    lambda cast: {
+                        **cast, 'object': substitute_in_calc(cast['object'])},
                 "function":
-                    lambda fun: {**fun, 'args': list(map(substitute_in_calc, fun['args']))},
+                    lambda fun: {
+                        **fun, 'args': list(map(substitute_in_calc, fun['args']))},
                 "item":
                     lambda item: {
                         **item,
@@ -266,12 +289,14 @@ class Session:
                 "let":
                     lambda let: {**let, 'in': substitute_in_calc(let['in'])},
                 "meta":
-                    lambda _: raise_(ValueError("can't substitute within meta")),
+                    lambda _: raise_(ValueError(
+                        "can't substitute within meta")),
                 "object":
                     lambda obj: {
                         **obj,
                         'properties':
-                            {k: substitute_in_calc(v) for k, v in obj['properties'].items()}
+                            {k: substitute_in_calc(
+                                v) for k, v in obj['properties'].items()}
                     },
                 "property":
                     lambda prop: {
@@ -290,7 +315,7 @@ class Session:
         result_cache = {}
 
         def substitute_in_ref(calc_id):
-            """Apply the old_id->new_id subtitution to a referenced calculation."""
+            """Apply the old_id->new_id substitution to a referenced calculation."""
             # Check if this is the ID we're trying to substitute for.
             if calc_id == old_id:
                 return new_id
@@ -305,7 +330,8 @@ class Session:
             substituted_calc = substitute_in_calc(original_calc)
             # If this resulted in a different calculation, post it.
             if substituted_calc != original_calc:
-                substituted_calc_id = self.post_calc(substituted_calc, context=context)
+                substituted_calc_id = self.post_calc(
+                    substituted_calc, context=context)
             else:
                 substituted_calc_id = calc_id
             # And record the result in the cache.

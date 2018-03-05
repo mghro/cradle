@@ -75,7 +75,7 @@ TEST_CASE("ISS immutable retrieval", "[thinknode][iss]")
 
 // Check that both directions of URL type string conversion works for the
 // given case.
-void static
+static void
 check_url_type_string(thinknode_type_info const& type, string const& url_string)
 {
     INFO(url_string)

@@ -7,7 +7,7 @@
 using namespace cradle;
 
 // This tests the entire base64 encode/decode interface on a single string.
-void static
+static void
 test_base64_encoding(
     string const& original,
     string const& correct_encoding,
@@ -93,7 +93,7 @@ TEST_CASE("missing base64 padding", "[encodings][base64]")
 }
 
 // Test that attempting to base64 decode the given string produces a parsing error.
-void static
+static void
 test_malformed_base64(
     string const& malformed_base64,
     base64_character_set const& character_set)

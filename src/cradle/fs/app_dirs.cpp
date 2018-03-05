@@ -15,7 +15,7 @@ namespace cradle {
 
 #ifdef WIN32
 
-bool static
+static bool
 create_directory_with_user_full_control_acl(string const& path)
 {
     LPCTSTR lp_path = path.c_str();
@@ -91,7 +91,7 @@ create_directory_with_user_full_control_acl(string const& path)
     return true;
 }
 
-void static
+static void
 create_directory_if_needed(file_path const& dir, bool shared = false)
 {
     if (!exists(dir))
@@ -198,20 +198,20 @@ get_shared_cache_dir(optional<string> const& author_name, string const& app_name
 
 #else // Unix-based systems
 
-void static
+static void
 create_directory_if_needed(file_path const& dir)
 {
     if (!exists(dir))
         create_directory(dir);
 }
 
-file_path static
+static file_path
 get_user_home_dir()
 {
     return get_environment_variable("HOME");
 }
 
-file_path static
+static file_path
 get_user_config_home()
 {
     auto xdg_config_home = get_optional_environment_variable("XDG_CONFIG_HOME");
@@ -265,7 +265,7 @@ get_config_search_path(optional<string> const& author_name, string const& app_na
     return search_path;
 }
 
-file_path static
+static file_path
 get_user_cache_home()
 {
     auto xdg_cache_home = get_optional_environment_variable("XDG_CACHE_HOME");
