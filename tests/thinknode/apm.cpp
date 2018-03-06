@@ -19,7 +19,7 @@ TEST_CASE("app version info", "[thinknode][apm]")
                 http_request const& request) {
             auto expected_request = make_get_request(
                 "https://mgh.thinknode.io/api/v1.0/apm/apps/acme/pets/versions/"
-                "2.0.0",
+                "2.0.0?include_manifest=true",
                 {{"Authorization", "Bearer xyz"},
                  {"Accept", "application/json"}});
             REQUIRE(request == expected_request);
