@@ -3,6 +3,8 @@
 
 #include <cradle/core/utilities.hpp>
 
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+
 #include <iostream>
 
 #ifdef CRADLE_USING_TAGGED_CONSTRUCTORS
