@@ -329,4 +329,23 @@ post_iss_object(
     return from_dynamic<id_response>(parse_json_response(response)).id;
 }
 
+void
+copy_iss_object(
+    http_connection_interface& connection,
+    thinknode_session const& session,
+    string const& source_bucket,
+    string const& destination_context_id,
+    string const& object_id)
+{
+    auto query = make_http_request(
+        http_request_method::POST,
+        session.api_url + "/iss/" + object_id + "/buckets/" + source_bucket
+            + "?context=" + destination_context_id,
+        {{"Authorization", "Bearer " + session.access_token}},
+        blob());
+    null_check_in check_in;
+    null_progress_reporter reporter;
+    connection.perform_request(check_in, reporter, query);
+}
+
 } // namespace cradle

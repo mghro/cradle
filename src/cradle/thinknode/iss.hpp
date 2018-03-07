@@ -41,6 +41,15 @@ post_iss_object(
     thinknode_type_info const& schema,
     dynamic const& data);
 
+// Copy an ISS object from one bucket to another.
+void
+copy_iss_object(
+    http_connection_interface& connection,
+    thinknode_session const& session,
+    string const& source_bucket,
+    string const& destination_context_id,
+    string const& object_id);
+
 } // namespace cradle
 
 #endif

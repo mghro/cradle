@@ -195,3 +195,29 @@ TEST_CASE("ISS POST", "[thinknode][iss]")
         dynamic("payload"));
     REQUIRE(id == "def");
 }
+
+TEST_CASE("ISS object copy", "[thinknode][iss]")
+{
+    Mock<http_connection_interface> mock_connection;
+
+    When(Method(mock_connection, perform_request))
+        .Do([&](check_in_interface& check_in,
+                progress_reporter_interface& reporter,
+                http_request const& request) {
+            auto expected_request = make_http_request(
+                http_request_method::POST,
+                "https://mgh.thinknode.io/api/v1.0/iss/def/buckets/"
+                "abc?context=123",
+                {{"Authorization", "Bearer xyz"}},
+                blob());
+            REQUIRE(request == expected_request);
+
+            return make_http_200_response("");
+        });
+
+    thinknode_session session;
+    session.api_url = "https://mgh.thinknode.io/api/v1.0";
+    session.access_token = "xyz";
+
+    copy_iss_object(mock_connection.get(), session, "abc", "123", "def");
+}
