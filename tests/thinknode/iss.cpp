@@ -59,8 +59,8 @@ TEST_CASE("ISS object metadata", "[thinknode][iss]")
 
             return make_http_response(
                 200,
-                {{"access-control-allow-origin", "*"},
-                 {"cache-control", "max-age=60"}},
+                {{"Access-Control-Allow-Origin", "*"},
+                 {"Cache-Control", "max-age=60"}},
                 blob());
         });
 
@@ -72,8 +72,8 @@ TEST_CASE("ISS object metadata", "[thinknode][iss]")
         = get_iss_object_metadata(mock_connection.get(), session, "123", "abc");
     REQUIRE(
         metadata
-        == (std::map<string, string>({{"access-control-allow-origin", "*"},
-                                      {"cache-control", "max-age=60"}})));
+        == (std::map<string, string>({{"Access-Control-Allow-Origin", "*"},
+                                      {"Cache-Control", "max-age=60"}})));
 }
 
 TEST_CASE("ISS immutable retrieval", "[thinknode][iss]")

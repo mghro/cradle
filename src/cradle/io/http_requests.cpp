@@ -314,13 +314,17 @@ http_connection::perform_request(
     {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     }
-    else if (request.method == http_request_method::HEAD)
-    {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "HEAD");
-    }
     else
     {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, 0);
+    }
+    if (request.method == http_request_method::HEAD)
+    {
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+    }
+    else
+    {
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
     }
 
     // Set up progress monitoring.

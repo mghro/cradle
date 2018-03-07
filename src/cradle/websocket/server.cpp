@@ -288,6 +288,61 @@ get_iss_object(
             ignore_upgrades));
 }
 
+static std::map<string, string>
+get_iss_object_metadata(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    string const& object_id)
+{
+    // Try the disk cache.
+    auto cache_key = picosha2::hash256_hex_string(
+        value_to_msgpack_string(dynamic({"get_iss_object_metadata",
+                                         session.api_url,
+                                         context_id,
+                                         object_id})));
+    try
+    {
+        auto entry = cache.find(cache_key);
+        // Cached metadata are stored externally in files.
+        if (entry && !entry->value)
+        {
+            auto data = read_file_contents(cache.get_path_for_id(entry->id));
+            if (compute_crc32(data) == entry->crc32)
+            {
+                return from_dynamic<std::map<string, string>>(
+                    parse_msgpack_value(data));
+            }
+        }
+    }
+    catch (...)
+    {
+        // Something went wrong trying to load the cached value, so just
+        // pretend it's not there. (It will be overwritten.)
+    }
+
+    // Query Thinknode.
+    auto metadata
+        = get_iss_object_metadata(connection, session, context_id, object_id);
+
+    // Cache the result.
+    auto cache_id = cache.initiate_insert(cache_key);
+    auto msgpack = value_to_msgpack_string(to_dynamic(metadata));
+    {
+        auto entry_path = cache.get_path_for_id(cache_id);
+        std::ofstream output;
+        open_file(
+            output,
+            entry_path,
+            std::ios::out | std::ios::trunc | std::ios::binary);
+        output << msgpack;
+    }
+    cache.finish_insert(cache_id, compute_crc32(msgpack));
+
+    return metadata;
+}
+
 thinknode_app_version_info
 get_app_version_info(
     disk_cache& cache,
@@ -475,6 +530,17 @@ post_iss_object(
     cache.insert(cache_key, object_id);
 
     return object_id;
+}
+
+static void
+copy_iss_object(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& source_bucket,
+    string const& destination_context_id,
+    string const& object_id)
+{
 }
 
 static calculation_request
@@ -683,6 +749,23 @@ process_message(
                 make_websocket_server_message_with_get_iss_object_response(
                     get_iss_object_response{gio.request_id,
                                             std::move(object)}));
+            break;
+        }
+        case websocket_client_message_tag::GET_ISS_OBJECT_METADATA:
+        {
+            auto const& giom = as_get_iss_object_metadata(request.message);
+            auto metadata = get_iss_object_metadata(
+                server.cache,
+                connection,
+                get_client(server.clients, request.client).session,
+                giom.context_id,
+                giom.object_id);
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_get_iss_object_metadata_response(
+                    get_iss_object_metadata_response{giom.request_id,
+                                                     std::move(metadata)}));
             break;
         }
         case websocket_client_message_tag::POST_ISS_OBJECT:

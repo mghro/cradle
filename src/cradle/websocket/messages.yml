@@ -101,6 +101,40 @@ types:
         schema:
           dynamic: {}
 
+- name: get_iss_object_metadata_request
+  doc: ''
+  schema:
+    structure:
+    - request_id:
+        doc: ''
+        schema:
+          string: {}
+    - context_id:
+        doc: ''
+        schema:
+          string: {}
+    - object_id:
+        doc: ''
+        schema:
+          string: {}
+
+- name: get_iss_object_metadata_response
+  doc: ''
+  schema:
+    structure:
+    - request_id:
+        doc: ''
+        schema:
+          string: {}
+    - metadata:
+        doc: ''
+        schema:
+          map:
+            key_schema:
+              string: {}
+            value_schema:
+              string: {}
+
 - name: post_iss_object_request
   doc: ''
   schema:
@@ -267,6 +301,12 @@ types:
           named:
             app: cradle
             name: get_iss_object_request
+    - get_iss_object_metadata:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: get_iss_object_metadata_request
     - post_iss_object:
         doc: ''
         schema:
@@ -318,6 +358,12 @@ types:
           named:
             app: cradle
             name: get_iss_object_response
+    - get_iss_object_metadata_response:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: get_iss_object_metadata_response
     - post_iss_object_response:
         doc: ''
         schema:

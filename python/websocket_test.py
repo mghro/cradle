@@ -80,6 +80,10 @@ def test_websocket_server():
     float_iss_id = session.post_iss_object("float", 4)
     assert session.get_iss_object(float_iss_id) == 4.0
 
+    # Test the metadata for the float object.
+    float_metadata = session.get_iss_object_metadata(float_iss_id)
+    assert float_metadata["Thinknode-Type"] == "float"
+
     # Also test a named type so that we know that lookup is working.
     box_iss_id = session.post_iss_object(
         "named/decimal/dosimetry/box_2d",
