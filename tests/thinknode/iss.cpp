@@ -42,6 +42,40 @@ TEST_CASE("ISS object resolution", "[thinknode][iss]")
     REQUIRE(id == "def");
 }
 
+TEST_CASE("ISS object metadata", "[thinknode][iss]")
+{
+    Mock<http_connection_interface> mock_connection;
+
+    When(Method(mock_connection, perform_request))
+        .Do([&](check_in_interface& check_in,
+                progress_reporter_interface& reporter,
+                http_request const& request) {
+            auto expected_request = make_http_request(
+                http_request_method::HEAD,
+                "https://mgh.thinknode.io/api/v1.0/iss/abc?context=123",
+                {{"Authorization", "Bearer xyz"}},
+                blob());
+            REQUIRE(request == expected_request);
+
+            return make_http_response(
+                200,
+                {{"access-control-allow-origin", "*"},
+                 {"cache-control", "max-age=60"}},
+                blob());
+        });
+
+    thinknode_session session;
+    session.api_url = "https://mgh.thinknode.io/api/v1.0";
+    session.access_token = "xyz";
+
+    auto metadata
+        = get_iss_object_metadata(mock_connection.get(), session, "123", "abc");
+    REQUIRE(
+        metadata
+        == (std::map<string, string>({{"access-control-allow-origin", "*"},
+                                      {"cache-control", "max-age=60"}})));
+}
+
 TEST_CASE("ISS immutable retrieval", "[thinknode][iss]")
 {
     Mock<http_connection_interface> mock_connection;

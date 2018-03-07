@@ -16,6 +16,14 @@ resolve_iss_object_to_immutable(
     string const& object_id,
     bool ignore_upgrades);
 
+// Get the metadata for an ISS object.
+std::map<string, string>
+get_iss_object_metadata(
+    http_connection_interface& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    string const& object_id);
+
 // Retrieve an immutable data object.
 dynamic
 retrieve_immutable(
@@ -28,7 +36,7 @@ retrieve_immutable(
 string
 get_url_type_string(thinknode_type_info const& schema);
 
-// Get the URL form of a schema.
+// Parse a schema in URL form.
 thinknode_type_info
 parse_url_type_string(string const& url_type);
 

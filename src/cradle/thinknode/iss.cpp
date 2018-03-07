@@ -61,6 +61,56 @@ resolve_iss_object_to_immutable(
     }
 }
 
+std::map<string, string>
+get_iss_object_metadata(
+    http_connection_interface& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    string const& object_id)
+{
+    auto query = make_http_request(
+        http_request_method::HEAD,
+        session.api_url + "/iss/" + object_id + "?context=" + context_id,
+        {{"Authorization", "Bearer " + session.access_token}},
+        blob());
+    null_check_in check_in;
+    null_progress_reporter reporter;
+    auto response = connection.perform_request(check_in, reporter, query);
+    switch (response.status_code)
+    {
+        case 200:
+        {
+            return response.headers;
+        }
+        case 202:
+        {
+            // The ISS object we're interested in is the result of a calculation
+            // that hasn't finished yet, so wait for it to resolve and try
+            // again.
+            long_poll_calculation_status(
+                check_in,
+                [](calculation_status const& status) {},
+                connection,
+                session,
+                context_id,
+                response.headers["Thinknode-Reference-Id"]);
+            return get_iss_object_metadata(
+                connection, session, context_id, object_id);
+        }
+        case 204:
+        {
+            // The ISS object we're interested in is the result of a calculation
+            // that failed.
+        }
+        default:
+        {
+            CRADLE_THROW(
+                bad_http_status_code() << attempted_http_request_info(query)
+                                       << http_response_info(response));
+        }
+    }
+}
+
 dynamic
 retrieve_immutable(
     http_connection_interface& connection,

@@ -14,6 +14,8 @@ types:
         doc: 'PATCH'
     - delete:
         doc: 'DELETE'
+    - head:
+        doc: 'HEAD'
 
 - name: http_request
   doc: ''
