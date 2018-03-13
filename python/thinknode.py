@@ -239,6 +239,30 @@ class Session:
             sys.exit(1)
         return pio["object_id"]
 
+    def copy_iss_object(self, source_bucket, object_id, context=None):
+        """Copy an ISS object from another bucket."""
+        print("COPYING ISS OBJECT", file=sys.stderr)
+        if context is None:
+            context = self.realm_context()
+        request_id = uuid.uuid4().hex
+        self.ws.send(
+            json.dumps(
+                {
+                    "copy_iss_object": {
+                        "request_id": request_id,
+                        "source_bucket": source_bucket,
+                        "destination_context_id": context,
+                        "object_id": object_id}
+                }))
+        response = json.loads(self.ws.recv())
+        if union_tag(response) == "error":
+            print(json.dumps(response, indent=4))
+            sys.exit(1)
+        pio = response["copy_iss_object_response"]
+        if pio["request_id"] != request_id:
+            print("mismatched request IDs")
+            sys.exit(1)
+
     def post_calc(self, calc, context=None):
         """Post a calculation and return its ID."""
         print("POSTING CALC", file=sys.stderr)

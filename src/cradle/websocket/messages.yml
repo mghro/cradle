@@ -169,6 +169,36 @@ types:
         schema:
           string: {}
 
+- name: copy_iss_object_request
+  doc: ''
+  schema:
+    structure:
+    - request_id:
+        doc: ''
+        schema:
+          string: {}
+    - source_bucket:
+        doc: ''
+        schema:
+          string: {}
+    - destination_context_id:
+        doc: ''
+        schema:
+          string: {}
+    - object_id:
+        doc: ''
+        schema:
+          string: {}
+
+- name: copy_iss_object_response
+  doc: ''
+  schema:
+    structure:
+    - request_id:
+        doc: ''
+        schema:
+          string: {}
+
 - name: post_calculation_request
   doc: ''
   schema:
@@ -313,6 +343,12 @@ types:
           named:
             app: cradle
             name: post_iss_object_request
+    - copy_iss_object:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: copy_iss_object_request
     - post_calculation:
         doc: ''
         schema:
@@ -370,6 +406,12 @@ types:
           named:
             app: cradle
             name: post_iss_object_response
+    - copy_iss_object_response:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: copy_iss_object_response
     - post_calculation_response:
         doc: ''
         schema:
