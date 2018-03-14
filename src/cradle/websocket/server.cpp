@@ -30,6 +30,10 @@
 #include <cradle/thinknode/utilities.hpp>
 #include <cradle/websocket/messages.hpp>
 
+// Include this again because some #defines snuck in to overwrite some of our
+// enum constants.
+#include <cradle/core/api_types.hpp>
+
 typedef websocketpp::server<websocketpp::config::asio> ws_server_type;
 
 using websocketpp::connection_hdl;
