@@ -34,7 +34,8 @@ retrieve_immutable(
 
 // Get the URL form of a schema.
 string
-get_url_type_string(thinknode_type_info const& schema);
+get_url_type_string(
+    thinknode_session const& session, thinknode_type_info const& schema);
 
 // Parse a schema in URL form.
 thinknode_type_info

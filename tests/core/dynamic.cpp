@@ -239,9 +239,11 @@ TEST_CASE("dynamic operators", "[core][dynamic]")
 TEST_CASE("dynamic value coercion", "[core][dynamic]")
 {
     auto type_dictionary = std::map<api_named_type_reference, api_type_info>(
-        {{make_api_named_type_reference("my_account", "my_app", "int"),
+        {{make_api_named_type_reference(
+              some(string("my_account")), "my_app", "int"),
           make_api_type_info_with_integer(api_integer_type())},
-         {make_api_named_type_reference("my_account", "my_app", "float"),
+         {make_api_named_type_reference(
+              some(string("my_account")), "my_app", "float"),
           make_api_type_info_with_float(api_float_type())}});
     auto coerce_value = [&](api_type_info const& type, auto&& value) {
         return cradle::coerce_value(
@@ -280,10 +282,12 @@ TEST_CASE("dynamic value coercion", "[core][dynamic]")
     REQUIRE_THROWS(coerce_value(float_type, dynamic(false)));
 
     // Test that we can do all this through named types.
-    auto named_integer_type = make_api_type_info_with_named(
-        make_api_named_type_reference("my_account", "my_app", "int"));
-    auto named_float_type = make_api_type_info_with_named(
-        make_api_named_type_reference("my_account", "my_app", "float"));
+    auto named_integer_type
+        = make_api_type_info_with_named(make_api_named_type_reference(
+            some(string("my_account")), "my_app", "int"));
+    auto named_float_type
+        = make_api_type_info_with_named(make_api_named_type_reference(
+            some(string("my_account")), "my_app", "float"));
     REQUIRE(
         coerce_value(named_integer_type, dynamic(double(0)))
         == dynamic(integer(0)));

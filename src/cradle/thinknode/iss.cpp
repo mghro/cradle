@@ -6,6 +6,7 @@
 #include <cradle/encodings/msgpack.hpp>
 #include <cradle/io/http_requests.hpp>
 #include <cradle/thinknode/calc.hpp>
+#include <cradle/thinknode/utilities.hpp>
 
 namespace cradle {
 
@@ -130,13 +131,15 @@ retrieve_immutable(
 }
 
 string
-get_url_type_string(thinknode_type_info const& schema)
+get_url_type_string(
+    thinknode_session const& session, thinknode_type_info const& schema)
 {
     switch (get_tag(schema))
     {
         case thinknode_type_info_tag::ARRAY_TYPE:
             return "array/"
-                   + get_url_type_string(as_array_type(schema).element_schema);
+                   + get_url_type_string(
+                         session, as_array_type(schema).element_schema);
         case thinknode_type_info_tag::BLOB_TYPE:
             return "blob";
         case thinknode_type_info_tag::BOOLEAN_TYPE:
@@ -163,22 +166,25 @@ get_url_type_string(thinknode_type_info const& schema)
         case thinknode_type_info_tag::MAP_TYPE:
         {
             auto const& m = as_map_type(schema);
-            return "map/" + get_url_type_string(m.key_schema) + "/"
-                   + get_url_type_string(m.value_schema);
+            return "map/" + get_url_type_string(session, m.key_schema) + "/"
+                   + get_url_type_string(session, m.value_schema);
         }
         case thinknode_type_info_tag::NAMED_TYPE:
         {
             auto const& n = as_named_type(schema);
-            return "named/" + n.account + "/" + n.app + "/" + n.name;
+            return "named/"
+                   + (n.account ? *n.account : get_account_name(session)) + "/"
+                   + n.app + "/" + n.name;
         }
         case thinknode_type_info_tag::NIL_TYPE:
         default:
             return "nil";
         case thinknode_type_info_tag::OPTIONAL_TYPE:
-            return "optional/" + get_url_type_string(as_optional_type(schema));
+            return "optional/"
+                   + get_url_type_string(session, as_optional_type(schema));
         case thinknode_type_info_tag::REFERENCE_TYPE:
             return "reference/"
-                   + get_url_type_string(as_reference_type(schema));
+                   + get_url_type_string(session, as_reference_type(schema));
         case thinknode_type_info_tag::STRING_TYPE:
             return "string";
         case thinknode_type_info_tag::STRUCTURE_TYPE:
@@ -189,7 +195,7 @@ get_url_type_string(thinknode_type_info const& schema)
             for (auto const& f : s.fields)
             {
                 ss << "/" << f.first << "/"
-                   << get_url_type_string(f.second.schema);
+                   << get_url_type_string(session, f.second.schema);
             }
             return ss.str();
         }
@@ -201,7 +207,7 @@ get_url_type_string(thinknode_type_info const& schema)
             for (auto const& m : u.members)
             {
                 ss << "/" << m.first << "/"
-                   << get_url_type_string(m.second.schema);
+                   << get_url_type_string(session, m.second.schema);
             }
             return ss.str();
         }
@@ -367,7 +373,7 @@ post_iss_object(
 {
     auto query = make_http_request(
         http_request_method::POST,
-        session.api_url + "/iss/" + get_url_type_string(schema)
+        session.api_url + "/iss/" + get_url_type_string(session, schema)
             + "?context=" + context_id,
         {{"Authorization", "Bearer " + session.access_token},
          {"Accept", "application/json"},

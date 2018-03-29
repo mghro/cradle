@@ -130,7 +130,7 @@ TEST_CASE("app version info", "[thinknode][apm]")
                             "A dog with an age in people years",
                             make_thinknode_type_info_with_named_type(
                                 make_thinknode_named_type_reference(
-                                    "acme", "pets", "dog")))},
+                                    some(string("acme")), "pets", "dog")))},
                         make_thinknode_function_result_info(
                             "The computed age of the dog in dog years.",
                             make_thinknode_type_info_with_integer_type(

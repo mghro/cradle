@@ -257,6 +257,7 @@ types:
     structure:
     - account:
         doc: ''
+        omissible: true
         schema:
           string: {}
     - app:

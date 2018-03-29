@@ -465,7 +465,7 @@ resolve_named_type_reference(
                 cache,
                 connection,
                 session,
-                ref.account,
+                ref.account ? *ref.account : get_account_name(session),
                 ref.app,
                 as_version(app_info.source));
             for (auto const& type : version_info.manifest->types)
