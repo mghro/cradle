@@ -107,3 +107,11 @@ TEST_CASE("Thinknode type conversion", "[thinknode][utilities]")
     auto ref_type = make_api_type_info_with_reference(named_type);
     REQUIRE(as_api_type(tn_ref_type) == ref_type);
 }
+
+TEST_CASE("Thinknode account name", "[thinknode][utilities]")
+{
+    thinknode_session session;
+    session.api_url = "https://mgh.thinknode.io/api/v1.0";
+    session.access_token = "xyz";
+    REQUIRE(get_account_name(session) == "mgh");
+}

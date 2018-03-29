@@ -7,6 +7,10 @@ namespace cradle {
 
 api_type_info
 as_api_type(thinknode_type_info const& tn);
-}
+
+string
+get_account_name(thinknode_session const& session);
+
+} // namespace cradle
 
 #endif

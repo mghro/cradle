@@ -68,4 +68,13 @@ as_api_type(thinknode_type_info const& tn)
     }
 }
 
+string
+get_account_name(thinknode_session const& session)
+{
+    auto const& url = session.api_url;
+    auto start = url.find("://") + 3;
+    auto end = url.find(".");
+    return url.substr(start, end - start);
+}
+
 } // namespace cradle
