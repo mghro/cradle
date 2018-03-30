@@ -44,23 +44,16 @@ def test_websocket_server():
         raise
 
     ws.send(
-        json.dumps(
-            {
-                "registration": {
-                    "name": "Channing",
-                    "session": {
-                        "api_url": "",
-                        "access_token": "",
-                    }
+        json.dumps({
+            "registration": {
+                "name": "Channing",
+                "session": {
+                    "api_url": "",
+                    "access_token": "",
                 }
-            }))
-    ws.send(
-        json.dumps(
-            {
-                "test": {
-                    "message": "Hello, Tigger!"
-                }
-            }))
+            }
+        }))
+    ws.send(json.dumps({"test": {"message": "Hello, Tigger!"}}))
     response = json.loads(ws.recv())["test"]
     assert response == {"message": "Hello, Tigger!", "name": "Channing"}
 
@@ -85,9 +78,10 @@ def test_websocket_server():
     assert float_metadata["Thinknode-Type"] == "float"
 
     # Also test a named type so that we know that lookup is working.
-    box_iss_id = session.post_iss_object(
-        "named/decimal/dosimetry/box_2d",
-        {"corner": [-1, 0], "size": [3, 3]})
+    box_iss_id = session.post_iss_object("named/mgh/dosimetry/box_2d", {
+        "corner": [-1, 0],
+        "size": [3, 3]
+    })
     assert session.get_iss_object(box_iss_id) == \
         {"corner": [-1, 0], "size": [3, 3]}
 
@@ -101,7 +95,7 @@ def test_websocket_server():
                 "variables": {
                     "x": {
                         "function": {
-                            "account": "decimal",
+                            "account": "mgh",
                             "app": "dosimetry",
                             "name": "addition",
                             "args": [
@@ -117,7 +111,7 @@ def test_websocket_server():
                 },
                 "in": {
                     "function": {
-                        "account": "decimal",
+                        "account": "mgh",
                         "app": "dosimetry",
                         "name": "addition",
                         "args": [
@@ -137,11 +131,7 @@ def test_websocket_server():
 
     assert session.get_iss_object(test_calc_id) == pytest.approx(a + b + c)
 
-    ws.send(
-        json.dumps(
-            {
-                "kill": None
-            }))
+    ws.send(json.dumps({"kill": None}))
     ws.close()
 
     assert server_process.wait() == 0
