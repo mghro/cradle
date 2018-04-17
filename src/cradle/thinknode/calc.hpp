@@ -83,9 +83,10 @@ struct calculation_submission_interface
 };
 
 // This is an alternative to Thinknode's meta request functionality that uses
-// locally generated request but tries to be as efficient as possible about
-// submitting it to Thinknode. It's more responsive than other methods in cases
-// where the client is repeatedly submitting many similar requests to Thinknode.
+// locally generated requests but tries to be as efficient as possible about
+// submitting them to Thinknode. It's more responsive than other methods in
+// cases where the client is repeatedly submitting many similar requests to
+// Thinknode.
 //
 // In this method, the caller supplies a Thinknode request containing 'let'
 // variables that represent repeated subrequests, and rather than submitting
