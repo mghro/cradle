@@ -192,6 +192,16 @@ get_user_cache_dir(optional<string> const& author_name, string const& app_name)
 }
 
 file_path
+get_user_logs_dir(optional<string> const& author_name, string const& app_name)
+{
+    auto user_app_dir
+        = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, true);
+    auto user_logs_dir = user_app_dir / "logs";
+    create_directory_if_needed(user_logs_dir);
+    return user_logs_dir;
+}
+
+file_path
 get_shared_cache_dir(
     optional<string> const& author_name, string const& app_name)
 {
@@ -203,13 +213,6 @@ get_shared_cache_dir(
 }
 
 #else // Unix-based systems
-
-static void
-create_directory_if_needed(file_path const& dir)
-{
-    if (!exists(dir))
-        create_directory(dir);
-}
 
 static file_path
 get_user_home_dir()
@@ -234,10 +237,8 @@ get_user_config_home()
 file_path
 get_user_config_dir(optional<string> const& author_name, string const& app_name)
 {
-    auto user_config_home = get_user_config_home();
-    create_directory_if_needed(user_config_home);
-    auto app_config_dir = user_config_home / app_name;
-    create_directory_if_needed(app_config_dir);
+    auto app_config_dir = get_user_config_home() / app_name;
+    create_directories(app_config_dir);
     return app_config_dir;
 }
 
@@ -289,11 +290,31 @@ get_user_cache_home()
 file_path
 get_user_cache_dir(optional<string> const& author_name, string const& app_name)
 {
-    auto user_cache_home = get_user_cache_home();
-    create_directory_if_needed(user_cache_home);
-    auto app_cache_dir = user_cache_home / app_name;
-    create_directory_if_needed(app_cache_dir);
+    auto app_cache_dir = get_user_cache_home() / app_name;
+    create_directories(app_cache_dir);
     return app_cache_dir;
+}
+
+static file_path
+get_user_data_home()
+{
+    auto xdg_data_home = get_optional_environment_variable("XDG_DATA_HOME");
+    if (xdg_data_home)
+    {
+        file_path dir = *xdg_data_home;
+        // XDG requires absolute paths.
+        if (dir.is_absolute())
+            return dir;
+    }
+    return get_user_home_dir() / ".local" / "share";
+}
+
+file_path
+get_user_logs_dir(optional<string> const& author_name, string const& app_name)
+{
+    auto app_logs_dir = get_user_data_home() / app_name / "logs";
+    create_directories(app_logs_dir);
+    return app_logs_dir;
 }
 
 file_path

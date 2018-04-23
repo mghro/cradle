@@ -45,16 +45,24 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     set_environment_variable("XDG_CACHE_HOME", "");
     REQUIRE_THROWS(get_user_config_dir(author, app));
     REQUIRE_THROWS(get_user_cache_dir(author, app));
+    REQUIRE_THROWS(get_user_logs_dir(author, app));
 
     // If only HOME is set, the results should be based on that.
     set_environment_variable("HOME", home_dir.string());
+    // config
     auto default_config_dir = home_dir / ".config" / app;
     REQUIRE(get_user_config_dir(author, app) == default_config_dir);
     REQUIRE(exists(default_config_dir));
     reset_directory(home_dir);
+    // cache
     auto default_cache_dir = home_dir / ".cache" / app;
     REQUIRE(get_user_cache_dir(author, app) == default_cache_dir);
     REQUIRE(exists(default_cache_dir));
+    reset_directory(home_dir);
+    // logs
+    auto default_logs_dir = home_dir / ".local" / "share" / app / "logs";
+    REQUIRE(get_user_logs_dir(author, app) == default_logs_dir);
+    REQUIRE(exists(default_logs_dir));
     reset_directory(home_dir);
 
     // If we try getting the config search path now, it should be empty
@@ -69,20 +77,32 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     reset_directory(home_dir);
 
     // Check that relative paths aren't used.
+    // config
     set_environment_variable("XDG_CONFIG_HOME", "abc/def");
     REQUIRE(get_user_config_dir(author, app) == default_config_dir);
+    // cache
     set_environment_variable("XDG_CACHE_HOME", "abc/def");
     REQUIRE(get_user_cache_dir(author, app) == default_cache_dir);
+    // data/logs
+    set_environment_variable("XDG_DATA_HOME", "abc/def");
+    REQUIRE(get_user_logs_dir(author, app) == default_logs_dir);
 
     // Set some custom directories and check that they're used.
+    // config
     auto custom_config_dir = cwd / "xdg_config";
     reset_directory(custom_config_dir);
     set_environment_variable("XDG_CONFIG_HOME", custom_config_dir.string());
     REQUIRE(get_user_config_dir(author, app) == custom_config_dir / app);
+    // cache
     auto custom_cache_dir = cwd / "xdg_cache";
     reset_directory(custom_cache_dir);
     set_environment_variable("XDG_CACHE_HOME", custom_cache_dir.string());
     REQUIRE(get_user_cache_dir(author, app) == custom_cache_dir / app);
+    // data/logs
+    auto custom_data_dir = cwd / "xdg_data";
+    reset_directory(custom_data_dir);
+    set_environment_variable("XDG_DATA_HOME", custom_data_dir.string());
+    REQUIRE(get_user_logs_dir(author, app) == custom_data_dir / app / "logs");
 
     // Also add some config dirs (including some relative ones and some
     // without app dirs) and check that the search path is adjusted correctly.

@@ -9,13 +9,6 @@ import uuid
 from array import array
 
 
-def assert_success(res):
-    """Check that a response represents success and abort (with a message) if not."""
-    if res.status_code != 200:
-        print(str(res.status_code) + " " + res.text)
-        sys.exit(1)
-
-
 def union_tag(obj):
     """Get the tag of a union object."""
     return next(iter(obj))
@@ -41,7 +34,8 @@ def get_service_id(id):
         4: 'calc',
         5: 'cas',
         6: 'rks',
-        7: 'immutable'}
+        7: 'immutable'
+    }
     return type_mapping.get(type_code, 'unknown')
 
 
@@ -54,20 +48,22 @@ class Session:
         self.headers = {
             'Authorization': 'Bearer ' + self.config["api_token"],
             'Content-Type': 'application/json',
-            'Accept': 'application/json'}
+            'Accept': 'application/json'
+        }
         self.realm = self.config["realm_name"]
 
         # Connect to the CRADLE server.
         self.ws = websocket.create_connection(self.config["cradle_url"])
         self.ws.send(
-            json.dumps(
-                {
-                    "registration": {
-                        "name": "thinknode.python.lib",
-                        "session": {
-                            "api_url": self.config["api_url"],
-                            "access_token": self.config["api_token"]}}
-                }))
+            json.dumps({
+                "registration": {
+                    "name": "thinknode.python.lib",
+                    "session": {
+                        "api_url": self.config["api_url"],
+                        "access_token": self.config["api_token"]
+                    }
+                }
+            }))
 
         self.retrieve_realm_context()
 
@@ -75,7 +71,7 @@ class Session:
         """Get the context associated with the app in the config file."""
         url = self.config["api_url"] + "/iam/realms/" + self.realm + "/context"
         response = requests.get(url, headers=self.headers)
-        assert_success(response)
+        response.raise_for_status()
         self.context = response.json()["id"]
 
     def realm_context(self):
@@ -85,7 +81,7 @@ class Session:
         """Do a GET request."""
         url = self.config["api_url"] + path
         response = requests.get(url, headers=self.headers)
-        assert_success(response)
+        response.raise_for_status()
         try:
             return response.json()
         except:
@@ -95,26 +91,26 @@ class Session:
         """Do a GET request but don't try to parse the output."""
         url = self.config["api_url"] + path
         response = requests.get(url, headers=self.headers)
-        assert_success(response)
+        response.raise_for_status()
         return response.text
 
     def patch(self, path, content):
         """Do a PATCH request."""
         url = self.config["api_url"] + path
         response = requests.patch(url, headers=self.headers, data=content)
-        assert_success(response)
+        response.raise_for_status()
 
     def put(self, path, content=None):
         """Do a PUT request."""
         url = self.config["api_url"] + path
         response = requests.put(url, headers=self.headers, data=content)
-        assert_success(response)
+        response.raise_for_status()
 
     def post(self, path, content):
         """Do a POST request."""
         url = self.config["api_url"] + path
         response = requests.post(url, headers=self.headers, data=content)
-        assert_success(response)
+        response.raise_for_status()
         try:
             return response.json()
         except:
@@ -124,7 +120,7 @@ class Session:
         """Do a DELETE request."""
         url = self.config["api_url"] + path
         response = requests.delete(url, headers=self.headers)
-        assert_success(response)
+        response.raise_for_status()
 
     def get_iss_object(self, object_id, context=None, ignore_upgrades=False):
         """Retrieve an object from the ISS."""
@@ -133,14 +129,14 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "get_iss_object": {
-                        "request_id": request_id,
-                        "context_id": context,
-                        "object_id": object_id,
-                        "ignore_upgrades": ignore_upgrades}
-                }))
+            json.dumps({
+                "get_iss_object": {
+                    "request_id": request_id,
+                    "context_id": context,
+                    "object_id": object_id,
+                    "ignore_upgrades": ignore_upgrades
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))
@@ -157,13 +153,13 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "get_iss_object_metadata": {
-                        "request_id": request_id,
-                        "context_id": context,
-                        "object_id": object_id}
-                }))
+            json.dumps({
+                "get_iss_object_metadata": {
+                    "request_id": request_id,
+                    "context_id": context,
+                    "object_id": object_id
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))
@@ -181,14 +177,13 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "resolve_meta_chain": {
-                        "request_id": request_id,
-                        "context_id": context,
-                        "generator": generator_calc
-                    }
-                }))
+            json.dumps({
+                "resolve_meta_chain": {
+                    "request_id": request_id,
+                    "context_id": context,
+                    "generator": generator_calc
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))
@@ -221,14 +216,14 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "post_iss_object": {
-                        "request_id": request_id,
-                        "context_id": context,
-                        "schema": schema,
-                        "object": obj}
-                }))
+            json.dumps({
+                "post_iss_object": {
+                    "request_id": request_id,
+                    "context_id": context,
+                    "schema": schema,
+                    "object": obj
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))
@@ -246,14 +241,14 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "copy_iss_object": {
-                        "request_id": request_id,
-                        "source_bucket": source_bucket,
-                        "destination_context_id": context,
-                        "object_id": object_id}
-                }))
+            json.dumps({
+                "copy_iss_object": {
+                    "request_id": request_id,
+                    "source_bucket": source_bucket,
+                    "destination_context_id": context,
+                    "object_id": object_id
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))
@@ -270,13 +265,13 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "post_calculation": {
-                        "request_id": request_id,
-                        "context_id": context,
-                        "calculation": calc}
-                }))
+            json.dumps({
+                "post_calculation": {
+                    "request_id": request_id,
+                    "context_id": context,
+                    "calculation": calc
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))
@@ -294,13 +289,13 @@ class Session:
             context = self.realm_context()
         request_id = uuid.uuid4().hex
         self.ws.send(
-            json.dumps(
-                {
-                    "get_calculation_request": {
-                        "request_id": request_id,
-                        "context_id": context,
-                        "calculation_id": calc_id}
-                }))
+            json.dumps({
+                "get_calculation_request": {
+                    "request_id": request_id,
+                    "context_id": context,
+                    "calculation_id": calc_id
+                }
+            }))
         response = json.loads(self.ws.recv())
         if union_tag(response) == "error":
             print(json.dumps(response, indent=4))

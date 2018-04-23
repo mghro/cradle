@@ -57,6 +57,11 @@ optional<file_path>
 search_in_path(
     std::vector<file_path> const& search_path, file_path const& item);
 
+// Get the directory that should be used for storing user-specific logs.
+// If the directory doesn't already exist, it is created.
+file_path
+get_user_logs_dir(optional<string> const& author_name, string const& app_name);
+
 // If one of the above is unable to create the requested directory, this
 // exception is throw.
 CRADLE_DEFINE_EXCEPTION(directory_creation_failure)
