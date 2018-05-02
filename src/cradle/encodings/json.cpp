@@ -121,7 +121,7 @@ read_json_value(nlohmann::json const& json)
         }
         case nlohmann::json::value_t::object:
         {
-            // An object is analagous to a record, but blobs and references are
+            // An object is analogous to a map, but blobs and references are
             // also encoded as JSON objects, so we have to check here if it's
             // actually one of those.
             auto type = json.find("type");
@@ -160,7 +160,7 @@ read_json_value(nlohmann::json const& json)
             }
             else
             {
-                // Otherwise, interpret it as a record.
+                // Otherwise, interpret it as a map.
                 dynamic_map map;
                 for (nlohmann::json::const_iterator i = json.begin();
                      i != json.end();
@@ -203,7 +203,8 @@ has_only_string_keys(dynamic_map const& map)
     return true;
 }
 
-nlohmann::json static to_nlohmann_json(dynamic const& v)
+static nlohmann::json
+to_nlohmann_json(dynamic const& v)
 {
     switch (v.type())
     {
