@@ -3,8 +3,10 @@
 #include <boost/format.hpp>
 
 #include <cradle/core/monitoring.hpp>
+#include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
 #include <cradle/thinknode/iss.hpp>
+#include <cradle/thinknode/utilities.hpp>
 
 namespace cradle {
 
@@ -371,6 +373,119 @@ submit_let_calculation_request(
     result.main_calc_id = get(main_calc_id);
 
     return result;
+}
+
+static void
+search_calculation(
+    std::map<string, bool>& is_matching,
+    calculation_retrieval_interface& retriever,
+    thinknode_session const& session,
+    string const& context_id,
+    string const& calculation_id,
+    string const& search_string)
+{
+    // If this calculation has already been searched, don't redo the work.
+    if (is_matching.find(calculation_id) != is_matching.end())
+        return;
+
+    // Get the calculation request;
+    auto request = retriever.retrieve(session, context_id, calculation_id);
+
+    auto recurse = [&](calculation_request const& request) {
+        if (is_reference(request))
+        {
+            auto ref = as_reference(request);
+            if (get_thinknode_service_id(ref) == thinknode_service_id::CALC)
+            {
+                search_calculation(
+                    is_matching,
+                    retriever,
+                    session,
+                    context_id,
+                    ref,
+                    search_string);
+            }
+        }
+    };
+
+    switch (get_tag(request))
+    {
+        case calculation_request_tag::REFERENCE:
+        case calculation_request_tag::VALUE:
+            is_matching[calculation_id] = false;
+            break;
+        case calculation_request_tag::FUNCTION:
+            is_matching[calculation_id]
+                = as_function(request).name.find(search_string) != string::npos;
+            for (auto const& arg : as_function(request).args)
+                recurse(arg);
+            break;
+        case calculation_request_tag::ARRAY:
+            is_matching[calculation_id] = false;
+            for (auto const& item : as_array(request).items)
+                recurse(item);
+            break;
+        case calculation_request_tag::ITEM:
+            is_matching[calculation_id] = false;
+            recurse(as_item(request).array);
+            break;
+        case calculation_request_tag::OBJECT:
+            is_matching[calculation_id] = false;
+            for (auto const& property : as_object(request).properties)
+                recurse(property.second);
+            break;
+        case calculation_request_tag::PROPERTY:
+            is_matching[calculation_id] = false;
+            recurse(as_property(request).object);
+            break;
+        case calculation_request_tag::LET:
+            CRADLE_THROW(
+                internal_check_failed() << internal_error_message_info(
+                    "resolved calculation request contains 'let'"));
+        case calculation_request_tag::VARIABLE:
+            CRADLE_THROW(
+                internal_check_failed() << internal_error_message_info(
+                    "resolved calculation request contains 'variable'"));
+        case calculation_request_tag::META:
+            is_matching[calculation_id] = false;
+            recurse(as_meta(request).generator);
+            break;
+        default:
+            CRADLE_THROW(
+                invalid_enum_value()
+                << enum_id_info("calculation_request_tag")
+                << enum_value_info(static_cast<int>(get_tag(request))));
+    }
+}
+
+std::vector<string>
+search_calculation(
+    calculation_retrieval_interface& retriever,
+    thinknode_session const& session,
+    string const& context_id,
+    string const& calculation_id,
+    string const& search_string)
+{
+    // mapping from calculation IDs to whether or not the corresponding
+    // calculation matches the search criteria
+    std::map<string, bool> is_matching;
+
+    search_calculation(
+        is_matching,
+        retriever,
+        session,
+        context_id,
+        calculation_id,
+        search_string);
+
+    // Extract the matching calculation IDs.
+    std::vector<string> matches;
+    for (auto const& i : is_matching)
+    {
+        if (i.second)
+            matches.push_back(i.first);
+    }
+    return matches;
 }
 
 } // namespace cradle

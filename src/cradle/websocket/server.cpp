@@ -808,6 +808,43 @@ get_calculation_request(
     return request;
 }
 
+struct simple_calculation_retriever : calculation_retrieval_interface
+{
+    disk_cache& cache;
+    http_connection& connection;
+
+    simple_calculation_retriever(disk_cache& cache, http_connection& connection)
+        : cache(cache), connection(connection)
+    {
+    }
+
+    calculation_request
+    retrieve(
+        thinknode_session const& session,
+        string const& context_id,
+        string const& calculation_id)
+    {
+        return get_calculation_request(
+            cache, connection, session, context_id, calculation_id);
+    }
+};
+
+// Search within a calculation request and return a list of subcalculation IDs
+// that match :search_string.
+static std::vector<string>
+search_calculation(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    string const& calculation_id,
+    string const& search_string)
+{
+    simple_calculation_retriever retriever(cache, connection);
+    return search_calculation(
+        retriever, session, context_id, calculation_id, search_string);
+}
+
 static string
 post_calculation(
     disk_cache& cache,
@@ -1040,6 +1077,23 @@ process_message(
                 make_websocket_server_message_with_get_calculation_request_response(
                     make_get_calculation_request_response(
                         gcr.request_id, calc)));
+            break;
+        }
+        case websocket_client_message_tag::CALCULATION_SEARCH:
+        {
+            auto const& csr = as_calculation_search(request.message);
+            auto matches = search_calculation(
+                server.cache,
+                connection,
+                get_client(server.clients, request.client).session,
+                csr.context_id,
+                csr.calculation_id,
+                csr.search_string);
+            send(
+                server,
+                request.client,
+                make_websocket_server_message_with_calculation_search_response(
+                    make_calculation_search_response(csr.request_id, matches)));
             break;
         }
         case websocket_client_message_tag::POST_CALCULATION:

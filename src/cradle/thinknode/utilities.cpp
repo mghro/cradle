@@ -77,4 +77,30 @@ get_account_name(thinknode_session const& session)
     return url.substr(start, end - start);
 }
 
+thinknode_service_id
+get_thinknode_service_id(string const& thinknode_id)
+{
+    switch (std::stoul(thinknode_id.substr(9, 2), nullptr, 16) >> 2)
+    {
+        case 1:
+            return thinknode_service_id::IAM;
+        case 2:
+            return thinknode_service_id::APM;
+        case 3:
+            return thinknode_service_id::ISS;
+        case 4:
+            return thinknode_service_id::CALC;
+        case 5:
+            return thinknode_service_id::CAS;
+        case 6:
+            return thinknode_service_id::RKS;
+        case 7:
+            return thinknode_service_id::IMMUTABLE;
+        default:
+            CRADLE_THROW(
+                internal_check_failed() << internal_error_message_info(
+                    "unrecognized Thinknode service ID"));
+    }
+}
+
 } // namespace cradle
