@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include <cradle/common.hpp>
-#include <cradle/encodings/json.hpp>
+#include <cradle/encodings/yaml.hpp>
 
 namespace cradle {
 
@@ -177,7 +177,7 @@ swap(dynamic& a, dynamic& b)
 std::ostream&
 operator<<(std::ostream& os, dynamic const& v)
 {
-    os << value_to_json(v);
+    os << value_to_yaml(v);
     return os;
 }
 
