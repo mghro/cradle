@@ -10,7 +10,6 @@
 #include <yaml-cpp/yaml.h>
 #pragma GCC diagnostic pop
 #else
-#define YAML_CPP_DLL
 #include <yaml-cpp/yaml.h>
 #endif
 
@@ -92,7 +91,7 @@ read_yaml_value(YAML::Node const& yaml)
                 // Try to interpret it as a number.
                 if (!s.compare(0, 2, "0x"))
                 {
-                    std::istringstream stream(s);
+                    std::istringstream stream(s.substr(2));
                     integer i;
                     stream >> std::hex >> i;
                     if (!stream.fail() && stream.tellg() == std::streampos(-1))
@@ -102,10 +101,17 @@ read_yaml_value(YAML::Node const& yaml)
                 }
                 if (!s.compare(0, 2, "0o"))
                 {
-                    std::istringstream stream(s);
+                    std::istringstream stream(s.substr(2));
                     integer i;
                     stream >> std::oct >> i;
                     if (!stream.fail() && stream.tellg() == std::streampos(-1))
+                    {
+                        return i;
+                    }
+                }
+                {
+                    integer i;
+                    if (boost::conversion::try_lexical_convert(s, i))
                     {
                         return i;
                     }
@@ -214,12 +220,16 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
         case value_type::NIL:
         default: // to avoid warnings
             out << YAML::Node();
+            break;
         case value_type::BOOLEAN:
             out << cast<bool>(v);
+            break;
         case value_type::INTEGER:
             out << cast<integer>(v);
+            break;
         case value_type::FLOAT:
             out << cast<double>(v);
+            break;
         case value_type::STRING:
         {
             if (read_yaml_value(YAML::Node(cast<string>(v))).type()
@@ -245,9 +255,12 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
                 x.size,
                 get_mime_base64_character_set());
             out << yaml;
+            break;
         }
         case value_type::DATETIME:
-            out << to_value_string(cast<boost::posix_time::ptime>(v));
+            out << YAML::DoubleQuoted
+                << to_value_string(cast<boost::posix_time::ptime>(v));
+            break;
         case value_type::ARRAY:
         {
             out << YAML::BeginSeq;
@@ -256,6 +269,7 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
                 emit_yaml_value(out, i);
             }
             out << YAML::EndSeq;
+            break;
         }
         case value_type::MAP:
         {
@@ -267,6 +281,7 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
                 emit_yaml_value(out << YAML::Value, i.second);
             }
             out << YAML::EndMap;
+            break;
         }
     }
 }
@@ -274,17 +289,9 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
 string
 value_to_yaml(dynamic const& v)
 {
-    if (v.type() == value_type::NIL)
-    {
-        // The default encoding for this is just the empty string.
-        return "null";
-    }
-    else
-    {
-        YAML::Emitter out;
-        emit_yaml_value(out, v);
-        return out.c_str();
-    }
+    YAML::Emitter out;
+    emit_yaml_value(out, v);
+    return out.c_str();
 }
 
 blob

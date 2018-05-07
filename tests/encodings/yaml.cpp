@@ -11,10 +11,24 @@ strip_whitespace(string s)
     return s;
 }
 
+// Test that a YAML string can be translated to its expected dynamic form.
+// (But don't test the inverse.)
+static void
+test_one_way_yaml_encoding(
+    string const& yaml, dynamic const& expected_value, bool round_trip = true)
+{
+    CAPTURE(yaml)
+
+    // Parse it and check that it matches.
+    auto converted_value = parse_yaml_value(yaml);
+    REQUIRE(converted_value == expected_value);
+}
+
 // Test that a YAML string can be translated to and from its expected dynamic
 // form.
 static void
-test_yaml_encoding(string const& yaml, dynamic const& expected_value)
+test_yaml_encoding(
+    string const& yaml, dynamic const& expected_value, bool round_trip = true)
 {
     CAPTURE(yaml)
 
@@ -41,7 +55,7 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
     // Try some basic types.
     test_yaml_encoding(
         R"(
-            null
+
         )",
         nil);
     test_yaml_encoding(
@@ -79,17 +93,17 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
             "1.25"
         )",
         "1.25");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             0x10
         )",
         integer(16));
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             0o10
         )",
         integer(8));
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "hi"
         )",
@@ -98,7 +112,9 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
     // Try some arrays.
     test_yaml_encoding(
         R"(
-            [ 1, 2, 3 ]
+            - 1
+            - 2
+            - 3
         )",
         dynamic({integer(1), integer(2), integer(3)}));
     test_yaml_encoding(
@@ -110,22 +126,18 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
     // Try a map with string keys.
     test_yaml_encoding(
         R"(
-            {
-                happy: true,
-                n: 4.125
-            }
+            happy: true
+            n: 4.125
         )",
         {{"happy", true}, {"n", 4.125}});
 
     // Try a map with non-string keys.
     test_yaml_encoding(
         R"(
-            {
-                0.1: xyz,
-                false: 4.125
-            }
+            false: 4.125
+            0.1: xyz
         )",
-        dynamic_map({{0.1, "xyz"}, {false, 4.125}}));
+        dynamic_map({{false, 4.125}, {0.1, "xyz"}}));
 
     // Try some ptimes.
     test_yaml_encoding(
@@ -146,62 +158,62 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
 
     // Try some thing that look like a ptime at first and check that they're
     // just treated as strings.
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T13:13:03.456ZABC"
         )",
         "2017-05-26T13:13:03.456ZABC");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T13:XX:03.456Z"
         )",
         "2017-05-26T13:XX:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T13:03.456Z"
         )",
         "2017-05-26T13:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T42:00:03.456Z"
         )",
         "2017-05-26T42:00:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "X017-05-26T13:02:03.456Z"
         )",
         "X017-05-26T13:02:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2X17-05-26T13:02:03.456Z"
         )",
         "2X17-05-26T13:02:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "20X7-05-26T13:02:03.456Z"
         )",
         "20X7-05-26T13:02:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "201X-05-26T13:02:03.456Z"
         )",
         "201X-05-26T13:02:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017X05-26T13:02:03.456Z"
         )",
         "2017X05-26T13:02:03.456Z");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T13:02:03.456_"
         )",
         "2017-05-26T13:02:03.456_");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T13:02:03.456_"
         )",
         "2017-05-26T13:02:03.456_");
-    test_yaml_encoding(
+    test_one_way_yaml_encoding(
         R"(
             "2017-05-26T13:02:03.45Z"
         )",
@@ -211,28 +223,22 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
     char blob_data[] = "some blob data";
     test_yaml_encoding(
         R"(
-            {
-                blob: c29tZSBibG9iIGRhdGE=,
-                type: base64-encoded-blob
-            }
+            type: base64-encoded-blob
+            blob: c29tZSBibG9iIGRhdGE=
         )",
         blob(ownership_holder(), blob_data, sizeof(blob_data) - 1));
 
     // Try some other things that aren't blobs but look similar.
     test_yaml_encoding(
         R"(
-            {
-                blob: null,
-                type: blob
-            }
+            blob: 1
+            type: blob
         )",
-        {{"type", "blob"}, {"blob", nil}});
+        {{"type", "blob"}, {"blob", integer(1)}});
     test_yaml_encoding(
         R"(
-            {
-                blob: "awe",
-                type: 12
-            }
+            blob: awe
+            type: 12
         )",
         {{"type", integer(12)}, {"blob", "awe"}});
 }
