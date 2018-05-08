@@ -16,8 +16,6 @@
 // Include this again to clean up preprocessor definitions.
 #include <cradle/io/http_types.hpp>
 
-CRADLE_LOGGING_MODULE(server)
-
 namespace cradle {
 
 dynamic

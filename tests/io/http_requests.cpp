@@ -2,12 +2,17 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
 #include <cradle/core/utilities.hpp>
 #include <cradle/encodings/json.hpp>
 
 #include "http_requests.hpp"
+
+// Include this again to clean up preprocessor definitions.
+#include <cradle/io/http_types.hpp>
 
 using namespace cradle;
 
@@ -27,6 +32,8 @@ find_testing_cacert_file()
 
 static http_request_system
     the_http_request_system(some(find_testing_cacert_file()));
+
+static auto the_logger = spdlog::stdout_color_mt("cradle");
 
 http_response
 perform_simple_request(http_request const& request)

@@ -254,15 +254,33 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
 
 TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
 {
-    char some_blob_data[] = "some blob data";
-    auto some_blob
-        = blob(ownership_holder(), some_blob_data, sizeof(some_blob_data) - 1);
-    test_diagnostic_yaml_encoding(some_blob, "\"<blob - size: 14 bytes>\"");
+    char small_blob_data[] = "small blob";
+    auto small_blob = blob(
+        ownership_holder(), small_blob_data, sizeof(small_blob_data) - 1);
+    test_diagnostic_yaml_encoding(
+        small_blob,
+        R"( |
+            <blob>
+            small blob
+        )");
+
+    auto large_blob = blob(ownership_holder(), 0, 16384);
+    test_diagnostic_yaml_encoding(large_blob, "\"<blob - size: 16384 bytes>\"");
+
+    char unprintable_blob_data[] = "\01blob";
+    auto unprintable_blob = blob(
+        ownership_holder(),
+        unprintable_blob_data,
+        sizeof(unprintable_blob_data) - 1);
+    test_diagnostic_yaml_encoding(
+        unprintable_blob, "\"<blob - size: 5 bytes>\"");
 
     test_diagnostic_yaml_encoding(
-        dynamic_map({{false, some_blob}, {0.1, "xyz"}}),
+        dynamic_map({{false, small_blob}, {0.1, "xyz"}}),
         R"(
-            false: "<blob - size: 14 bytes>"
+            false: |
+              <blob>
+              small blob
             0.1: xyz
         )");
 }

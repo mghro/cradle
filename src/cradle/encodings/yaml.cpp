@@ -294,6 +294,23 @@ value_to_yaml(dynamic const& v)
     return out.c_str();
 }
 
+// Decide if we should print the contents of a blob as part of a diagnostic
+// output.
+static bool
+is_printable(blob const& x)
+{
+    if (x.size > 1024)
+        return false;
+
+    for (size_t i = 0; i != x.size; ++i)
+    {
+        if (!std::isprint(reinterpret_cast<unsigned char const*>(x.data)[i]))
+            return false;
+    }
+
+    return true;
+}
+
 static void
 emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
 {
@@ -330,8 +347,18 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
         case value_type::BLOB:
         {
             blob const& x = cast<blob>(v);
-            YAML::Node yaml;
-            out << "<blob - size: " + lexical_cast<string>(x.size) + " bytes>";
+            if (is_printable(x))
+            {
+                out << YAML::Literal
+                    << "<blob>\n"
+                           + string(
+                                 reinterpret_cast<char const*>(x.data), x.size);
+            }
+            else
+            {
+                out << "<blob - size: " + lexical_cast<string>(x.size)
+                           + " bytes>";
+            }
             break;
         }
         case value_type::DATETIME:

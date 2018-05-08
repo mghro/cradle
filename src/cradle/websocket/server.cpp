@@ -38,8 +38,6 @@
 // enum constants.
 #include <cradle/core/api_types.hpp>
 
-CRADLE_LOGGING_MODULE(server)
-
 typedef websocketpp::server<websocketpp::config::asio> ws_server_type;
 
 using websocketpp::connection_hdl;
@@ -206,8 +204,7 @@ retrieve_immutable(
             auto data = read_file_contents(cache.get_path_for_id(entry->id));
             if (compute_crc32(data) == entry->crc32)
             {
-                spdlog::get(cradle_logger_name)
-                    ->info("cache hit on {}", cache_key);
+                spdlog::get("cradle")->info("cache hit on {}", cache_key);
                 return parse_msgpack_value(data);
             }
         }
@@ -216,10 +213,9 @@ retrieve_immutable(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto object
@@ -268,7 +264,7 @@ resolve_iss_object_to_immutable(
         // there should also be a value.
         if (entry && entry->value)
         {
-            spdlog::get(cradle_logger_name)->info("cache hit on {}", cache_key);
+            spdlog::get("cradle")->info("cache hit on {}", cache_key);
             return *entry->value;
         }
     }
@@ -276,10 +272,9 @@ resolve_iss_object_to_immutable(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto immutable_id = resolve_iss_object_to_immutable(
@@ -337,8 +332,7 @@ get_iss_object_metadata(
             auto data = read_file_contents(cache.get_path_for_id(entry->id));
             if (compute_crc32(data) == entry->crc32)
             {
-                spdlog::get(cradle_logger_name)
-                    ->info("cache hit on {}", cache_key);
+                spdlog::get("cradle")->info("cache hit on {}", cache_key);
                 return from_dynamic<std::map<string, string>>(
                     parse_msgpack_value(data));
             }
@@ -348,10 +342,9 @@ get_iss_object_metadata(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto metadata
@@ -396,8 +389,7 @@ get_app_version_info(
             auto data = read_file_contents(cache.get_path_for_id(entry->id));
             if (compute_crc32(data) == entry->crc32)
             {
-                spdlog::get(cradle_logger_name)
-                    ->info("cache hit on {}", cache_key);
+                spdlog::get("cradle")->info("cache hit on {}", cache_key);
                 return from_dynamic<thinknode_app_version_info>(
                     parse_msgpack_value(data));
             }
@@ -407,10 +399,9 @@ get_app_version_info(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto version_info
@@ -450,7 +441,7 @@ get_context_contents(
         // there should also be a value.
         if (entry && entry->value)
         {
-            spdlog::get(cradle_logger_name)->info("cache hit on {}", cache_key);
+            spdlog::get("cradle")->info("cache hit on {}", cache_key);
             return from_dynamic<thinknode_context_contents>(parse_msgpack_value(
                 base64_decode(*entry->value, get_mime_base64_character_set())));
         }
@@ -459,10 +450,9 @@ get_context_contents(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto context_contents
@@ -553,7 +543,7 @@ post_iss_object(
         // there should also be a value.
         if (entry && entry->value)
         {
-            spdlog::get(cradle_logger_name)->info("cache hit on {}", cache_key);
+            spdlog::get("cradle")->info("cache hit on {}", cache_key);
             return *entry->value;
         }
     }
@@ -561,10 +551,9 @@ post_iss_object(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto object_id = post_iss_object(
@@ -829,7 +818,7 @@ get_calculation_request(
         // there should also be a value.
         if (entry && entry->value)
         {
-            spdlog::get(cradle_logger_name)->info("cache hit on {}", cache_key);
+            spdlog::get("cradle")->info("cache hit on {}", cache_key);
             return from_dynamic<calculation_request>(parse_msgpack_value(
                 base64_decode(*entry->value, get_mime_base64_character_set())));
         }
@@ -838,10 +827,9 @@ get_calculation_request(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto request = retrieve_calculation_request(
@@ -915,7 +903,7 @@ post_calculation(
         // there should also be a value.
         if (entry && entry->value)
         {
-            spdlog::get(cradle_logger_name)->info("cache hit on {}", cache_key);
+            spdlog::get("cradle")->info("cache hit on {}", cache_key);
             return *entry->value;
         }
     }
@@ -923,10 +911,9 @@ post_calculation(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get(cradle_logger_name)
-            ->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
     }
-    spdlog::get(cradle_logger_name)->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
 
     // Query Thinknode.
     auto calculation_id
@@ -1211,6 +1198,7 @@ process_messages(websocket_server_impl& server)
         }
         catch (std::exception& e)
         {
+            spdlog::get("cradle")->error(e.what());
             send(
                 server,
                 request.client,
@@ -1255,7 +1243,7 @@ on_message(
     }
     catch (std::exception& e)
     {
-        auto logger = spdlog::get(cradle_logger_name);
+        auto logger = spdlog::get("cradle");
         logger->error("error processing message: {}", e.what());
     }
 }
@@ -1285,14 +1273,18 @@ initialize(websocket_server_impl& server, server_config const& config)
         });
 
     // Create and register the logger.
-    std::vector<spdlog::sink_ptr> sinks;
-    sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
-    auto log_path = get_user_logs_dir(none, "cradle") / "log";
-    sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-        log_path.string(), 262144, 2));
-    auto combined_logger
-        = std::make_shared<spdlog::logger>("server", begin(sinks), end(sinks));
-    spdlog::register_logger(combined_logger);
+    if (!spdlog::get("cradle"))
+    {
+        std::vector<spdlog::sink_ptr> sinks;
+        sinks.push_back(
+            std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
+        auto log_path = get_user_logs_dir(none, "cradle") / "log";
+        sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+            log_path.string(), 262144, 2));
+        auto combined_logger = std::make_shared<spdlog::logger>(
+            "cradle", begin(sinks), end(sinks));
+        spdlog::register_logger(combined_logger);
+    }
 }
 
 websocket_server::websocket_server(server_config const& config)

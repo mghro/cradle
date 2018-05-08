@@ -33,14 +33,10 @@ operator<<(std::ostream& stream, arg_logger<Value> arg)
 
 } // namespace detail
 
-// Define the logger name for a source file.
-#define CRADLE_LOGGING_MODULE(name)                                            \
-    static const char* cradle_logger_name = #name;
-
 // Create a logger for a function call.
 #define CRADLE_LOG_CALL(args)                                                  \
     {                                                                          \
-        auto logger = spdlog::get(cradle_logger_name);                         \
+        auto logger = spdlog::get("cradle");                                   \
         std::ostringstream stream;                                             \
         stream << __func__ args;                                               \
         logger->info(stream.str());                                            \
