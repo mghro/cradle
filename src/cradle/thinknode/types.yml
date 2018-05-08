@@ -107,6 +107,11 @@ types:
         doc: ''
         schema:
           string: {}
+    - level:
+        doc: ''
+        schema:
+          integer: {}
+        omissible: true
     - args:
         doc: ''
         schema:

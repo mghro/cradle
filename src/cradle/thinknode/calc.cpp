@@ -241,6 +241,7 @@ substitute_variables(
                     as_function(request).account,
                     as_function(request).app,
                     as_function(request).name,
+                    as_function(request).level,
                     map(recursive_call, as_function(request).args)));
         case calculation_request_tag::ARRAY:
             return make_calculation_request_with_array(

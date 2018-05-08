@@ -211,11 +211,13 @@ TEST_CASE("calc variable substitution", "[thinknode][tn_calc]")
                 "my_account",
                 "my_name",
                 "my_function",
+                none,
                 {variable_b, value_calc, variable_a})))
         == make_calculation_request_with_function(make_function_application(
                "my_account",
                "my_name",
                "my_function",
+               none,
                {b_substitute, value_calc, a_substitute})));
 
     // array
@@ -314,6 +316,7 @@ TEST_CASE("let calculation submission", "[thinknode][tn_calc]")
             "my_account",
             "my_name",
             "my_function",
+            none,
             {
                 make_calculation_request_with_variable("b"),
                 make_calculation_request_with_variable("a"),
@@ -343,6 +346,7 @@ TEST_CASE("let calculation submission", "[thinknode][tn_calc]")
                "my_account",
                "my_name",
                "my_function",
+               none,
                {make_calculation_request_with_reference("b-id"),
                 make_calculation_request_with_reference("a-id")})),
            make_calculation_request_with_array(make_calculation_array_request(
