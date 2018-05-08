@@ -17,10 +17,14 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
+#include <spdlog/spdlog.h>
+
+#include <cradle/core/logging.hpp>
 #include <cradle/disk_cache.hpp>
 #include <cradle/encodings/base64.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/encodings/msgpack.hpp>
+#include <cradle/fs/app_dirs.hpp>
 #include <cradle/fs/file_io.hpp>
 #include <cradle/io/http_requests.hpp>
 #include <cradle/thinknode/apm.hpp>
@@ -33,6 +37,8 @@
 // Include this again because some #defines snuck in to overwrite some of our
 // enum constants.
 #include <cradle/core/api_types.hpp>
+
+CRADLE_LOGGING_MODULE(server)
 
 typedef websocketpp::server<websocketpp::config::asio> ws_server_type;
 
@@ -185,6 +191,9 @@ retrieve_immutable(
     string const& context_id,
     string const& immutable_id)
 {
+    CRADLE_LOG_CALL(
+        << CRADLE_LOG_ARG(context_id) << CRADLE_LOG_ARG(immutable_id));
+
     // Try the disk cache.
     auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
         dynamic({"retrieve_immutable", session.api_url, immutable_id})));
@@ -237,6 +246,10 @@ resolve_iss_object_to_immutable(
     string const& object_id,
     bool ignore_upgrades)
 {
+    CRADLE_LOG_CALL(
+        << CRADLE_LOG_ARG(context_id) << CRADLE_LOG_ARG(object_id)
+        << CRADLE_LOG_ARG(ignore_upgrades));
+
     // Try the disk cache.
     auto cache_key = picosha2::hash256_hex_string(
         value_to_msgpack_string(dynamic({"resolve_iss_object_to_immutable",
@@ -704,19 +717,24 @@ copy_iss_object(
     string const& destination_context_id,
     string const& object_id)
 {
-    // Copying an object requires not just copying the object itself but also
-    // any objects that it references. The brute force approach is to download
-    // the copied object and scan it for references, recursively copying the
-    // referenced objects. We use a slightly less brute force method here by
-    // first checking the type of the object to see if it contains any reference
-    // types. (If not, we skip the whole download/scan/recurse step.)
+    CRADLE_LOG_CALL(
+        << CRADLE_LOG_ARG(source_bucket)
+        << CRADLE_LOG_ARG(destination_context_id) << CRADLE_LOG_ARG(object_id))
 
-    // Note that we apply the recursive step whether or not the object already
-    // exists in the destination bucket. It's possible that it was copied
-    // improperly (and references objects that haven't been copied), in which
-    // case we'll fix it by recursing. (And if it was copied properly, then
-    // we'll most likely just hit the cache when we do our redundant recursions,
-    // so we don't lose much.)
+    // Copying an object requires not just copying the object itself but
+    // also any objects that it references. The brute force approach is to
+    // download the copied object and scan it for references, recursively
+    // copying the referenced objects. We use a slightly less brute force
+    // method here by first checking the type of the object to see if it
+    // contains any reference types. (If not, we skip the whole
+    // download/scan/recurse step.)
+
+    // Note that we apply the recursive step whether or not the object
+    // already exists in the destination bucket. It's possible that it was
+    // copied improperly (and references objects that haven't been copied),
+    // in which case we'll fix it by recursing. (And if it was copied
+    // properly, then we'll most likely just hit the cache when we do our
+    // redundant recursions, so we don't lose much.)
 
     // Since we need to query the metadata for the object either way, we try
     // doing it without copying the object first. If that works, then we can
@@ -916,6 +934,8 @@ process_message(
     http_connection& connection,
     client_request const& request)
 {
+    CRADLE_LOG_CALL(<< CRADLE_LOG_ARG(request.message))
+
     switch (get_tag(request.message))
     {
         case websocket_client_message_tag::REGISTRATION:
@@ -1146,7 +1166,8 @@ on_message(
     }
     catch (std::exception& e)
     {
-        std::cerr << "--- error processing message:\n" << e.what() << "\n";
+        auto logger = spdlog::get(cradle_logger_name);
+        logger->error("error processing message: {}", e.what());
     }
 }
 
@@ -1173,6 +1194,16 @@ initialize(websocket_server_impl& server, server_config const& config)
         [&](connection_hdl hdl, ws_server_type::message_ptr message) {
             on_message(server, hdl, message);
         });
+
+    // Create and register the logger.
+    std::vector<spdlog::sink_ptr> sinks;
+    sinks.push_back(std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
+    auto log_path = get_user_logs_dir(none, "cradle") / "log";
+    sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+        log_path.string(), 262144, 2));
+    auto combined_logger
+        = std::make_shared<spdlog::logger>("server", begin(sinks), end(sinks));
+    spdlog::register_logger(combined_logger);
 }
 
 websocket_server::websocket_server(server_config const& config)
