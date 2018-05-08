@@ -231,6 +231,42 @@ types:
         schema:
           string: {}
 
+- name: calculation_search_request
+  doc: ''
+  schema:
+    structure:
+    - request_id:
+        doc: ''
+        schema:
+          string: {}
+    - context_id:
+        doc: ''
+        schema:
+          string: {}
+    - calculation_id:
+        doc: ''
+        schema:
+          string: {}
+    - search_string:
+        doc: ''
+        schema:
+          string: {}
+
+- name: calculation_search_response
+  doc: ''
+  schema:
+    structure:
+    - request_id:
+        doc: ''
+        schema:
+          string: {}
+    - matches:
+        doc: ''
+        schema:
+          array:
+            element_schema:
+              string: {}
+
 - name: resolve_meta_chain_request
   doc: ''
   schema:
@@ -367,6 +403,12 @@ types:
           named:
             app: cradle
             name: get_calculation_request_message
+    - calculation_search:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: calculation_search_request
 
 - name: websocket_server_message
   doc: ''
@@ -430,3 +472,9 @@ types:
           named:
             app: cradle
             name: get_calculation_request_response
+    - calculation_search_response:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: calculation_search_response

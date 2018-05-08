@@ -1,5 +1,24 @@
 types:
 
+- name: thinknode_service_id
+  doc: ''
+  schema:
+    enum:
+    - iam:
+        doc: ''
+    - apm:
+        doc: ''
+    - iss:
+        doc: ''
+    - calc:
+        doc: ''
+    - cas:
+        doc: ''
+    - rks:
+        doc: ''
+    - immutable:
+        doc: ''
+
 - name: thinknode_session
   doc: ''
   schema:
