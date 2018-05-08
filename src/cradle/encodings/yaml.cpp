@@ -294,6 +294,83 @@ value_to_yaml(dynamic const& v)
     return out.c_str();
 }
 
+static void
+emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
+{
+    switch (v.type())
+    {
+        case value_type::NIL:
+        default: // to avoid warnings
+            out << YAML::Node();
+            break;
+        case value_type::BOOLEAN:
+            out << cast<bool>(v);
+            break;
+        case value_type::INTEGER:
+            out << cast<integer>(v);
+            break;
+        case value_type::FLOAT:
+            out << cast<double>(v);
+            break;
+        case value_type::STRING:
+        {
+            if (read_yaml_value(YAML::Node(cast<string>(v))).type()
+                != value_type::STRING)
+            {
+                // This happens to be a string that looks like some other scalar
+                // type, so it should be explicitly quoted.
+                out << YAML::DoubleQuoted << cast<string>(v);
+            }
+            else
+            {
+                out << cast<string>(v);
+            }
+            break;
+        }
+        case value_type::BLOB:
+        {
+            blob const& x = cast<blob>(v);
+            YAML::Node yaml;
+            out << "<blob - size: " + lexical_cast<string>(x.size) + " bytes>";
+            break;
+        }
+        case value_type::DATETIME:
+            out << YAML::DoubleQuoted
+                << to_value_string(cast<boost::posix_time::ptime>(v));
+            break;
+        case value_type::ARRAY:
+        {
+            out << YAML::BeginSeq;
+            for (auto const& i : cast<dynamic_array>(v))
+            {
+                emit_diagnostic_yaml_value(out, i);
+            }
+            out << YAML::EndSeq;
+            break;
+        }
+        case value_type::MAP:
+        {
+            dynamic_map const& x = cast<dynamic_map>(v);
+            out << YAML::BeginMap;
+            for (auto const& i : x)
+            {
+                emit_diagnostic_yaml_value(out << YAML::Key, i.first);
+                emit_diagnostic_yaml_value(out << YAML::Value, i.second);
+            }
+            out << YAML::EndMap;
+            break;
+        }
+    }
+}
+
+string
+value_to_diagnostic_yaml(dynamic const& v)
+{
+    YAML::Emitter out;
+    emit_diagnostic_yaml_value(out, v);
+    return out.c_str();
+}
+
 blob
 value_to_yaml_blob(dynamic const& v)
 {

@@ -177,7 +177,7 @@ swap(dynamic& a, dynamic& b)
 std::ostream&
 operator<<(std::ostream& os, dynamic const& v)
 {
-    os << value_to_yaml(v);
+    os << value_to_diagnostic_yaml(v);
     return os;
 }
 

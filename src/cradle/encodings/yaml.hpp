@@ -22,6 +22,12 @@ parse_yaml_value(string const& yaml)
 string
 value_to_yaml(dynamic const& v);
 
+// Write a value to a diagnostic string in YAML format.
+// This won't necessarily capture the entire contents of the value. In
+// particular, it will omit blob contents.
+string
+value_to_diagnostic_yaml(dynamic const& v);
+
 // Write a value to a blob in YAML format.
 // This does NOT include a terminating null character.
 blob
