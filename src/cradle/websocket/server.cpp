@@ -1276,8 +1276,13 @@ initialize(websocket_server_impl& server, server_config const& config)
     if (!spdlog::get("cradle"))
     {
         std::vector<spdlog::sink_ptr> sinks;
+#ifdef _WIN32
         sinks.push_back(
             std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>());
+#else
+        sinks.push_back(
+            std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>());
+#endif
         auto log_path = get_user_logs_dir(none, "cradle") / "log";
         sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
             log_path.string(), 262144, 2));
