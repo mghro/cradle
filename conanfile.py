@@ -1,6 +1,7 @@
 from conans import ConanFile, CMake
 import os
 
+
 class CradleConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     requires = \
@@ -15,7 +16,8 @@ class CradleConan(ConanFile):
         "FakeIt/master@gasuketsu/stable", \
         "websocketpp/0.7.0@TyRoXx/stable", \
         "zlib/1.2.11@conan/stable", \
-        "bzip2/1.0.6@conan/stable"
+        "bzip2/1.0.6@conan/stable", \
+        "yaml-cpp/0.6.2@tmadden/stable"
     generators = "cmake"
     default_options = \
         "Boost:without_atomic=True", \

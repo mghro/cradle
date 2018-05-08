@@ -7,7 +7,7 @@
 
 namespace cradle {
 
-// Parse some JSON test into a dynamic value.
+// Parse some JSON text into a dynamic value.
 dynamic
 parse_json_value(char const* json, size_t length);
 
