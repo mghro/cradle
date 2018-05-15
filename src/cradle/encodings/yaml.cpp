@@ -347,7 +347,7 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
         case value_type::BLOB:
         {
             blob const& x = cast<blob>(v);
-            if (is_printable(x))
+            if (x.size != 0 && is_printable(x))
             {
                 out << YAML::Literal
                     << "<blob>\n"

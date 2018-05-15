@@ -254,6 +254,11 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
 
 TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
 {
+    char empty_blob_data[] = "";
+    auto empty_blob = blob(
+        ownership_holder(), empty_blob_data, sizeof(empty_blob_data) - 1);
+    test_diagnostic_yaml_encoding(empty_blob, "\"<blob - size: 0 bytes>\"");
+
     char small_blob_data[] = "small blob";
     auto small_blob = blob(
         ownership_holder(), small_blob_data, sizeof(small_blob_data) - 1);
