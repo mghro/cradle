@@ -342,7 +342,7 @@ http_connection::perform_request(
     CURLcode result = curl_easy_perform(curl);
 
     // Check in again here because if the job was canceled inside the above
-    // call, it will just look like an error. We need the cancelation exception
+    // call, it will just look like an error. We need the cancellation exception
     // to be rethrown.
     check_in();
 

@@ -2,6 +2,7 @@
 
 #include <boost/format.hpp>
 
+#include <cradle/core/logging.hpp>
 #include <cradle/core/monitoring.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
@@ -390,7 +391,26 @@ search_calculation(
         return;
 
     // Get the calculation request;
-    auto request = retriever.retrieve(session, context_id, calculation_id);
+    calculation_request request;
+    try
+    {
+        request = retriever.retrieve(session, context_id, calculation_id);
+    }
+    catch (bad_http_status_code& e)
+    {
+        // When calculation results are copied, their inputs aren't guaranteed
+        // to be accessible, and we don't that to cause an error when trying to
+        // search inside such calculations. Instead, we simply log a warning and
+        // treat the calculation as if it doesn't contain any matches.
+        if (get_error_info<http_response_info>(e)->status_code == 404)
+        {
+            is_matching[calculation_id] = false;
+            spdlog::get("cradle")->warn(
+                "failed to search {} due to 404; results may be incomplete",
+                calculation_id);
+            return;
+        }
+    }
 
     auto recurse = [&](calculation_request const& request) {
         if (is_reference(request))
