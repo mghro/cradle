@@ -372,8 +372,16 @@ coerce_value_impl(
             from_dynamic(&tag, cradle::get_union_value_type(map));
             if (tag == "some")
             {
-                coerced["some"]
-                    = recurse(as_optional(type), get_field(map, "some"));
+                try
+                {
+                    coerced["some"]
+                        = recurse(as_optional(type), get_field(map, "some"));
+                }
+                catch (boost::exception& e)
+                {
+                    cradle::add_dynamic_path_element(e, "some");
+                    throw;
+                }
             }
             else if (tag == "none")
             {
@@ -406,8 +414,16 @@ coerce_value_impl(
                 bool field_present = get_field(&field_value, map, pair.first);
                 if (field_present)
                 {
-                    coerced[field_name]
-                        = recurse(field_info.schema, *field_value);
+                    try
+                    {
+                        coerced[field_name]
+                            = recurse(field_info.schema, *field_value);
+                    }
+                    catch (boost::exception& e)
+                    {
+                        cradle::add_dynamic_path_element(e, field_name);
+                        throw;
+                    }
                 }
                 else if (!field_info.omissible || !*field_info.omissible)
                 {
