@@ -175,6 +175,30 @@ TEST_CASE("404 response code", "[io][http]")
     }
 }
 
+TEST_CASE("authorization header redaction", "[io][http]")
+{
+    http_header_list request_headers
+        = {{"Accept", "application/json"}, {"Authorization", "abcdef"}};
+    http_header_list redacted_headers
+        = {{"Accept", "application/json"}, {"Authorization", "[redacted]"}};
+
+    auto request = make_get_request(
+        "http://postman-echo.com/status/404", request_headers);
+    auto redacted_request = make_get_request(
+        "http://postman-echo.com/status/404", redacted_headers);
+    try
+    {
+        perform_simple_request(request);
+        FAIL("no exception thrown");
+    }
+    catch (bad_http_status_code& e)
+    {
+        REQUIRE(
+            get_required_error_info<attempted_http_request_info>(e)
+            == redacted_request);
+    }
+}
+
 TEST_CASE("500 response code", "[io][http]")
 {
     auto request = make_get_request(

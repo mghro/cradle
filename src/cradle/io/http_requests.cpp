@@ -254,6 +254,16 @@ make_blob(receive_transmission_state&& transmission)
     return result;
 }
 
+static http_request
+redact_request(http_request const& request)
+{
+    auto redacted = request;
+    auto authorization_header = redacted.headers.find("Authorization");
+    if (authorization_header != redacted.headers.end())
+        authorization_header->second = "[redacted]";
+    return redacted;
+}
+
 http_response
 http_connection::perform_request(
     check_in_interface& check_in,
@@ -351,7 +361,7 @@ http_connection::perform_request(
     {
         CRADLE_THROW(
             http_request_failure()
-            << attempted_http_request_info(request)
+            << attempted_http_request_info(redact_request(request))
             << internal_error_message_info(curl_easy_strerror(result)));
     }
 
@@ -388,8 +398,9 @@ http_connection::perform_request(
     if (status_code < 200 || status_code > 299)
     {
         CRADLE_THROW(
-            bad_http_status_code() << attempted_http_request_info(request)
-                                   << http_response_info(response));
+            bad_http_status_code()
+            << attempted_http_request_info(redact_request(request))
+            << http_response_info(response));
     }
 
     return response;
