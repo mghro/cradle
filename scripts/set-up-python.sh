@@ -1,8 +1,8 @@
 #!/bin/bash
 # Set up a Python virtual environment so that it can build CRADLE.
-echo "Setting up Python environment in .python..."
+echo "Setting up Python environment in .venv..."
 set -x -e
-virtualenv --python=python3.5 .python
-source .python/bin/activate
+virtualenv --python=python3 --prompt="(cradle) " .venv
+source .venv/bin/activate
 python --version
 pip install conan jinja2 gcovr pytest websocket-client msgpack

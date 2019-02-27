@@ -3,6 +3,6 @@
 .vscode
 .gcovr.txt
 .lcov.info
-.python
+.venv
 *.pyc
 python/config.yml
