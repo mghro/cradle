@@ -286,6 +286,11 @@ substitute_variables(
                 make_meta_calculation_request(
                     recursive_call(as_meta(request).generator),
                     as_meta(request).schema));
+        case calculation_request_tag::CAST:
+            return make_calculation_request_with_cast(
+                make_calculation_cast_request(
+                    as_cast(request).schema,
+                    recursive_call(as_cast(request).object)));
         default:
             CRADLE_THROW(
                 invalid_enum_value()
@@ -470,6 +475,10 @@ search_calculation(
         case calculation_request_tag::META:
             is_matching[calculation_id] = false;
             recurse(as_meta(request).generator);
+            break;
+        case calculation_request_tag::CAST:
+            is_matching[calculation_id] = false;
+            recurse(as_cast(request).object);
             break;
         default:
             CRADLE_THROW(

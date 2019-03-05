@@ -90,6 +90,12 @@ types:
           named:
             app: cradle
             name: meta_calculation_request
+    - cast:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: calculation_cast_request
 
 - name: function_application
   doc: ''
@@ -223,6 +229,23 @@ types:
           named:
             app: cradle
             name: thinknode_type_info
+
+- name: calculation_cast_request
+  doc: ''
+  schema:
+    structure:
+    - schema:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: thinknode_type_info
+    - object:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: calculation_request
 
 - name: let_calculation_request
   doc: ''
