@@ -5,7 +5,7 @@ import os
 class CradleConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     requires = \
-        "boost/1.68.0@conan/stable", \
+        "boost/1.67.0@conan/stable", \
         "catch/1.5.0@TyRoXx/stable", \
         "json/2.0.10@jjones646/stable", \
         "msgpack/2.1.5@bincrafters/stable", \
