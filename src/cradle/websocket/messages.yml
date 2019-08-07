@@ -74,7 +74,8 @@ types:
     - yaml:
         doc: 'YAML'
     - diagnostic_yaml:
-        doc: 'Diagnostic YAML - This is designed to be more human-friendly and will omit large values (like blobs) that seem meaningless to humans.'
+        doc: 'Diagnostic YAML - This is designed to be more human-friendly and
+        will omit large values (like blobs) that seem meaningless to humans.'
     - msgpack:
         doc: 'MessagePack'
     - json:
@@ -323,6 +324,48 @@ types:
           named:
             app: cradle
             name: calculation_request
+
+- name: iss_diff_request
+  doc: ''
+  schema:
+    structure:
+    - id_a:
+        doc: ''
+        schema:
+          string: {}
+    - context_a:
+        doc: ''
+        schema:
+          string: {}
+    - id_b:
+        doc: ''
+        schema:
+          string: {}
+    - context_b:
+        doc: ''
+        schema:
+          string: {}
+
+- name: iss_diff_response
+  doc: ''
+  schema:
+    structure:
+    - id_a:
+        doc: ''
+        schema:
+          string: {}
+    - context_a:
+        doc: ''
+        schema:
+          string: {}
+    - id_b:
+        doc: ''
+        schema:
+          string: {}
+    - context_b:
+        doc: ''
+        schema:
+          string: {}
 
 - name: client_message_content
   doc: ''
