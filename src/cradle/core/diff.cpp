@@ -9,26 +9,33 @@ make_insert_item(value_diff_path const& path, dynamic const& new_value)
     value_diff_item item;
     item.path = path;
     item.op = value_diff_op::INSERT;
-    item.val = new_value;
+    item.a = none;
+    item.b = some(new_value);
     return item;
 }
 
 static value_diff_item
-make_update_item(value_diff_path const& path, dynamic const& new_value)
+make_update_item(
+    value_diff_path const& path,
+    dynamic const& old_value,
+    dynamic const& new_value)
 {
     value_diff_item item;
     item.path = path;
     item.op = value_diff_op::UPDATE;
-    item.val = new_value;
+    item.a = some(old_value);
+    item.b = some(new_value);
     return item;
 }
 
 static value_diff_item
-make_delete_item(value_diff_path const& path)
+make_delete_item(value_diff_path const& path, dynamic const& old_value)
 {
     value_diff_item item;
     item.path = path;
     item.op = value_diff_op::DELETE;
+    item.a = some(old_value);
+    item.b = none;
     return item;
 }
 
@@ -74,8 +81,8 @@ compute_map_diff(
                 }
                 else if (a_i->first < b_i->first)
                 {
-                    diff.push_back(
-                        make_delete_item(extend_path(path, a_i->first)));
+                    diff.push_back(make_delete_item(
+                        extend_path(path, a_i->first), a_i->second));
                     ++a_i;
                 }
                 else
@@ -87,7 +94,8 @@ compute_map_diff(
             }
             else
             {
-                diff.push_back(make_delete_item(extend_path(path, a_i->first)));
+                diff.push_back(make_delete_item(
+                    extend_path(path, a_i->first), a_i->second));
                 ++a_i;
             }
         }
@@ -202,7 +210,8 @@ compute_array_diff(
             for (size_t i = get(removal).count; i != 0; --i)
             {
                 diff.push_back(make_delete_item(
-                    extend_path(path, to_dynamic(get(removal).index + i - 1))));
+                    extend_path(path, to_dynamic(get(removal).index + i - 1)),
+                    a[get(removal).index + i - 1]));
             }
             return;
         }
@@ -220,7 +229,7 @@ compute_array_diff(
     }
 
     // If none of the above worked, send an update of the whole array.
-    diff.push_back(make_update_item(path, dynamic(b)));
+    diff.push_back(make_update_item(path, dynamic(a), dynamic(b)));
 }
 
 static void
@@ -248,7 +257,7 @@ compute_value_diff(
         // update to the new value.
         else
         {
-            diff.push_back(make_update_item(path, b));
+            diff.push_back(make_update_item(path, a, b));
         }
     }
 }
@@ -354,15 +363,13 @@ apply_value_diff_item(
 dynamic
 apply_value_diff(dynamic const& v, value_diff const& diff)
 {
+    // TODO: Check that the original value is consistent with the 'a'-side of
+    // the diff.
     dynamic patched = v;
     for (auto const& item : diff)
     {
         patched = apply_value_diff_item(
-            patched,
-            item.path,
-            0,
-            item.op,
-            item.val ? get(item.val) : dynamic());
+            patched, item.path, 0, item.op, item.b ? get(item.b) : dynamic());
     }
     return patched;
 }

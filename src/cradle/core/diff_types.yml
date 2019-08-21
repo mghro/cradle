@@ -37,7 +37,12 @@ types:
           named:
             app: cradle
             name: value_diff_op
-    - val:
+    - a:
+        doc: ''
+        schema:
+          optional:
+            dynamic: {}
+    - b:
         doc: ''
         schema:
           optional:
