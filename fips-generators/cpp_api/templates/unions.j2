@@ -96,6 +96,9 @@ operator>=({{type_info.name}} const& a, {{type_info.name}} const& b)
 std::ostream&
 operator<<(std::ostream& stream, {{type_info.name}} const& x);
 
+void
+swap({{type_info.name}}& a, {{type_info.name}}& b);
+
 size_t
 deep_sizeof({{type_info.name}} const& x);
 
@@ -198,6 +201,14 @@ std::ostream&
 operator<<(std::ostream& stream, {{type_info.name}} const& x)
 {
     return stream << to_dynamic(x);
+}
+
+void
+swap({{type_info.name}}& a, {{type_info.name}}& b)
+{
+    using std::swap;
+    swap(a.tag_, b.tag_);
+    swap(a.contents_, b.contents_);
 }
 
 size_t

@@ -99,6 +99,9 @@ operator>=({{type_info.name}} const& a, {{type_info.name}} const& b)
 std::ostream&
 operator<<(std::ostream& stream, {{type_info.name}} const& x);
 
+void
+swap({{type_info.name}}& a, {{type_info.name}}& b);
+
 size_t
 deep_sizeof({{type_info.name}} const& x);
 
