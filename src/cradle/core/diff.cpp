@@ -61,6 +61,13 @@ compute_map_diff(
     dynamic_map const& a,
     dynamic_map const& b)
 {
+    // The simplest possible diff is to just treat the whole array as being
+    // updated.
+    value_diff simple_diff;
+    simple_diff.push_back(make_update_item(path, dynamic(a), dynamic(b)));
+
+    // Try to generated a more compact diff by diffing individual fields.
+    value_diff compressed_diff;
     auto a_i = a.begin(), a_end = a.end();
     auto b_i = b.begin(), b_end = b.end();
     while (1)
@@ -72,7 +79,7 @@ compute_map_diff(
                 if (a_i->first == b_i->first)
                 {
                     compute_value_diff(
-                        diff,
+                        compressed_diff,
                         extend_path(path, a_i->first),
                         a_i->second,
                         b_i->second);
@@ -81,20 +88,20 @@ compute_map_diff(
                 }
                 else if (a_i->first < b_i->first)
                 {
-                    diff.push_back(make_delete_item(
+                    compressed_diff.push_back(make_delete_item(
                         extend_path(path, a_i->first), a_i->second));
                     ++a_i;
                 }
                 else
                 {
-                    diff.push_back(make_insert_item(
+                    compressed_diff.push_back(make_insert_item(
                         extend_path(path, b_i->first), b_i->second));
                     ++b_i;
                 }
             }
             else
             {
-                diff.push_back(make_delete_item(
+                compressed_diff.push_back(make_delete_item(
                     extend_path(path, a_i->first), a_i->second));
                 ++a_i;
             }
@@ -103,7 +110,7 @@ compute_map_diff(
         {
             if (b_i != b_end)
             {
-                diff.push_back(make_insert_item(
+                compressed_diff.push_back(make_insert_item(
                     extend_path(path, b_i->first), b_i->second));
                 ++b_i;
             }
@@ -111,6 +118,14 @@ compute_map_diff(
                 break;
         }
     }
+
+    // Use whichever diff is smaller.
+    value_diff* diff_to_use
+        = deep_sizeof(compressed_diff) < deep_sizeof(simple_diff)
+              ? &compressed_diff
+              : &simple_diff;
+    std::move(
+        diff_to_use->begin(), diff_to_use->end(), std::back_inserter(diff));
 }
 
 struct insertion_description
@@ -176,12 +191,18 @@ compute_array_diff(
     dynamic_array const& a,
     dynamic_array const& b)
 {
-    // For arrays, we detect three common cases for compression:
+    // The simplest possible diff is to just treat the whole array as being
+    // updated.
+    value_diff simple_diff;
+    simple_diff.push_back(make_update_item(path, dynamic(a), dynamic(b)));
+
+    // We also detect three common cases for compression:
     // * one or more items were inserted somewhere in the array
     // * one or more items were removed from the array
     // * the array didn't change size but items may have been updated
-    // Any other case (or any combination of the above) is sent as an update
-    // of the entire array.
+    // If any of these cases are found, we compute the corresponding diff.
+
+    value_diff compressed_diff;
 
     size_t a_size = a.size();
     size_t b_size = b.size();
@@ -194,11 +215,10 @@ compute_array_diff(
         {
             for (size_t i = 0; i != get(insertion).count; ++i)
             {
-                diff.push_back(make_insert_item(
+                compressed_diff.push_back(make_insert_item(
                     extend_path(path, to_dynamic(get(insertion).index + i)),
                     b[get(insertion).index + i]));
             }
-            return;
         }
     }
     // Check if an item was removed.
@@ -209,11 +229,10 @@ compute_array_diff(
         {
             for (size_t i = get(removal).count; i != 0; --i)
             {
-                diff.push_back(make_delete_item(
+                compressed_diff.push_back(make_delete_item(
                     extend_path(path, to_dynamic(get(removal).index + i - 1)),
                     a[get(removal).index + i - 1]));
             }
-            return;
         }
     }
     // If the arrays are the same size, just diff each item.
@@ -223,13 +242,20 @@ compute_array_diff(
         for (size_t i = 0; i != a_size; ++i)
         {
             compute_value_diff(
-                diff, extend_path(path, to_dynamic(i)), a[i], b[i]);
+                compressed_diff, extend_path(path, to_dynamic(i)), a[i], b[i]);
         }
-        return;
     }
 
-    // If none of the above worked, send an update of the whole array.
-    diff.push_back(make_update_item(path, dynamic(a), dynamic(b)));
+    // Use whichever diff is smaller.
+    value_diff* diff_to_use = &simple_diff;
+    if (!compressed_diff.empty()
+        && deep_sizeof(compressed_diff) < deep_sizeof(simple_diff))
+    {
+        diff_to_use = &compressed_diff;
+    }
+
+    std::move(
+        diff_to_use->begin(), diff_to_use->end(), std::back_inserter(diff));
 }
 
 static void

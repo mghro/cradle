@@ -95,6 +95,15 @@ TEST_CASE("array diffs", "[core][diff]")
              {integer(0)}, value_diff_op::DELETE, some(dynamic(3.)), none)});
 
     test_diff(
+        dynamic{3., 1., 0., 2.},
+        dynamic{2.},
+        {make_value_diff_item(
+            {},
+            value_diff_op::UPDATE,
+            some(dynamic{3., 1., 0., 2.}),
+            some(dynamic{2.}))});
+
+    test_diff(
         dynamic{0., 1.},
         dynamic{0., 2., 1.},
         {make_value_diff_item(
@@ -162,7 +171,7 @@ TEST_CASE("nested diffs", "[core][diff]")
 {
     auto map_a = dynamic{{"foo", 0.}, {"bar", 1.}};
     auto map_b = dynamic{{"foo", 3.}, {"baz", 0.}};
-    auto map_c = dynamic{{"un", 4.}, {"related", 0.}};
+    auto map_c = dynamic{{"related", 0.}};
     auto map_d = dynamic{{"un", 5.}, {"related", 0.}};
 
     test_diff(
@@ -170,24 +179,11 @@ TEST_CASE("nested diffs", "[core][diff]")
         dynamic{map_d, map_b},
         {make_value_diff_item(
              {integer(0), dynamic("un")},
-             value_diff_op::UPDATE,
-             some(dynamic(4.)),
-             some(dynamic(5.))),
-         make_value_diff_item(
-             {integer(1), dynamic("bar")},
-             value_diff_op::DELETE,
-             some(dynamic(1.)),
-             none),
-         make_value_diff_item(
-             {integer(1), dynamic("baz")},
              value_diff_op::INSERT,
              none,
-             some(dynamic(0.))),
+             some(dynamic(5.))),
          make_value_diff_item(
-             {integer(1), dynamic("foo")},
-             value_diff_op::UPDATE,
-             some(dynamic(0.)),
-             some(dynamic(3.)))});
+             {integer(1)}, value_diff_op::UPDATE, some(map_a), some(map_b))});
 
     auto map_e = dynamic{{"un", {0., 5.}}, {"related", 0.}};
     auto map_f = dynamic{{"un", {0., 4.}}, {"related", 0.}};
