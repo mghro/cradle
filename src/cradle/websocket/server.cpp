@@ -19,6 +19,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cradle/core/diff.hpp>
 #include <cradle/core/logging.hpp>
 #include <cradle/disk_cache.hpp>
 #include <cradle/encodings/base64.hpp>
@@ -1139,6 +1140,79 @@ resolve_meta_chain(
     return submission_info->main_calc_id;
 }
 
+static calc_tree_diff
+compute_calc_tree_diff(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id_a,
+    string const& calc_id_a,
+    string const& context_id_b,
+    string const& calc_id_b)
+{
+    calc_tree_diff tree_diff;
+
+    auto calc_a = get_calculation_request(
+        cache, connection, session, context_id_a, calc_id_a);
+    auto calc_b = get_calculation_request(
+        cache, connection, session, context_id_b, calc_id_b);
+    auto diff = compute_value_diff(to_dynamic(calc_a), to_dynamic(calc_b));
+
+    value_diff relevant_diff;
+    for (auto& item : diff)
+    {
+        if (item.op == value_diff_op::UPDATE && !item.path.empty()
+            && item.path.back() == "reference")
+        {
+            auto id_a = cast<string>(*item.a);
+            auto id_b = cast<string>(*item.b);
+
+            auto service_a = get_thinknode_service_id(id_a);
+            auto service_b = get_thinknode_service_id(id_b);
+
+            if (service_a == thinknode_service_id::CALC
+                && service_b == thinknode_service_id::CALC)
+            {
+                auto subtree_diff = compute_calc_tree_diff(
+                    cache,
+                    connection,
+                    session,
+                    context_id_a,
+                    cast<string>(*item.a),
+                    context_id_b,
+                    cast<string>(*item.b));
+                for (auto& node : subtree_diff)
+                {
+                    node.path_from_root.insert(
+                        node.path_from_root.begin(),
+                        item.path.begin(),
+                        item.path.end() - 1);
+                }
+                std::move(
+                    subtree_diff.begin(),
+                    subtree_diff.end(),
+                    std::back_inserter(tree_diff));
+                continue;
+            }
+        }
+
+        relevant_diff.push_back(value_diff_item());
+        swap(item, relevant_diff.back());
+    }
+
+    if (!relevant_diff.empty())
+    {
+        calc_node_diff node_diff;
+        node_diff.path_from_root = value_diff_path();
+        node_diff.id_in_a = calc_id_a;
+        node_diff.id_in_b = calc_id_b;
+        node_diff.diff = std::move(relevant_diff);
+        tree_diff.push_back(std::move(node_diff));
+    }
+
+    return tree_diff;
+}
+
 static void
 send_response(
     websocket_server_impl& server,
@@ -1307,6 +1381,24 @@ process_message(
                 request,
                 make_server_message_content_with_calculation_request_response(
                     make_calculation_request_response(calc)));
+            break;
+        }
+        case client_message_content_tag::CALCULATION_DIFF:
+        {
+            auto const& cdr = as_calculation_diff(content);
+            auto diff = compute_calc_tree_diff(
+                server.cache,
+                connection,
+                get_client(server.clients, request.client).session,
+                cdr.context_a,
+                cdr.id_a,
+                cdr.context_b,
+                cdr.id_b);
+            send_response(
+                server,
+                request,
+                make_server_message_content_with_calculation_diff_response(
+                    diff));
             break;
         }
         case client_message_content_tag::CALCULATION_SEARCH:

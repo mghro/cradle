@@ -1,4 +1,5 @@
 imports:
+  - 'cradle/core/diff_types'
   - 'cradle/thinknode/types'
 
 types:
@@ -325,7 +326,7 @@ types:
             app: cradle
             name: calculation_request
 
-- name: iss_diff_request
+- name: calculation_diff_request
   doc: ''
   schema:
     structure:
@@ -346,26 +347,46 @@ types:
         schema:
           string: {}
 
-- name: iss_diff_response
+- name: calc_node_diff
   doc: ''
   schema:
     structure:
-    - id_a:
+    - path_from_root:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: value_diff_path
+    - id_in_a:
         doc: ''
         schema:
           string: {}
-    - context_a:
+    - id_in_b:
         doc: ''
         schema:
           string: {}
-    - id_b:
+    - diff:
         doc: ''
         schema:
-          string: {}
-    - context_b:
-        doc: ''
-        schema:
-          string: {}
+          named:
+            app: cradle
+            name: value_diff
+
+- name: calc_tree_diff
+  doc: ''
+  schema:
+    array:
+      element_schema:
+        named:
+          app: cradle
+          name: calc_node_diff
+
+- name: calculation_diff_response
+  doc: ''
+  schema:
+    named:
+      app: cradle
+      name: calc_tree_diff
 
 - name: client_message_content
   doc: ''
@@ -445,6 +466,12 @@ types:
           named:
             app: cradle
             name: calculation_request_message
+    - calculation_diff:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: calculation_diff_request
     - calculation_search:
         doc: ''
         schema:
@@ -533,6 +560,12 @@ types:
           named:
             app: cradle
             name: calculation_request_response
+    - calculation_diff_response:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: calculation_diff_response
     - calculation_search_response:
         doc: ''
         schema:
