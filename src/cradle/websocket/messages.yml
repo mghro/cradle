@@ -347,46 +347,80 @@ types:
         schema:
           string: {}
 
-- name: calc_node_diff
+- name: object_node_diff
   doc: ''
   schema:
     structure:
+    - service:
+        doc: 'the service that this node is from (ISS or calc)'
+        schema:
+          named:
+            app: cradle
+            name: thinknode_service_id
     - path_from_root:
-        doc: ''
+        doc: 'the path from the root object to the node being diffed'
         schema:
           named:
             app: cradle
             name: value_diff_path
     - id_in_a:
-        doc: ''
+        doc: ID of the node in the 'a' object
         schema:
           string: {}
     - id_in_b:
-        doc: ''
+        doc: ID of the node in the 'b' object
         schema:
           string: {}
     - diff:
-        doc: ''
+        doc: 'diff within this node'
         schema:
           named:
             app: cradle
             name: value_diff
 
-- name: calc_tree_diff
+- name: object_tree_diff
   doc: ''
   schema:
     array:
       element_schema:
         named:
           app: cradle
-          name: calc_node_diff
+          name: object_node_diff
 
 - name: calculation_diff_response
   doc: ''
   schema:
     named:
       app: cradle
-      name: calc_tree_diff
+      name: object_tree_diff
+
+- name: iss_diff_request
+  doc: ''
+  schema:
+    structure:
+    - id_a:
+        doc: ''
+        schema:
+          string: {}
+    - context_a:
+        doc: ''
+        schema:
+          string: {}
+    - id_b:
+        doc: ''
+        schema:
+          string: {}
+    - context_b:
+        doc: ''
+        schema:
+          string: {}
+
+- name: iss_diff_response
+  doc: ''
+  schema:
+    named:
+      app: cradle
+      name: object_tree_diff
 
 - name: client_message_content
   doc: ''
@@ -478,6 +512,12 @@ types:
           named:
             app: cradle
             name: calculation_search_request
+    - iss_diff:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: iss_diff_request
 
 - name: websocket_client_message
   doc: ''
@@ -572,6 +612,12 @@ types:
           named:
             app: cradle
             name: calculation_search_response
+    - iss_diff_response:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: iss_diff_response
 
 - name: websocket_server_message
   doc: ''

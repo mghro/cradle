@@ -1176,7 +1176,91 @@ resolve_meta_chain(
     return submission_info->main_calc_id;
 }
 
-static calc_tree_diff
+static bool
+is_iss_id(dynamic const& value)
+{
+    if (value.type() == value_type::STRING)
+    {
+        auto const& id = cast<string>(value);
+        if (id.length() == 32)
+        {
+            try
+            {
+                return get_thinknode_service_id(id)
+                       == thinknode_service_id::ISS;
+            }
+            catch (...)
+            {
+            }
+        }
+    }
+    return false;
+}
+
+static object_tree_diff
+compute_iss_tree_diff(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id_a,
+    string const& object_id_a,
+    string const& context_id_b,
+    string const& object_id_b)
+{
+    object_tree_diff tree_diff;
+
+    auto object_a
+        = get_iss_object(cache, connection, session, context_id_a, object_id_a);
+    auto object_b
+        = get_iss_object(cache, connection, session, context_id_b, object_id_b);
+    auto diff = compute_value_diff(object_a, object_b);
+
+    value_diff relevant_diff;
+    for (auto& item : diff)
+    {
+        if (item.a && is_iss_id(*item.a) && item.b && is_iss_id(*item.b))
+        {
+            auto subtree_diff = compute_iss_tree_diff(
+                cache,
+                connection,
+                session,
+                context_id_a,
+                cast<string>(*item.a),
+                context_id_b,
+                cast<string>(*item.b));
+            for (auto& node : subtree_diff)
+            {
+                node.path_from_root.insert(
+                    node.path_from_root.begin(),
+                    item.path.begin(),
+                    item.path.end() - 1);
+            }
+            std::move(
+                subtree_diff.begin(),
+                subtree_diff.end(),
+                std::back_inserter(tree_diff));
+            continue;
+        }
+
+        relevant_diff.push_back(value_diff_item());
+        swap(item, relevant_diff.back());
+    }
+
+    if (!relevant_diff.empty())
+    {
+        object_node_diff node_diff;
+        node_diff.service = thinknode_service_id::ISS;
+        node_diff.path_from_root = value_diff_path();
+        node_diff.id_in_a = object_id_a;
+        node_diff.id_in_b = object_id_b;
+        node_diff.diff = std::move(relevant_diff);
+        tree_diff.push_back(std::move(node_diff));
+    }
+
+    return tree_diff;
+}
+
+static object_tree_diff
 compute_calc_tree_diff(
     disk_cache& cache,
     http_connection& connection,
@@ -1186,7 +1270,7 @@ compute_calc_tree_diff(
     string const& context_id_b,
     string const& calc_id_b)
 {
-    calc_tree_diff tree_diff;
+    object_tree_diff tree_diff;
 
     auto calc_a = get_calculation_request(
         cache, connection, session, context_id_a, calc_id_a);
@@ -1206,30 +1290,43 @@ compute_calc_tree_diff(
             auto service_a = get_thinknode_service_id(id_a);
             auto service_b = get_thinknode_service_id(id_b);
 
+            object_tree_diff subtree_diff;
+
             if (service_a == thinknode_service_id::CALC
                 && service_b == thinknode_service_id::CALC)
             {
-                auto subtree_diff = compute_calc_tree_diff(
+                subtree_diff = compute_calc_tree_diff(
                     cache,
                     connection,
                     session,
                     context_id_a,
-                    cast<string>(*item.a),
+                    id_a,
                     context_id_b,
-                    cast<string>(*item.b));
-                for (auto& node : subtree_diff)
-                {
-                    node.path_from_root.insert(
-                        node.path_from_root.begin(),
-                        item.path.begin(),
-                        item.path.end() - 1);
-                }
-                std::move(
-                    subtree_diff.begin(),
-                    subtree_diff.end(),
-                    std::back_inserter(tree_diff));
-                continue;
+                    id_b);
             }
+            else
+            {
+                subtree_diff = compute_iss_tree_diff(
+                    cache,
+                    connection,
+                    session,
+                    context_id_a,
+                    id_a,
+                    context_id_b,
+                    id_b);
+            }
+            for (auto& node : subtree_diff)
+            {
+                node.path_from_root.insert(
+                    node.path_from_root.begin(),
+                    item.path.begin(),
+                    item.path.end() - 1);
+            }
+            std::move(
+                subtree_diff.begin(),
+                subtree_diff.end(),
+                std::back_inserter(tree_diff));
+            continue;
         }
 
         relevant_diff.push_back(value_diff_item());
@@ -1238,7 +1335,8 @@ compute_calc_tree_diff(
 
     if (!relevant_diff.empty())
     {
-        calc_node_diff node_diff;
+        object_node_diff node_diff;
+        node_diff.service = thinknode_service_id::CALC;
         node_diff.path_from_root = value_diff_path();
         node_diff.id_in_a = calc_id_a;
         node_diff.id_in_b = calc_id_b;
@@ -1435,6 +1533,23 @@ process_message(
                 request,
                 make_server_message_content_with_calculation_diff_response(
                     diff));
+            break;
+        }
+        case client_message_content_tag::ISS_DIFF:
+        {
+            auto const& idr = as_iss_diff(content);
+            auto diff = compute_iss_tree_diff(
+                server.cache,
+                connection,
+                get_client(server.clients, request.client).session,
+                idr.context_a,
+                idr.id_a,
+                idr.context_b,
+                idr.id_b);
+            send_response(
+                server,
+                request,
+                make_server_message_content_with_iss_diff_response(diff));
             break;
         }
         case client_message_content_tag::CALCULATION_SEARCH:
