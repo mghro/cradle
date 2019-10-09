@@ -12,16 +12,15 @@
 #include <boost/crc.hpp>
 #endif
 
-#include <picosha2.h>
-
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
 #include <spdlog/spdlog.h>
 
+#include <cradle/caching/disk_cache.hpp>
 #include <cradle/core/diff.hpp>
+#include <cradle/core/hashing.hpp>
 #include <cradle/core/logging.hpp>
-#include <cradle/disk_cache.hpp>
 #include <cradle/encodings/base64.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/encodings/msgpack.hpp>
@@ -231,8 +230,8 @@ retrieve_immutable(
         << CRADLE_LOG_ARG(context_id) << CRADLE_LOG_ARG(immutable_id));
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
-        dynamic({"retrieve_immutable", session.api_url, immutable_id})));
+    auto cache_key = sha256_hash(
+        dynamic({"retrieve_immutable", session.api_url, immutable_id}));
     try
     {
         auto entry = cache.find(cache_key);
@@ -290,11 +289,10 @@ resolve_iss_object_to_immutable(
         << CRADLE_LOG_ARG(ignore_upgrades));
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"resolve_iss_object_to_immutable",
-                                         session.api_url,
-                                         ignore_upgrades ? "n/a" : context_id,
-                                         object_id})));
+    auto cache_key = sha256_hash(dynamic({"resolve_iss_object_to_immutable",
+                                          session.api_url,
+                                          ignore_upgrades ? "n/a" : context_id,
+                                          object_id}));
     try
     {
         auto entry = cache.find(cache_key);
@@ -372,11 +370,8 @@ get_iss_object_metadata(
     string const& object_id)
 {
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"get_iss_object_metadata",
-                                         session.api_url,
-                                         context_id,
-                                         object_id})));
+    auto cache_key = sha256_hash(dynamic(
+        {"get_iss_object_metadata", session.api_url, context_id, object_id}));
     try
     {
         auto entry = cache.find(cache_key);
@@ -430,9 +425,8 @@ get_app_version_info(
     string const& app,
     string const& version)
 {
-    auto cache_key
-        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
-            {"get_app_version_info", session.api_url, account, app, version})));
+    auto cache_key = sha256_hash(dynamic(
+        {"get_app_version_info", session.api_url, account, app, version}));
 
     static std::unordered_map<string, thinknode_app_version_info> memory_cache;
     auto cache_entry = memory_cache.find(cache_key);
@@ -495,8 +489,8 @@ get_context_contents(
     thinknode_session const& session,
     string const& context_id)
 {
-    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
-        dynamic({"get_context_contents", session.api_url, context_id})));
+    auto cache_key = sha256_hash(
+        dynamic({"get_context_contents", session.api_url, context_id}));
 
     static std::unordered_map<string, thinknode_context_contents> memory_cache;
     auto cache_entry = memory_cache.find(cache_key);
@@ -631,12 +625,11 @@ post_iss_object(
         decoded_object);
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"post_iss_object",
-                                         session.api_url,
-                                         context_id,
-                                         to_dynamic(schema),
-                                         coerced_object})));
+    auto cache_key = sha256_hash(dynamic({"post_iss_object",
+                                          session.api_url,
+                                          context_id,
+                                          to_dynamic(schema),
+                                          coerced_object}));
     try
     {
         auto entry = cache.find(cache_key);
@@ -898,8 +891,8 @@ get_calculation_request(
     string const& calculation_id)
 {
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
-        dynamic({"get_calculation_request", session.api_url, calculation_id})));
+    auto cache_key = sha256_hash(
+        dynamic({"get_calculation_request", session.api_url, calculation_id}));
     try
     {
         auto entry = cache.find(cache_key);
@@ -983,11 +976,10 @@ post_shallow_calculation(
         return as_reference(calculation);
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"post_calculation",
-                                         session.api_url,
-                                         context_id,
-                                         to_dynamic(calculation)})));
+    auto cache_key = sha256_hash(dynamic({"post_calculation",
+                                          session.api_url,
+                                          context_id,
+                                          to_dynamic(calculation)}));
     try
     {
         auto entry = cache.find(cache_key);

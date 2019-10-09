@@ -1,7 +1,7 @@
 #ifndef CRADLE_DISK_CACHE_HPP
 #define CRADLE_DISK_CACHE_HPP
 
-#include <cradle/cache_types.hpp>
+#include <cradle/caching/types.hpp>
 #include <cradle/fs/types.hpp>
 
 #include <vector>

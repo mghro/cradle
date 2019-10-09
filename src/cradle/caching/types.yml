@@ -1,5 +1,14 @@
 types:
 
+- name: memory_cache_config
+  doc: ''
+  schema:
+    structure:
+    - size_limit:
+        doc: size limit (in bytes)
+        schema:
+          integer: {}
+
 - name: disk_cache_config
   doc: ''
   schema:

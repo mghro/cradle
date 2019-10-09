@@ -1,4 +1,4 @@
-#include <cradle/disk_cache.hpp>
+#include <cradle/caching/disk_cache.hpp>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>

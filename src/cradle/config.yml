@@ -1,5 +1,5 @@
 imports:
-- 'cradle/cache_types'
+- 'cradle/caching/types'
 
 types:
 - name: server_config

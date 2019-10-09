@@ -1,4 +1,4 @@
-#include <cradle/disk_cache.hpp>
+#include <cradle/caching/disk_cache.hpp>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -18,7 +18,7 @@ reset_directory(file_path const& dir)
     create_directory(dir);
 }
 
-TEST_CASE("uninitialized disk cache", "[disk_cache]")
+TEST_CASE("uninitialized disk cache", "[caching][disk_cache]")
 {
     disk_cache cache;
     REQUIRE(!cache.is_initialized());
@@ -141,7 +141,7 @@ test_item_access(disk_cache& cache, int item_id)
     }
 }
 
-TEST_CASE("resetting", "[disk_cache]")
+TEST_CASE("resetting", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -149,7 +149,7 @@ TEST_CASE("resetting", "[disk_cache]")
     REQUIRE(!cache.is_initialized());
 }
 
-TEST_CASE("simple item access", "[disk_cache]")
+TEST_CASE("simple item access", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -161,7 +161,7 @@ TEST_CASE("simple item access", "[disk_cache]")
     REQUIRE(test_item_access(cache, 1));
 }
 
-TEST_CASE("multiple initializations", "[disk_cache]")
+TEST_CASE("multiple initializations", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -173,7 +173,7 @@ TEST_CASE("multiple initializations", "[disk_cache]")
     REQUIRE(test_item_access(cache, 1));
 }
 
-TEST_CASE("clearing", "[disk_cache]")
+TEST_CASE("clearing", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -186,7 +186,7 @@ TEST_CASE("clearing", "[disk_cache]")
     REQUIRE(!test_item_access(cache, 1));
 }
 
-TEST_CASE("LRU removal", "[disk_cache]")
+TEST_CASE("LRU removal", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -208,7 +208,7 @@ TEST_CASE("LRU removal", "[disk_cache]")
     }
 }
 
-TEST_CASE("manual entry removal", "[disk_cache]")
+TEST_CASE("manual entry removal", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -228,7 +228,7 @@ TEST_CASE("manual entry removal", "[disk_cache]")
     }
 }
 
-TEST_CASE("cache summary info", "[disk_cache]")
+TEST_CASE("cache summary info", "[caching][disk_cache]")
 {
     disk_cache cache;
 
@@ -273,7 +273,7 @@ TEST_CASE("cache summary info", "[disk_cache]")
     check_summary_info();
 }
 
-TEST_CASE("cache entry list", "[disk_cache]")
+TEST_CASE("cache entry list", "[caching][disk_cache]")
 {
     disk_cache cache;
     init_disk_cache(cache);
@@ -303,7 +303,7 @@ TEST_CASE("cache entry list", "[disk_cache]")
     }
 }
 
-TEST_CASE("corrupt cache", "[disk_cache]")
+TEST_CASE("corrupt cache", "[caching][disk_cache]")
 {
     // Set up an invalid cache directory.
     reset_directory("disk_cache");
@@ -318,7 +318,7 @@ TEST_CASE("corrupt cache", "[disk_cache]")
     REQUIRE(!exists(extraneous_file));
 }
 
-TEST_CASE("incompatible cache", "[disk_cache]")
+TEST_CASE("incompatible cache", "[caching][disk_cache]")
 {
     // Set up a cache directory with an incompatible database version number.
     reset_directory("disk_cache");
