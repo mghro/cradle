@@ -808,6 +808,41 @@ types:
             app: cradle
             name: thinknode_type_info
 
+- name: thinknode_provider_image_info
+  doc: ''
+  schema:
+    union:
+    - tag:
+        doc: "References a docker image by tag."
+        schema:
+          string: {}
+    - digest:
+        doc: "References a docker image by digest."
+        schema:
+          string: {}
+
+- name: thinknode_private_provider_info
+  doc: ''
+  schema:
+    structure:
+    - image:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: thinknode_provider_image_info
+
+- name: thinknode_provider_info
+  doc: ''
+  schema:
+    union:
+    - private:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: thinknode_private_provider_info
+
 - name: thinknode_app_manifest
   doc: ''
   schema:

@@ -341,7 +341,7 @@ encode_object(output_data_encoding encoding, dynamic const& object)
     }
 }
 
-static dynamic
+dynamic
 get_iss_object(
     disk_cache& cache,
     http_connection& connection,
@@ -543,18 +543,19 @@ get_context_contents(
     return context_contents;
 }
 
-static api_type_info
-resolve_named_type_reference(
+thinknode_app_version_info
+resolve_context_app(
     disk_cache& cache,
     http_connection& connection,
     thinknode_session const& session,
     string const& context_id,
-    api_named_type_reference const& ref)
+    string const& account,
+    string const& app)
 {
     auto context = get_context_contents(cache, connection, session, context_id);
     for (auto const& app_info : context.contents)
     {
-        if (app_info.account == ref.account && app_info.app == ref.app)
+        if (app_info.account == account && app_info.app == app)
         {
             if (!is_version(app_info.source))
             {
@@ -562,28 +563,43 @@ resolve_named_type_reference(
                     websocket_server_error() << internal_error_message_info(
                         "apps must be installed as versions"));
             }
-            auto version_info = get_app_version_info(
+            return get_app_version_info(
                 cache,
                 connection,
                 session,
-                ref.account ? *ref.account : get_account_name(session),
-                ref.app,
+                account,
+                app,
                 as_version(app_info.source));
-            for (auto const& type : version_info.manifest->types)
-            {
-                if (type.name == ref.name)
-                {
-                    return as_api_type(type.schema);
-                }
-            }
-            CRADLE_THROW(
-                websocket_server_error()
-                << internal_error_message_info("type not found in app"));
         }
     }
     CRADLE_THROW(
         websocket_server_error()
         << internal_error_message_info("app not found in context"));
+}
+
+api_type_info
+resolve_named_type_reference(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    api_named_type_reference const& ref)
+{
+    auto version_info = resolve_context_app(
+        cache,
+        connection,
+        session,
+        context_id,
+        ref.account ? *ref.account : get_account_name(session),
+        ref.app);
+    for (auto const& type : version_info.manifest->types)
+    {
+        if (type.name == ref.name)
+            return as_api_type(type.schema);
+    }
+    CRADLE_THROW(
+        websocket_server_error()
+        << internal_error_message_info("type not found in app"));
 }
 
 static string
