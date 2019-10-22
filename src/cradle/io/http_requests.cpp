@@ -287,6 +287,11 @@ http_connection::perform_request(
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curl_headers.list);
 
     curl_easy_setopt(curl, CURLOPT_URL, request.url.c_str());
+    if (request.socket)
+    {
+        curl_easy_setopt(
+            curl, CURLOPT_UNIX_SOCKET_PATH, request.socket->c_str());
+    }
 
     // Set up for receiving the response body.
     receive_transmission_state body_receive_state;

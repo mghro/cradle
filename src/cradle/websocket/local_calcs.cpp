@@ -1,6 +1,8 @@
-#include <cradle/core/dynamic.hpp>
-#include <cradle/thinknode/utilities.hpp>
 #include <cradle/websocket/local_calcs.hpp>
+
+#include <cradle/core/dynamic.hpp>
+#include <cradle/thinknode/supervisor.hpp>
+#include <cradle/thinknode/utilities.hpp>
 
 namespace cradle {
 
@@ -47,8 +49,11 @@ perform_local_function_calc(
 {
     auto version_info = resolve_context_app(
         cache, connection, session, context_id, account, app);
-    std::cout << to_dynamic(version_info.manifest->provider) << std::endl;
-    return dynamic("unimplemented");
+    return supervise_thinknode_calculation(
+        connection,
+        as_private(*version_info.manifest->provider).image,
+        name,
+        args);
 }
 
 dynamic
