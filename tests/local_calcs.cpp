@@ -60,15 +60,15 @@ TEST_CASE("local calcs", "[local_calcs][ws]")
                       {"suffix", ""}}}}));
 
     // function
-    // REQUIRE(
-    //     eval(make_calculation_request_with_function(make_function_application(
-    //         "mgh",
-    //         "dosimetry",
-    //         "addition",
-    //         none,
-    //         {make_calculation_request_with_value(dynamic(2.0)),
-    //          make_calculation_request_with_value(dynamic(0.125))})))
-    //     == dynamic(2.125));
+    REQUIRE(
+        eval(make_calculation_request_with_function(make_function_application(
+            "mgh",
+            "dosimetry",
+            "addition",
+            none,
+            {make_calculation_request_with_value(dynamic(2.0)),
+             make_calculation_request_with_value(dynamic(0.125))})))
+        == dynamic(2.125));
 
     // array
     REQUIRE(

@@ -12,6 +12,8 @@ struct http_connection;
 dynamic
 supervise_thinknode_calculation(
     http_connection& connection,
+    string const& account,
+    string const& app,
     thinknode_provider_image_info const& image,
     string const& function_name,
     std::vector<dynamic> const& args);

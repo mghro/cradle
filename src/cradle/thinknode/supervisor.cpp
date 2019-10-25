@@ -1,21 +1,193 @@
 #include <cradle/thinknode/supervisor.hpp>
 
+#include <boost/asio.hpp>
+#include <boost/thread/thread.hpp>
+
+#include <cradle/core/monitoring.hpp>
+#include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
 #include <cradle/thinknode/ipc.hpp>
 #include <cradle/thinknode/messages.hpp>
+
+namespace asio = boost::asio;
+using asio::ip::tcp;
 
 namespace cradle {
 
 uint8_t static const ipc_version = 1;
 
+// BEWARE: This is pasted in string form in many places below...
+uint16_t static const the_port = 41079;
+
+static string
+extract_tag(thinknode_provider_image_info const& image)
+{
+    switch (get_tag(image))
+    {
+        case thinknode_provider_image_info_tag::TAG:
+            return as_tag(image);
+        case thinknode_provider_image_info_tag::DIGEST:
+            return as_digest(image);
+        default:
+            CRADLE_THROW(
+                invalid_enum_value()
+                << enum_id_info("thinknode_provider_image_info_tag")
+                << enum_value_info(static_cast<int>(get_tag(image))));
+    }
+}
+
+static void
+pull_image(
+    http_connection& connection,
+    string const& account,
+    string const& app,
+    thinknode_provider_image_info const& image)
+{
+    auto query = make_http_request(
+        http_request_method::POST,
+        "http://localhost:2375/v1.40/images/create"
+        "?fromImage=registry-mgh.thinknode.com/"
+            + account + "/" + app + "&tag=" + extract_tag(image),
+        {{"X-Registry-Auth",
+          "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjogIm5w"
+          "dGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lzdHJ5LW1naC50"
+          "aGlua25vZGUuY29tIgp9"}},
+        blob());
+    null_check_in check_in;
+    null_progress_reporter reporter;
+    connection.perform_request(check_in, reporter, query);
+}
+
+static string
+spawn_provider(
+    http_connection& connection,
+    string const& account,
+    string const& app,
+    thinknode_provider_image_info const& image)
+{
+    null_check_in check_in;
+    null_progress_reporter reporter;
+
+    // Create the container.
+    string id;
+    {
+        auto request = make_http_request(
+            http_request_method::POST,
+            "http://localhost:2375/v1.40/containers/create",
+            {{"Content-Type", "application/json"},
+             {"X-Registry-Auth",
+              "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjog"
+              "Im5wdGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lzdHJ5"
+              "LW1naC50aGlua25vZGUuY29tIgp9"}},
+            value_to_json_blob(
+                dynamic({{"Image",
+                          "registry-mgh.thinknode.com/" + account + "/" + app
+                              + "@" + extract_tag(image)},
+                         {"Env",
+                          {"THINKNODE_HOST=host.docker.internal",
+                           "THINKNODE_PORT=41079",
+                           "THINKNODE_PID=the_pid_with_some_extra_characte"}},
+                         {"HostConfig",
+                          {
+                              {"NetworkMode", "host"}
+                              //   {"PortBindings",
+                              //    {{"41079/tcp", {{{"HostPort", "41079"}}}}}}
+                              //,{"AutoRemove", true}
+                          }}})));
+        auto response = connection.perform_request(check_in, reporter, request);
+        id = cast<string>(
+            get_field(cast<dynamic_map>(parse_json_response(response)), "Id"));
+    }
+
+    // Start it.
+    {
+        auto request = make_http_request(
+            http_request_method::POST,
+            "http://localhost:2375/v1.40/containers/" + id + "/start",
+            http_header_list(),
+            blob());
+        connection.perform_request(check_in, reporter, request);
+    }
+
+    return id;
+}
+
 dynamic
 supervise_thinknode_calculation(
     http_connection& connection,
+    string const& account,
+    string const& app,
     thinknode_provider_image_info const& image,
     string const& function_name,
     std::vector<dynamic> const& args)
 {
-    return dynamic("still not implemented, but closer");
+    pull_image(connection, account, app, image);
+
+    asio::io_service io_service;
+
+    tcp::acceptor a(
+        io_service,
+        tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), the_port));
+
+    tcp::socket socket(io_service);
+
+    dynamic result;
+
+    // Dispatch a thread to process messages.
+    boost::thread message_thread{[&]() {
+        std::cout << "----------------------------------------\n";
+        std::cout << "accepting...\n";
+        a.accept(socket);
+        std::cout << "ACCEPTED!\n";
+
+        // Process messages from the supervisor.
+        while (1)
+        {
+            auto message
+                = read_message<thinknode_provider_message>(socket, ipc_version);
+            switch (get_tag(message))
+            {
+                case thinknode_provider_message_tag::REGISTRATION:
+                    std::cout << "----------------------------------------\n";
+                    std::cout << "REGISTRATION!!!\n";
+                    std::cout << as_registration(message) << std::endl;
+                    std::cout << "----------------------------------------\n";
+                    std::cout << std::endl;
+                    write_message(
+                        socket,
+                        ipc_version,
+                        make_thinknode_supervisor_message_with_function(
+                            make_thinknode_supervisor_calculation_request(
+                                function_name, args)));
+                    break;
+                case thinknode_provider_message_tag::RESULT:
+                    std::cout << "----------------------------------------\n";
+                    std::cout << "RESULT!!!\n";
+                    std::cout << as_result(message) << std::endl;
+                    std::cout << "----------------------------------------\n";
+                    std::cout << std::endl;
+                    result = as_result(message);
+                    return;
+                default:
+                    break;
+            }
+        }
+    }};
+
+    // TODO: Synchronize for real.
+    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+
+    auto provider = spawn_provider(connection, account, app, image);
+    std::cout << "----------------------------------------\n";
+    std::cout << "SPAWNED\n";
+    std::cout << provider << std::endl;
+
+    message_thread.join();
+
+    std::cout << "----------------------------------------\n";
+    std::cout << "JOINED!\n";
+
+    return result;
 }
 
 } // namespace cradle

@@ -51,6 +51,8 @@ perform_local_function_calc(
         cache, connection, session, context_id, account, app);
     return supervise_thinknode_calculation(
         connection,
+        account,
+        app,
         as_private(*version_info.manifest->provider).image,
         name,
         args);

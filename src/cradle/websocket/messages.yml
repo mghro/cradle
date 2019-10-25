@@ -518,6 +518,12 @@ types:
           named:
             app: cradle
             name: iss_diff_request
+    - perform_local_calc:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: post_calculation_request
 
 - name: websocket_client_message
   doc: ''
@@ -618,6 +624,10 @@ types:
           named:
             app: cradle
             name: iss_diff_response
+    - local_calc_result:
+        doc: ''
+        schema:
+          dynamic: {}
 
 - name: websocket_server_message
   doc: ''

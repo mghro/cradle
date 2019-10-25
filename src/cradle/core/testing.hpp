@@ -83,7 +83,7 @@ test_regular_value_pair(T const& x, T const& y)
     auto test_pair = [&](T const& a, T const& b) {
         REQUIRE(a != b);
         REQUIRE(invoke_hash(a) != invoke_hash(b));
-        REQUIRE(a < b);
+        REQUIRE((a < b));
         REQUIRE(a == x);
         REQUIRE(b == y);
     };

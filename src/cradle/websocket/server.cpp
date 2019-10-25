@@ -34,6 +34,7 @@
 #include <cradle/thinknode/iam.hpp>
 #include <cradle/thinknode/iss.hpp>
 #include <cradle/thinknode/utilities.hpp>
+#include <cradle/websocket/local_calcs.hpp>
 #include <cradle/websocket/messages.hpp>
 
 // Include this again because some #defines snuck in to overwrite some of our
@@ -1619,6 +1620,21 @@ process_message(
                 request,
                 make_server_message_content_with_resolve_meta_chain_response(
                     make_resolve_meta_chain_response(calc_id)));
+            break;
+        }
+        case client_message_content_tag::PERFORM_LOCAL_CALC:
+        {
+            auto const& pc = as_perform_local_calc(content);
+            auto result = perform_local_calc(
+                server.cache,
+                connection,
+                get_client(server.clients, request.client).session,
+                pc.context_id,
+                pc.calculation);
+            send_response(
+                server,
+                request,
+                make_server_message_content_with_local_calc_result(result));
             break;
         }
         case client_message_content_tag::KILL:

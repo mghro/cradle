@@ -304,7 +304,7 @@ is_printable(blob const& x)
 
     for (size_t i = 0; i != x.size; ++i)
     {
-        if (!std::isprint(reinterpret_cast<unsigned char const*>(x.data)[i]))
+        if (reinterpret_cast<unsigned char const*>(x.data)[i] > 127)
             return false;
     }
 

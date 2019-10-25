@@ -16,7 +16,7 @@ strip_whitespace(string s)
 static void
 test_json_encoding(string const& json, dynamic const& expected_value)
 {
-    CAPTURE(json)
+    CAPTURE(json);
 
     // Parse it and check that it matches.
     auto converted_value = parse_json_value(json);
