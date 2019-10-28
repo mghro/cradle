@@ -82,6 +82,9 @@ struct value_type_of<dynamic_map>
 // If the field is not present in the map, an exception is thrown.
 dynamic const&
 get_field(dynamic_map const& r, string const& field);
+// non-const version
+dynamic&
+get_field(dynamic_map& r, string const& field);
 
 CRADLE_DEFINE_EXCEPTION(missing_field)
 CRADLE_DEFINE_ERROR_INFO(string, field_name)
@@ -90,11 +93,14 @@ CRADLE_DEFINE_ERROR_INFO(string, field_name)
 // the field is in the map.
 bool
 get_field(dynamic const** v, dynamic_map const& r, string const& field);
+// non-const version
+bool
+get_field(dynamic** v, dynamic_map& r, string const& field);
 
 // Given a dynamic_map that's meant to represent a union value, this checks that
 // the map contains only one value and returns its key.
 dynamic const&
-get_union_value_type(dynamic_map const& map);
+get_union_tag(dynamic_map const& map);
 
 CRADLE_DEFINE_EXCEPTION(multifield_union)
 
@@ -117,6 +123,14 @@ cast(dynamic const& v)
 {
     check_type(value_type_of<T>::value, v.type());
     return boost::any_cast<T const&>(v.contents());
+}
+// Same, but with a non-const reference.
+template<class T>
+T&
+cast(dynamic& v)
+{
+    check_type(value_type_of<T>::value, v.type());
+    return boost::any_cast<T&>(v.contents());
 }
 // Same, but with move semantics.
 template<class T>
@@ -274,14 +288,7 @@ coerce_value(
     std::function<api_type_info(api_named_type_reference const& ref)> const&
         look_up_named_type,
     api_type_info const& type,
-    dynamic const& value);
-// Same, but with move semantics.
-dynamic
-coerce_value(
-    std::function<api_type_info(api_named_type_reference const& ref)> const&
-        look_up_named_type,
-    api_type_info const& type,
-    dynamic&& value);
+    dynamic value);
 
 } // namespace cradle
 

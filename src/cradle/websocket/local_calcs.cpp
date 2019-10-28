@@ -1,6 +1,10 @@
 #include <cradle/websocket/local_calcs.hpp>
 
+#include <picosha2.h>
+
 #include <cradle/core/dynamic.hpp>
+#include <cradle/encodings/msgpack.hpp>
+#include <cradle/fs/file_io.hpp>
 #include <cradle/thinknode/supervisor.hpp>
 #include <cradle/thinknode/utilities.hpp>
 
@@ -36,6 +40,14 @@ resolve_context_app(
 
 // end of temporary borrowing
 
+static uint32_t
+compute_crc32(string const& s)
+{
+    boost::crc_32_type crc;
+    crc.process_bytes(s.data(), s.length());
+    return crc.checksum();
+}
+
 dynamic
 perform_local_function_calc(
     disk_cache& cache,
@@ -47,15 +59,63 @@ perform_local_function_calc(
     string const& name,
     std::vector<dynamic> const& args)
 {
+    // Try the disk cache.
+    auto cache_key = picosha2::hash256_hex_string(
+        value_to_msgpack_string(dynamic({"local_function_calc",
+                                         session.api_url,
+                                         context_id,
+                                         account,
+                                         app,
+                                         name,
+                                         args})));
+    try
+    {
+        auto entry = cache.find(cache_key);
+        // Cached calculation results are stored externally in files.
+        if (entry && !entry->value)
+        {
+            auto data = read_file_contents(cache.get_path_for_id(entry->id));
+            if (compute_crc32(data) == entry->crc32)
+            {
+                spdlog::get("cradle")->info("cache hit on {}", cache_key);
+                return parse_msgpack_value(data);
+            }
+        }
+    }
+    catch (...)
+    {
+        // Something went wrong trying to load the cached value, so just
+        // pretend it's not there. (It will be overwritten.)
+        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
+    }
+    spdlog::get("cradle")->info("cache miss on {}", cache_key);
+
     auto version_info = resolve_context_app(
         cache, connection, session, context_id, account, app);
-    return supervise_thinknode_calculation(
+
+    auto result = supervise_thinknode_calculation(
         connection,
         account,
         app,
         as_private(*version_info.manifest->provider).image,
         name,
         args);
+
+    // Cache the result.
+    auto cache_id = cache.initiate_insert(cache_key);
+    auto msgpack = value_to_msgpack_string(result);
+    {
+        auto entry_path = cache.get_path_for_id(cache_id);
+        std::ofstream output;
+        open_file(
+            output,
+            entry_path,
+            std::ios::out | std::ios::trunc | std::ios::binary);
+        output << msgpack;
+    }
+    cache.finish_insert(cache_id, compute_crc32(msgpack));
+
+    return result;
 }
 
 dynamic

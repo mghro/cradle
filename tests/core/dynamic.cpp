@@ -167,11 +167,11 @@ TEST_CASE("get_field", "[core][dynamic]")
     }
 }
 
-TEST_CASE("get_union_value_type", "[core][dynamic]")
+TEST_CASE("get_union_tag", "[core][dynamic]")
 {
     // Try getting the type from a proper union dynamic.
     REQUIRE(
-        get_union_value_type(dynamic_map({
+        get_union_tag(dynamic_map({
             {"a", 12.},
         }))
         == "a");
@@ -179,7 +179,7 @@ TEST_CASE("get_union_value_type", "[core][dynamic]")
     // Try with an empty map.
     try
     {
-        get_union_value_type(dynamic_map());
+        get_union_tag(dynamic_map());
         FAIL("no exception thrown");
     }
     catch (multifield_union&)
@@ -189,7 +189,7 @@ TEST_CASE("get_union_value_type", "[core][dynamic]")
     // Try with a map with too many fields.
     try
     {
-        get_union_value_type(dynamic_map({{"a", 12.}, {"b", false}}));
+        get_union_tag(dynamic_map({{"a", 12.}, {"b", false}}));
         FAIL("no exception thrown");
     }
     catch (multifield_union&)

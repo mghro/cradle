@@ -283,7 +283,7 @@ void
 from_dynamic({{type_info.name}}* x, cradle::dynamic const& v)
 {
     cradle::dynamic_map const& fields = cradle::cast<cradle::dynamic_map>(v);
-    from_dynamic(&x->tag_, get_union_value_type(fields));
+    from_dynamic(&x->tag_, get_union_tag(fields));
     switch (x->tag_)
     {
     {% for case_name, case_info in ordered_object_items(union_info) %}

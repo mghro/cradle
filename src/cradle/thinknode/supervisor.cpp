@@ -86,7 +86,7 @@ spawn_provider(
                          {"Env",
                           {"THINKNODE_HOST=host.docker.internal",
                            "THINKNODE_PORT=41079",
-                           "THINKNODE_PID=the_pid_with_some_extra_characte"}},
+                           "THINKNODE_PID=the_pid_which_must_be_length_32_"}},
                          {"HostConfig",
                           {
                               {"NetworkMode", "host"}
@@ -121,6 +121,10 @@ supervise_thinknode_calculation(
     string const& function_name,
     std::vector<dynamic> const& args)
 {
+    std::cout << "----------------------------------------\n";
+    std::cout << "LOCAL CALC...\n";
+    std::cout << function_name << "\n";
+
     pull_image(connection, account, app, image);
 
     asio::io_service io_service;
@@ -159,6 +163,8 @@ supervise_thinknode_calculation(
                         make_thinknode_supervisor_message_with_function(
                             make_thinknode_supervisor_calculation_request(
                                 function_name, args)));
+                    std::cout << "ARGUMENTS SENT!!!\n";
+                    std::cout << "----------------------------------------\n";
                     break;
                 case thinknode_provider_message_tag::RESULT:
                     std::cout << "----------------------------------------\n";

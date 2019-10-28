@@ -12,6 +12,7 @@ read_message_body(
     boost::shared_array<uint8_t> const& body,
     size_t length)
 {
+    std::cout << "READING MESSAGE BODY!\n";
     raw_input_buffer buffer(body.get(), length);
     raw_memory_reader<raw_input_buffer> reader(buffer);
     switch (static_cast<calc_message_code>(code))
