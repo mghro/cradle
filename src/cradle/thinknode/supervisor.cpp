@@ -73,11 +73,11 @@ make_docker_request(
 static docker_service_type
 detect_docker(http_connection& connection)
 {
-    // Try Windows.
+    // Try Linux.
     try
     {
         auto query = make_docker_request(
-            docker_service_type::WINDOWS,
+            docker_service_type::LINUX,
             http_request_method::GET,
             "/v1.40/version",
             http_header_list());
@@ -85,16 +85,16 @@ detect_docker(http_connection& connection)
         null_progress_reporter reporter;
         connection.perform_request(check_in, reporter, query);
 
-        return docker_service_type::WINDOWS;
+        return docker_service_type::LINUX;
     }
     catch (...)
     {
     }
 
-    // If the Windows way didn't work, assume Linux (but check it).
+    // If the Linux way didn't work, assume Windows (but check it).
 
     auto query = make_docker_request(
-        docker_service_type::LINUX,
+        docker_service_type::WINDOWS,
         http_request_method::GET,
         "/v1.40/version",
         http_header_list());
@@ -102,7 +102,7 @@ detect_docker(http_connection& connection)
     null_progress_reporter reporter;
     connection.perform_request(check_in, reporter, query);
 
-    return docker_service_type::LINUX;
+    return docker_service_type::WINDOWS;
 }
 
 static void
