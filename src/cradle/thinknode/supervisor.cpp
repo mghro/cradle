@@ -36,23 +36,63 @@ extract_tag(thinknode_provider_image_info const& image)
     }
 }
 
+enum class docker_service_type
+{
+    WINDOWS,
+    LINUX
+};
+
+static docker_service_type
+detect_docker()
+{
+    return docker_service_type::WINDOWS;
+}
+
+static http_request
+make_docker_request(
+    docker_service_type service_type,
+    http_request_method method,
+    string path,
+    http_header_list headers,
+    http_body body = blob())
+{
+    switch (service_type)
+    {
+        case docker_service_type::WINDOWS:
+            return make_http_request(
+                method, "http://localhost:2375" + path, headers, body);
+        case docker_service_type::LINUX:
+            return make_http_request(
+                method,
+                "http://localhost" + path,
+                headers,
+                body,
+                some(string("/var/run/docker.sock")));
+        default:
+            CRADLE_THROW(
+                invalid_enum_value()
+                << enum_id_info("docker_service_type")
+                << enum_value_info(static_cast<int>(service_type)));
+    }
+}
+
 static void
 pull_image(
+    docker_service_type service_type,
     http_connection& connection,
     string const& account,
     string const& app,
     thinknode_provider_image_info const& image)
 {
-    auto query = make_http_request(
+    auto query = make_docker_request(
+        service_type,
         http_request_method::POST,
-        "http://localhost:2375/v1.40/images/create"
-        "?fromImage=registry-mgh.thinknode.com/"
-            + account + "/" + app + "&tag=" + extract_tag(image),
+        "/v1.40/images/create?fromImage=registry-mgh.thinknode.com/" + account
+            + "/" + app + "&tag=" + extract_tag(image),
         {{"X-Registry-Auth",
           "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjogIm5w"
           "dGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lzdHJ5LW1naC50"
-          "aGlua25vZGUuY29tIgp9"}},
-        blob());
+          "aGlua25vZGUuY29tIgp9"}});
     null_check_in check_in;
     null_progress_reporter reporter;
     connection.perform_request(check_in, reporter, query);
@@ -60,6 +100,7 @@ pull_image(
 
 static string
 spawn_provider(
+    docker_service_type service_type,
     http_connection& connection,
     string const& account,
     string const& app,
@@ -71,9 +112,10 @@ spawn_provider(
     // Create the container.
     string id;
     {
-        auto request = make_http_request(
+        auto request = make_docker_request(
+            service_type,
             http_request_method::POST,
-            "http://localhost:2375/v1.40/containers/create",
+            "/v1.40/containers/create",
             {{"Content-Type", "application/json"},
              {"X-Registry-Auth",
               "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjog"
@@ -84,16 +126,12 @@ spawn_provider(
                           "registry-mgh.thinknode.com/" + account + "/" + app
                               + "@" + extract_tag(image)},
                          {"Env",
-                          {"THINKNODE_HOST=host.docker.internal",
+                          {service_type == docker_service_type::WINDOWS
+                               ? "THINKNODE_HOST=host.docker.internal"
+                               : "THINKNODE_HOST=localhost",
                            "THINKNODE_PORT=41079",
                            "THINKNODE_PID=the_pid_which_must_be_length_32_"}},
-                         {"HostConfig",
-                          {
-                              {"NetworkMode", "host"}
-                              //   {"PortBindings",
-                              //    {{"41079/tcp", {{{"HostPort", "41079"}}}}}}
-                              //,{"AutoRemove", true}
-                          }}})));
+                         {"HostConfig", {{"NetworkMode", "host"}}}})));
         auto response = connection.perform_request(check_in, reporter, request);
         id = cast<string>(
             get_field(cast<dynamic_map>(parse_json_response(response)), "Id"));
@@ -101,11 +139,11 @@ spawn_provider(
 
     // Start it.
     {
-        auto request = make_http_request(
+        auto request = make_docker_request(
+            service_type,
             http_request_method::POST,
-            "http://localhost:2375/v1.40/containers/" + id + "/start",
-            http_header_list(),
-            blob());
+            "/v1.40/containers/" + id + "/start",
+            http_header_list());
         connection.perform_request(check_in, reporter, request);
     }
 
@@ -125,7 +163,9 @@ supervise_thinknode_calculation(
     std::cout << "LOCAL CALC...\n";
     std::cout << function_name << "\n";
 
-    pull_image(connection, account, app, image);
+    auto service_type = detect_docker();
+
+    pull_image(service_type, connection, account, app, image);
 
     asio::io_service io_service;
 
@@ -183,7 +223,8 @@ supervise_thinknode_calculation(
     // TODO: Synchronize for real.
     boost::this_thread::sleep(boost::posix_time::milliseconds(10));
 
-    auto provider = spawn_provider(connection, account, app, image);
+    auto provider
+        = spawn_provider(service_type, connection, account, app, image);
     std::cout << "----------------------------------------\n";
     std::cout << "SPAWNED\n";
     std::cout << provider << std::endl;
