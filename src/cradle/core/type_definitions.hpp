@@ -183,6 +183,15 @@ struct dynamic
         return value_;
     }
 
+    // Get a non-const reference to the contents.
+    // This should be used with caution.
+    // cast<T>(dynamic) provides a safer interface to this.
+    any&
+    contents() &
+    {
+        return value_;
+    }
+
     // Get an r-value reference to the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.

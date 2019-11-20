@@ -24,7 +24,18 @@ static inline http_request
 make_get_request(string const& url, http_header_list const& headers)
 {
     return make_http_request(
-        http_request_method::GET, url, headers, http_body());
+        http_request_method::GET, url, headers, http_body(), none);
+}
+
+// Construct a general HTTP request.
+static inline http_request
+make_http_request(
+    http_request_method method,
+    string const& url,
+    http_header_list const& headers,
+    http_body const& body)
+{
+    return make_http_request(method, url, headers, body, none);
 }
 
 // Parse a http_response as a JSON value.

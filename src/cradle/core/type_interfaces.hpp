@@ -565,7 +565,7 @@ from_dynamic(optional<T>* x, cradle::dynamic const& v)
 {
     cradle::dynamic_map const& map = cradle::cast<cradle::dynamic_map>(v);
     string type;
-    from_dynamic(&type, cradle::get_union_value_type(map));
+    from_dynamic(&type, cradle::get_union_tag(map));
     if (type == "some")
     {
         try

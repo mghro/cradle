@@ -808,6 +808,41 @@ types:
             app: cradle
             name: thinknode_type_info
 
+- name: thinknode_provider_image_info
+  doc: ''
+  schema:
+    union:
+    - tag:
+        doc: "References a docker image by tag."
+        schema:
+          string: {}
+    - digest:
+        doc: "References a docker image by digest."
+        schema:
+          string: {}
+
+- name: thinknode_private_provider_info
+  doc: ''
+  schema:
+    structure:
+    - image:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: thinknode_provider_image_info
+
+- name: thinknode_provider_info
+  doc: ''
+  schema:
+    union:
+    - private:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: thinknode_private_provider_info
+
 - name: thinknode_app_manifest
   doc: ''
   schema:
@@ -821,7 +856,9 @@ types:
     - provider:
         doc: A docker container providing function and upgrade implementations.
         schema:
-          dynamic: {}
+          named:
+            app: cradle
+            name: thinknode_provider_info
         omissible: true
     - types:
         doc: An array of types.
@@ -929,3 +966,103 @@ types:
                 named:
                   app: cradle
                   name: thinknode_context_app_info
+
+- name: thinknode_supervisor_calculation_request
+  doc: ''
+  schema:
+    structure:
+      - name:
+          doc: 'the name of the function to invoke'
+          schema:
+            string: {}
+      - args:
+          doc: 'the arguments to the function'
+          schema:
+            array:
+              element_schema:
+                dynamic: {}
+
+- name: thinknode_supervisor_message
+  doc: ''
+  schema:
+    union:
+      - function:
+          doc: ''
+          schema:
+            named:
+              app: cradle
+              name: thinknode_supervisor_calculation_request
+      - ping:
+          doc: ''
+          schema:
+            string: {}
+
+- name: thinknode_provider_progress_update
+  doc: ''
+  schema:
+    structure:
+      - value:
+          doc: ''
+          schema:
+            float: {}
+      - message:
+          doc: ''
+          schema:
+            string: {}
+
+- name: thinknode_provider_failure
+  doc: ''
+  schema:
+    structure:
+      - code:
+          doc: ''
+          schema:
+            string: {}
+      - message:
+          doc: ''
+          schema:
+            string: {}
+
+- name: thinknode_provider_registration
+  doc: ''
+  schema:
+    structure:
+      - protocol:
+          doc: 'protocol version'
+          schema:
+            integer: {}
+      - pid:
+          doc: 'unique ID assigned to this provider'
+          schema:
+            string: {}
+
+- name: thinknode_provider_message
+  doc: ''
+  schema:
+    union:
+      - registration:
+          doc: ''
+          schema:
+            named:
+              app: cradle
+              name: thinknode_provider_registration
+      - progress:
+          doc: ''
+          schema:
+            named:
+              app: cradle
+              name: thinknode_provider_progress_update
+      - pong:
+          doc: ''
+          schema:
+            string: {}
+      - result:
+          doc: ''
+          schema:
+            dynamic: {}
+      - failure:
+          doc: ''
+          schema:
+            named:
+              app: cradle
+              name: thinknode_provider_failure

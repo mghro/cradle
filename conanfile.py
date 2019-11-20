@@ -6,8 +6,8 @@ class CradleConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     requires = \
         "boost/1.67.0@conan/stable", \
-        "catch/1.5.0@TyRoXx/stable", \
-        "json/2.0.10@jjones646/stable", \
+        "Catch/1.12.1@bincrafters/stable", \
+        "jsonformoderncpp/3.7.0@vthiery/stable", \
         "msgpack/2.1.5@bincrafters/stable", \
         "cotire/1.7.6@smspillaz/cotire", \
         "libcurl/7.52.1@bincrafters/stable", \

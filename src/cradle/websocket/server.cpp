@@ -34,6 +34,7 @@
 #include <cradle/thinknode/iam.hpp>
 #include <cradle/thinknode/iss.hpp>
 #include <cradle/thinknode/utilities.hpp>
+#include <cradle/websocket/local_calcs.hpp>
 #include <cradle/websocket/messages.hpp>
 
 // Include this again because some #defines snuck in to overwrite some of our
@@ -341,7 +342,7 @@ encode_object(output_data_encoding encoding, dynamic const& object)
     }
 }
 
-static dynamic
+dynamic
 get_iss_object(
     disk_cache& cache,
     http_connection& connection,
@@ -495,27 +496,29 @@ get_context_contents(
     thinknode_session const& session,
     string const& context_id)
 {
-    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
-        dynamic({"get_context_contents", session.api_url, context_id})));
-
-    static std::unordered_map<string, thinknode_context_contents> memory_cache;
-    auto cache_entry = memory_cache.find(cache_key);
+    // Try the memory cache.
+    size_t mem_cache_key = invoke_hash(session.api_url);
+    boost::hash_combine(mem_cache_key, invoke_hash(context_id));
+    static std::unordered_map<size_t, thinknode_context_contents> memory_cache;
+    auto cache_entry = memory_cache.find(mem_cache_key);
     if (cache_entry != memory_cache.end())
         return cache_entry->second;
 
     // Try the disk cache.
+    auto disk_cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
+        dynamic({"get_context_contents", session.api_url, context_id})));
     try
     {
-        auto entry = cache.find(cache_key);
+        auto entry = cache.find(disk_cache_key);
         // Cached contexts are stored internally, so if the entry exists,
         // there should also be a value.
         if (entry && entry->value)
         {
-            spdlog::get("cradle")->info("cache hit on {}", cache_key);
+            spdlog::get("cradle")->info("cache hit on {}", disk_cache_key);
             auto result = from_dynamic<thinknode_context_contents>(
                 parse_msgpack_value(base64_decode(
                     *entry->value, get_mime_base64_character_set())));
-            memory_cache[cache_key] = result;
+            memory_cache[mem_cache_key] = result;
             return result;
         }
     }
@@ -523,9 +526,9 @@ get_context_contents(
     {
         // Something went wrong trying to load the cached value, so just
         // pretend it's not there. (It will be overwritten.)
-        spdlog::get("cradle")->warn("error on cache entry {}", cache_key);
+        spdlog::get("cradle")->warn("error on cache entry {}", disk_cache_key);
     }
-    spdlog::get("cradle")->info("cache miss on {}", cache_key);
+    spdlog::get("cradle")->info("cache miss on {}", disk_cache_key);
 
     // Query Thinknode.
     auto context_contents
@@ -533,28 +536,28 @@ get_context_contents(
 
     // Cache the result.
     cache.insert(
-        cache_key,
+        disk_cache_key,
         base64_encode(
             value_to_msgpack_string(to_dynamic(context_contents)),
             get_mime_base64_character_set()));
-
-    memory_cache[cache_key] = context_contents;
+    memory_cache[mem_cache_key] = context_contents;
 
     return context_contents;
 }
 
-static api_type_info
-resolve_named_type_reference(
+thinknode_app_version_info
+resolve_context_app(
     disk_cache& cache,
     http_connection& connection,
     thinknode_session const& session,
     string const& context_id,
-    api_named_type_reference const& ref)
+    string const& account,
+    string const& app)
 {
     auto context = get_context_contents(cache, connection, session, context_id);
     for (auto const& app_info : context.contents)
     {
-        if (app_info.account == ref.account && app_info.app == ref.app)
+        if (app_info.account == account && app_info.app == app)
         {
             if (!is_version(app_info.source))
             {
@@ -562,28 +565,56 @@ resolve_named_type_reference(
                     websocket_server_error() << internal_error_message_info(
                         "apps must be installed as versions"));
             }
-            auto version_info = get_app_version_info(
+            return get_app_version_info(
                 cache,
                 connection,
                 session,
-                ref.account ? *ref.account : get_account_name(session),
-                ref.app,
+                account,
+                app,
                 as_version(app_info.source));
-            for (auto const& type : version_info.manifest->types)
-            {
-                if (type.name == ref.name)
-                {
-                    return as_api_type(type.schema);
-                }
-            }
-            CRADLE_THROW(
-                websocket_server_error()
-                << internal_error_message_info("type not found in app"));
         }
     }
     CRADLE_THROW(
         websocket_server_error()
         << internal_error_message_info("app not found in context"));
+}
+
+api_type_info
+resolve_named_type_reference(
+    disk_cache& cache,
+    http_connection& connection,
+    thinknode_session const& session,
+    string const& context_id,
+    api_named_type_reference const& ref)
+{
+    // Try the memory cache.
+    size_t mem_cache_key = invoke_hash(session.api_url);
+    boost::hash_combine(mem_cache_key, invoke_hash(context_id));
+    boost::hash_combine(mem_cache_key, invoke_hash(ref));
+    static std::unordered_map<size_t, api_type_info> memory_cache;
+    auto cache_entry = memory_cache.find(mem_cache_key);
+    if (cache_entry != memory_cache.end())
+        return cache_entry->second;
+
+    auto version_info = resolve_context_app(
+        cache,
+        connection,
+        session,
+        context_id,
+        ref.account ? *ref.account : get_account_name(session),
+        ref.app);
+    for (auto const& type : version_info.manifest->types)
+    {
+        if (type.name == ref.name)
+        {
+            auto api_type = as_api_type(type.schema);
+            memory_cache[mem_cache_key] = api_type;
+            return api_type;
+        }
+    }
+    CRADLE_THROW(
+        websocket_server_error()
+        << internal_error_message_info("type not found in app"));
 }
 
 static string
@@ -778,7 +809,7 @@ visit_references(
         {
             auto const& map = cast<dynamic_map>(value);
             string tag;
-            from_dynamic(&tag, cradle::get_union_value_type(map));
+            from_dynamic(&tag, cradle::get_union_tag(map));
             if (tag == "some")
             {
                 recurse(as_optional_(type), get_field(map, "some"));
@@ -810,7 +841,7 @@ visit_references(
             auto const& union_type = as_union(type);
             auto const& map = cast<dynamic_map>(value);
             string tag;
-            from_dynamic(&tag, cradle::get_union_value_type(map));
+            from_dynamic(&tag, cradle::get_union_tag(map));
             for (auto const& pair : union_type)
             {
                 auto const& member_name = pair.first;
@@ -1603,6 +1634,21 @@ process_message(
                 request,
                 make_server_message_content_with_resolve_meta_chain_response(
                     make_resolve_meta_chain_response(calc_id)));
+            break;
+        }
+        case client_message_content_tag::PERFORM_LOCAL_CALC:
+        {
+            auto const& pc = as_perform_local_calc(content);
+            auto result = perform_local_calc(
+                server.cache,
+                connection,
+                get_client(server.clients, request.client).session,
+                pc.context_id,
+                pc.calculation);
+            send_response(
+                server,
+                request,
+                make_server_message_content_with_local_calc_result(result));
             break;
         }
         case client_message_content_tag::KILL:

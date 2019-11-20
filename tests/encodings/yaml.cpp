@@ -272,7 +272,7 @@ TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
     auto large_blob = blob(ownership_holder(), 0, 16384);
     test_diagnostic_yaml_encoding(large_blob, "\"<blob - size: 16384 bytes>\"");
 
-    char unprintable_blob_data[] = "\01blob";
+    char unprintable_blob_data[] = "\xf1wxyz";
     auto unprintable_blob = blob(
         ownership_holder(),
         unprintable_blob_data,
