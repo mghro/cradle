@@ -42,12 +42,6 @@ enum class docker_service_type
     LINUX
 };
 
-static docker_service_type
-detect_docker()
-{
-    return docker_service_type::WINDOWS;
-}
-
 static http_request
 make_docker_request(
     docker_service_type service_type,
@@ -76,6 +70,41 @@ make_docker_request(
     }
 }
 
+static docker_service_type
+detect_docker(http_connection& connection)
+{
+    // Try Windows.
+    try
+    {
+        auto query = make_docker_request(
+            docker_service_type::WINDOWS,
+            http_request_method::GET,
+            "/v1.40/version",
+            http_header_list());
+        null_check_in check_in;
+        null_progress_reporter reporter;
+        connection.perform_request(check_in, reporter, query);
+
+        return docker_service_type::WINDOWS;
+    }
+    catch (...)
+    {
+    }
+
+    // If the Windows way didn't work, assume Linux (but check it).
+
+    auto query = make_docker_request(
+        docker_service_type::LINUX,
+        http_request_method::GET,
+        "/v1.40/version",
+        http_header_list());
+    null_check_in check_in;
+    null_progress_reporter reporter;
+    connection.perform_request(check_in, reporter, query);
+
+    return docker_service_type::LINUX;
+}
+
 static void
 pull_image(
     docker_service_type service_type,
@@ -90,8 +119,10 @@ pull_image(
         "/v1.40/images/create?fromImage=registry-mgh.thinknode.com/" + account
             + "/" + app + "&tag=" + extract_tag(image),
         {{"X-Registry-Auth",
-          "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjogIm5w"
-          "dGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lzdHJ5LW1naC50"
+          "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjog"
+          "Im5w"
+          "dGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lzdHJ5LW1n"
+          "aC50"
           "aGlua25vZGUuY29tIgp9"}});
     null_check_in check_in;
     null_progress_reporter reporter;
@@ -118,8 +149,10 @@ spawn_provider(
             "/v1.40/containers/create",
             {{"Content-Type", "application/json"},
              {"X-Registry-Auth",
-              "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjog"
-              "Im5wdGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lzdHJ5"
+              "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3Jk"
+              "Ijog"
+              "Im5wdGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lz"
+              "dHJ5"
               "LW1naC50aGlua25vZGUuY29tIgp9"}},
             value_to_json_blob(
                 dynamic({{"Image",
@@ -163,7 +196,7 @@ supervise_thinknode_calculation(
     std::cout << "LOCAL CALC...\n";
     std::cout << function_name << "\n";
 
-    auto service_type = detect_docker();
+    auto service_type = detect_docker(connection);
 
     pull_image(service_type, connection, account, app, image);
 
