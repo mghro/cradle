@@ -7,6 +7,48 @@ namespace cradle {
 
 void
 read_message_body(
+    thinknode_supervisor_message* message,
+    uint8_t code,
+    boost::shared_array<uint8_t> const& body,
+    size_t length)
+{
+    raw_input_buffer buffer(body.get(), length);
+    raw_memory_reader<raw_input_buffer> reader(buffer);
+    switch (static_cast<calc_message_code>(code))
+    {
+        case calc_message_code::FUNCTION:
+        {
+            thinknode_supervisor_calculation_request request;
+            request.name = read_string<uint8_t>(reader);
+            auto n_args = read_int<uint16_t>(reader);
+            request.args.resize(n_args);
+            // Allow the arguments to claim ownership of the buffer in case they
+            // want to reference data directly from it.
+            ownership_holder ownership(body);
+            for (uint16_t i = 0; i != n_args; ++i)
+            {
+                auto arg_length = read_int<uint64_t>(reader);
+                request.args[i]
+                    = parse_msgpack_value(ownership, buffer.ptr, arg_length);
+                buffer.advance(arg_length);
+            }
+            *message = make_thinknode_supervisor_message_with_function(
+                std::move(request));
+            break;
+        }
+        case calc_message_code::PING:
+            *message = make_thinknode_supervisor_message_with_ping(
+                read_string(reader, 32));
+            break;
+        default:
+            CRADLE_THROW(
+                invalid_enum_value()
+                << enum_id_info("calc_message_code") << enum_value_info(code));
+    }
+}
+
+void
+read_message_body(
     thinknode_provider_message* message,
     uint8_t code,
     boost::shared_array<uint8_t> const& body,
@@ -83,6 +125,29 @@ get_message_code(thinknode_supervisor_message const& message)
     }
 }
 
+calc_message_code
+get_message_code(thinknode_provider_message const& message)
+{
+    switch (get_tag(message))
+    {
+        case thinknode_provider_message_tag::REGISTRATION:
+            return calc_message_code::REGISTER;
+        case thinknode_provider_message_tag::PONG:
+            return calc_message_code::PONG;
+        case thinknode_provider_message_tag::PROGRESS:
+            return calc_message_code::PROGRESS;
+        case thinknode_provider_message_tag::RESULT:
+            return calc_message_code::RESULT;
+        case thinknode_provider_message_tag::FAILURE:
+            return calc_message_code::FAILURE;
+        default:
+            CRADLE_THROW(
+                invalid_enum_value()
+                << enum_id_info("thinknode_provider_message_tag")
+                << enum_value_info(static_cast<int>(get_tag(message))));
+    }
+}
+
 // a buffer that will simply count the number of bytes that passes through it
 struct counting_buffer
 {
@@ -143,8 +208,62 @@ serialize_message(Buffer& buffer, thinknode_supervisor_message const& message)
     }
 }
 
+template<class Buffer>
+void
+serialize_message(Buffer& buffer, thinknode_provider_message const& message)
+{
+    raw_memory_writer<Buffer> writer(buffer);
+    switch (get_tag(message))
+    {
+        case thinknode_provider_message_tag::REGISTRATION:
+        {
+            write_int(writer, uint16_t(0));
+            write_string_contents(writer, as_registration(message).pid);
+            break;
+        }
+        case thinknode_provider_message_tag::PONG:
+        {
+            write_string_contents(writer, as_pong(message));
+            break;
+        }
+        case thinknode_provider_message_tag::PROGRESS:
+        {
+            auto const& progress = as_progress(message);
+            write_float(writer, progress.value);
+            write_string<uint16_t>(writer, progress.message);
+            break;
+        }
+        case thinknode_provider_message_tag::RESULT:
+        {
+            msgpack::packer<Buffer> packer(buffer);
+            write_msgpack_value(packer, as_result(message));
+            break;
+        }
+        case thinknode_provider_message_tag::FAILURE:
+        {
+            auto const& failure = as_failure(message);
+            write_string<uint8_t>(writer, failure.code);
+            write_string<uint16_t>(writer, failure.message);
+            break;
+        }
+        default:
+            CRADLE_THROW(
+                invalid_enum_value()
+                << enum_id_info("thinknode_provider_message_tag")
+                << enum_value_info(static_cast<int>(get_tag(message))));
+    }
+}
+
 size_t
 get_message_body_size(thinknode_supervisor_message const& message)
+{
+    counting_buffer buffer;
+    serialize_message(buffer, message);
+    return buffer.size;
+}
+
+size_t
+get_message_body_size(thinknode_provider_message const& message)
 {
     counting_buffer buffer;
     serialize_message(buffer, message);
@@ -171,6 +290,14 @@ struct asio_buffer
 void
 write_message_body(
     tcp::socket& socket, thinknode_supervisor_message const& message)
+{
+    asio_buffer buffer(socket);
+    serialize_message(buffer, message);
+}
+
+void
+write_message_body(
+    tcp::socket& socket, thinknode_provider_message const& message)
 {
     asio_buffer buffer(socket);
     serialize_message(buffer, message);

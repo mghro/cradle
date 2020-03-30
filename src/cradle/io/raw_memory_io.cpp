@@ -10,8 +10,7 @@ raw_input_buffer::read(void* dst, size_t size)
     if (size > this->size)
         throw corrupt_data();
     std::memcpy(dst, this->ptr, size);
-    this->ptr += size;
-    this->size -= size;
+    this->advance(size);
 }
 
 } // namespace cradle

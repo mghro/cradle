@@ -27,6 +27,15 @@ enum class calc_message_code : uint8_t
 // The following interface is required of messages that are going to be read
 // from the TCP messaging system.
 
+// supervisor messages
+
+void
+read_message_body(
+    thinknode_supervisor_message* message,
+    uint8_t code,
+    boost::shared_array<uint8_t> const& body,
+    size_t length);
+
 // provider messsages
 
 void
@@ -50,6 +59,18 @@ get_message_body_size(thinknode_supervisor_message const& message);
 void
 write_message_body(
     tcp::socket& socket, thinknode_supervisor_message const& message);
+
+// provider messages
+
+calc_message_code
+get_message_code(thinknode_provider_message const& message);
+
+size_t
+get_message_body_size(thinknode_provider_message const& message);
+
+void
+write_message_body(
+    tcp::socket& socket, thinknode_provider_message const& message);
 
 } // namespace cradle
 

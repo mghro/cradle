@@ -26,6 +26,13 @@ struct raw_input_buffer
 
     void
     read(void* dst, size_t size);
+
+    void
+    advance(size_t size)
+    {
+        this->ptr += size;
+        this->size -= size;
+    }
 };
 
 template<class Buffer>
