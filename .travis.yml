@@ -1,15 +1,12 @@
 sudo: required
-dist: trusty
+dist: xenial
 
 services:
   - docker
 
 before_script:
   - sudo bash scripts/set-up-system.sh
-  # Ubuntu Trusty has a buggy binutils.
-  - sudo apt-get install -y --upgrade binutils-2.26
-  - export PATH=/usr/lib/binutils-2.26/bin:${PATH}
-  - scripts/set-up-python.sh --python=python3.5
+  - scripts/set-up-python.sh --python=python3
   - source .venv/bin/activate
   - export CC=`which gcc-5`
   - export CXX=`which g++-5`
