@@ -183,6 +183,9 @@ target_include_directories(cradle PUBLIC ${CONAN_INCLUDE_DIRS}
     "$<$<CONFIG:Release>:${CONAN_INCLUDE_DIRS_RELEASE}>"
     "$<$<CONFIG:Debug>:${CONAN_INCLUDE_DIRS_DEBUG}>")
 cotire(cradle)
+if(FIPS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_options(cradle PUBLIC --coverage)
+endif()
 
 # Add the server.
 fips_begin_app(server cmdline)
