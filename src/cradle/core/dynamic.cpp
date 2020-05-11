@@ -320,8 +320,7 @@ value_requires_coercion(
 
     switch (get_tag(type))
     {
-        case api_type_info_tag::ARRAY:
-        {
+        case api_type_info_tag::ARRAY: {
             integer index = 0;
             for (auto const& item : cast<dynamic_array>(value))
             {
@@ -387,9 +386,16 @@ value_requires_coercion(
             }
             check_type(value_type::INTEGER, value.type());
             return false;
-        case api_type_info_tag::MAP:
-        {
+        case api_type_info_tag::MAP: {
             auto const& map_type = as_map(type);
+            // This is a little hack to support the fact that JSON maps are
+            // encoded as arrays and they don't get recognized as maps when
+            // they're empty.
+            if (value.type() == value_type::ARRAY
+                && cast<dynamic_array>(value).empty())
+            {
+                return true;
+            }
             for (auto const& key_value : cast<dynamic_map>(value))
             {
                 try
@@ -414,8 +420,7 @@ value_requires_coercion(
         default:
             check_type(value_type::NIL, value.type());
             return false;
-        case api_type_info_tag::OPTIONAL_:
-        {
+        case api_type_info_tag::OPTIONAL_: {
             auto const& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
             if (tag == "some")
@@ -447,8 +452,7 @@ value_requires_coercion(
         case api_type_info_tag::STRING:
             check_type(value_type::STRING, value.type());
             return false;
-        case api_type_info_tag::STRUCTURE:
-        {
+        case api_type_info_tag::STRUCTURE: {
             auto const& structure_type = as_structure(type);
             auto const& map = cast<dynamic_map>(value);
             for (auto const& key_value : structure_type)
@@ -479,8 +483,7 @@ value_requires_coercion(
             }
             return false;
         }
-        case api_type_info_tag::UNION:
-        {
+        case api_type_info_tag::UNION: {
             auto const& union_type = as_union(type);
             auto const& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
@@ -524,8 +527,7 @@ coerce_value_impl(
 
     switch (get_tag(type))
     {
-        case api_type_info_tag::ARRAY:
-        {
+        case api_type_info_tag::ARRAY: {
             integer index = 0;
             for (dynamic& item : cast<dynamic_array>(value))
             {
@@ -596,9 +598,16 @@ coerce_value_impl(
             }
             check_type(value_type::INTEGER, value.type());
             break;
-        case api_type_info_tag::MAP:
-        {
+        case api_type_info_tag::MAP: {
             auto const& map_type = as_map(type);
+            // This is a little hack to support the fact that JSON maps are
+            // encoded as arrays and they don't get recognized as maps when
+            // they're empty.
+            if (value.type() == value_type::ARRAY
+                && cast<dynamic_array>(value).empty())
+            {
+                value = dynamic_map();
+            }
             // Since we can't mutate the keys in the map, first check to see if
             // that's necessary.
             bool key_coercion_required = false;
@@ -660,8 +669,7 @@ coerce_value_impl(
         default:
             check_type(value_type::NIL, value.type());
             break;
-        case api_type_info_tag::OPTIONAL_:
-        {
+        case api_type_info_tag::OPTIONAL_: {
             auto& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
             if (tag == "some")
@@ -693,8 +701,7 @@ coerce_value_impl(
         case api_type_info_tag::STRING:
             check_type(value_type::STRING, value.type());
             break;
-        case api_type_info_tag::STRUCTURE:
-        {
+        case api_type_info_tag::STRUCTURE: {
             auto const& structure_type = as_structure(type);
             auto& map = cast<dynamic_map>(value);
             for (auto const& key_value : structure_type)
@@ -724,8 +731,7 @@ coerce_value_impl(
             }
             break;
         }
-        case api_type_info_tag::UNION:
-        {
+        case api_type_info_tag::UNION: {
             auto const& union_type = as_union(type);
             auto& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
