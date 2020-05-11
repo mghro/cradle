@@ -607,6 +607,7 @@ coerce_value_impl(
                 && cast<dynamic_array>(value).empty())
             {
                 value = dynamic_map();
+                break;
             }
             // Since we can't mutate the keys in the map, first check to see if
             // that's necessary.
