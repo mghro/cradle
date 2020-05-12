@@ -6,8 +6,8 @@ services:
 
 before_script:
   - sudo apt-get purge -y cmake
-  - cmake --version
   - sudo bash scripts/set-up-system.sh
+  - cmake --version
   - scripts/set-up-python.sh --python=python3
   - source .venv/bin/activate
   - export CC=`which gcc-5`
