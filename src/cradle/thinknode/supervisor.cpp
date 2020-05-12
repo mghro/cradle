@@ -79,7 +79,7 @@ detect_docker(http_connection& connection)
         auto query = make_docker_request(
             docker_service_type::LINUX,
             http_request_method::GET,
-            "/v1.40/version",
+            "/v1.38/version",
             http_header_list());
         null_check_in check_in;
         null_progress_reporter reporter;
@@ -96,7 +96,7 @@ detect_docker(http_connection& connection)
     auto query = make_docker_request(
         docker_service_type::WINDOWS,
         http_request_method::GET,
-        "/v1.40/version",
+        "/v1.38/version",
         http_header_list());
     null_check_in check_in;
     null_progress_reporter reporter;
@@ -116,7 +116,7 @@ pull_image(
     auto query = make_docker_request(
         service_type,
         http_request_method::POST,
-        "/v1.40/images/create?fromImage=registry-mgh.thinknode.com/" + account
+        "/v1.38/images/create?fromImage=registry-mgh.thinknode.com/" + account
             + "/" + app + "&tag=" + extract_tag(image),
         {{"X-Registry-Auth",
           "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3JkIjog"
@@ -146,7 +146,7 @@ spawn_provider(
         auto request = make_docker_request(
             service_type,
             http_request_method::POST,
-            "/v1.40/containers/create",
+            "/v1.38/containers/create",
             {{"Content-Type", "application/json"},
              {"X-Registry-Auth",
               "ewogICJ1c2VybmFtZSI6ICJtZ2gvZG9ja2VyLWJvdCIsCiAgInBhc3N3b3Jk"
@@ -175,7 +175,7 @@ spawn_provider(
         auto request = make_docker_request(
             service_type,
             http_request_method::POST,
-            "/v1.40/containers/" + id + "/start",
+            "/v1.38/containers/" + id + "/start",
             http_header_list());
         connection.perform_request(check_in, reporter, request);
     }
