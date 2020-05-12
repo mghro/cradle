@@ -5,12 +5,12 @@
 echo "Setting up system..."
 set -x -e
 apt-get update -qy
-apt-get install -y software-properties-common wget apt-transport-https
+apt-get install -y software-properties-common apt-transport-https
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
-wget https://apt.kitware.com/keys/kitware-archive-latest.asc
-apt-key add kitware-archive-latest.asc
-apt-add-repository 'deb https://apt.kitware.com/ubuntu/ xenial main'
 apt-get update -qy
-apt-get install -y --upgrade python3 python3-dev g++-5 gcc-5 lcov git cmake curl
+apt-get install -y --upgrade python3 python3-dev g++-5 gcc-5 lcov git curl
+curl -sSL https://cmake.org/files/v3.17/cmake-3.17.2-Linux-x86_64.sh -o install-cmake.sh
+chmod +x install-cmake.sh
+./install-cmake.sh --prefix=/usr/local --skip-license
 curl --silent --show-error --retry 5 https://bootstrap.pypa.io/get-pip.py | python3
 python3 -m pip install virtualenv
