@@ -8,7 +8,7 @@ before_script:
   - sudo rm -rf /usr/local/cmake-*
   - sudo bash scripts/set-up-system.sh
   - cmake --version
-  - docker --version
+  - docker version
   - scripts/set-up-python.sh --python=python3
   - source .venv/bin/activate
   - export CC=`which gcc-5`
