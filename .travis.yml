@@ -5,7 +5,7 @@ services:
   - docker
 
 before_script:
-  - sudo apt-get purge -y cmake
+  - sudo rm -rf /usr/local/cmake-*
   - sudo bash scripts/set-up-system.sh
   - which cmake
   - cmake --version
