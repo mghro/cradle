@@ -7,6 +7,7 @@ services:
 before_script:
   - sudo apt-get purge -y cmake
   - sudo bash scripts/set-up-system.sh
+  - which cmake
   - cmake --version
   - scripts/set-up-python.sh --python=python3
   - source .venv/bin/activate
