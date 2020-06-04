@@ -12,7 +12,7 @@ dynamic
 parse_yaml_value(char const* yaml, size_t length);
 
 // Same as above, but accepts a string.
-static inline dynamic
+inline dynamic
 parse_yaml_value(string const& yaml)
 {
     return parse_yaml_value(yaml.c_str(), yaml.length());

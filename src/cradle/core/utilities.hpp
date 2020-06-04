@@ -222,7 +222,7 @@ struct repository_info
 };
 
 // Does the given repository correspond to a tagged version of the code?
-static inline bool
+inline bool
 is_tagged_version(repository_info const& info)
 {
     return info.commits_since_tag == 0 && !info.dirty;

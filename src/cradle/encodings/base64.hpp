@@ -32,7 +32,7 @@ struct base64_character_set
     char padding;
 };
 
-static inline base64_character_set
+inline base64_character_set
 get_mime_base64_character_set()
 {
     base64_character_set set;
@@ -42,7 +42,7 @@ get_mime_base64_character_set()
     return set;
 };
 
-static inline base64_character_set
+inline base64_character_set
 get_url_friendly_base64_character_set()
 {
     base64_character_set set;

@@ -46,7 +46,7 @@ make_{{type_info.name}}_with_{{cpp_case_name}}(
 {% endfor %}
 
 // tag access
-static inline {{type_info.name}}_tag
+inline {{type_info.name}}_tag
 get_tag({{type_info.name}} const& x)
 {
     return x.tag_;
@@ -55,7 +55,7 @@ get_tag({{type_info.name}} const& x)
 // case testing
 {% for case_name, case_info in ordered_object_items(union_info) %}
     {% with cpp_case_name = cpp_id_for_item((case_name, case_info)) %}
-static inline bool
+inline bool
 is_{{cpp_case_name}}({{type_info.name}} const& x)
 {
     return get_tag(x) == {{cpp_enum_value_of_union_member(type_info, cpp_case_name)}};
@@ -82,22 +82,22 @@ as_{{cpp_case_name}}({{type_info.name}}& x);
 bool
 operator==({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-static inline bool
+inline bool
 operator!=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a == b); }
 
 bool
 operator<({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-static inline bool
+inline bool
 operator<=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(b < a); }
 
-static inline bool
+inline bool
 operator>({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return b < a; }
 
-static inline bool
+inline bool
 operator>=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a < b); }
 

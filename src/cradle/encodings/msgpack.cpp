@@ -21,22 +21,19 @@ read_msgpack_value(
             return boost::numeric_cast<integer>(object.via.i64);
         case msgpack::type::FLOAT:
             return boost::numeric_cast<double>(object.via.f64);
-        case msgpack::type::STR:
-        {
+        case msgpack::type::STR: {
             string s;
             object.convert(s);
             return s;
         }
-        case msgpack::type::BIN:
-        {
+        case msgpack::type::BIN: {
             blob b;
             b.ownership = ownership;
             b.size = object.via.bin.size;
             b.data = object.via.bin.ptr;
             return b;
         }
-        case msgpack::type::ARRAY:
-        {
+        case msgpack::type::ARRAY: {
             size_t size = object.via.array.size;
             dynamic_array array;
             array.reserve(size);
@@ -47,8 +44,7 @@ read_msgpack_value(
             }
             return array;
         }
-        case msgpack::type::MAP:
-        {
+        case msgpack::type::MAP: {
             dynamic_map map;
             for (size_t i = 0; i != object.via.map.size; ++i)
             {
@@ -58,8 +54,7 @@ read_msgpack_value(
             }
             return map;
         }
-        case msgpack::type::EXT:
-        {
+        case msgpack::type::EXT: {
             switch (object.via.ext.type())
             {
                 case 1: // datetime
@@ -71,22 +66,19 @@ read_msgpack_value(
                         case 1:
                             t = *reinterpret_cast<int8_t const*>(data);
                             break;
-                        case 2:
-                        {
+                        case 2: {
                             uint16_t native_data = boost::endian::big_to_native(
                                 *reinterpret_cast<uint16_t const*>(data));
                             t = *reinterpret_cast<int16_t const*>(&native_data);
                             break;
                         }
-                        case 4:
-                        {
+                        case 4: {
                             uint32_t native_data = boost::endian::big_to_native(
                                 *reinterpret_cast<uint32_t const*>(data));
                             t = *reinterpret_cast<int32_t const*>(&native_data);
                             break;
                         }
-                        case 8:
-                        {
+                        case 8: {
                             uint64_t native_data = boost::endian::big_to_native(
                                 *reinterpret_cast<uint64_t const*>(data));
                             t = *reinterpret_cast<int64_t const*>(&native_data);
@@ -139,8 +131,7 @@ parse_msgpack_value(string const& msgpack)
 // of objects should be copied out of the packed buffer or referenced
 // directly.
 static bool
-msgpack_unpack_reference_type(
-    msgpack::type::object_type type, size_t length, void* user_data)
+msgpack_unpack_reference_type(msgpack::type::object_type type, size_t, void*)
 {
     // Reference blobs directly, but copy anything else.
     return type == msgpack::type::BIN;

@@ -83,7 +83,7 @@ dynamic::dynamic(std::initializer_list<dynamic> list)
 }
 
 void
-dynamic::set(nil_t _)
+dynamic::set(nil_t)
 {
     type_ = value_type::NIL;
 }

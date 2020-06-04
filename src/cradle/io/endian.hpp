@@ -20,8 +20,8 @@ namespace cradle {
 
 // Swap the endian of a single 8-bit word.
 // This is defined so that generic code doesn't break if it attempts to use it.
-static inline void
-swap_endian(uint8_t* word)
+inline void
+swap_endian(uint8_t*)
 {
 }
 
@@ -39,8 +39,8 @@ swap_endian(uint64_t* word);
 
 // Swap the endian of a single 8-bit word if the machine is little endian.
 // This is defined so that generic code doesn't break if it attempts to use it.
-static inline void
-swap_on_little_endian(uint8_t* word)
+inline void
+swap_on_little_endian(uint8_t*)
 {
 }
 
@@ -58,8 +58,8 @@ swap_on_little_endian(uint64_t* word);
 
 // Swap the endian of a single 8-bit word if the machine is big endian.
 // This is defined so that generic code doesn't break if it attempts to use it.
-static inline void
-swap_on_big_endian(uint8_t* word)
+inline void
+swap_on_big_endian(uint8_t*)
 {
 }
 

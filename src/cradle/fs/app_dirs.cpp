@@ -235,7 +235,7 @@ get_user_config_home()
 }
 
 file_path
-get_user_config_dir(optional<string> const& author_name, string const& app_name)
+get_user_config_dir(optional<string> const&, string const& app_name)
 {
     auto app_config_dir = get_user_config_home() / app_name;
     create_directories(app_config_dir);
@@ -243,8 +243,7 @@ get_user_config_dir(optional<string> const& author_name, string const& app_name)
 }
 
 std::vector<file_path>
-get_config_search_path(
-    optional<string> const& author_name, string const& app_name)
+get_config_search_path(optional<string> const&, string const& app_name)
 {
     std::vector<file_path> search_path;
 
@@ -288,7 +287,7 @@ get_user_cache_home()
 }
 
 file_path
-get_user_cache_dir(optional<string> const& author_name, string const& app_name)
+get_user_cache_dir(optional<string> const&, string const& app_name)
 {
     auto app_cache_dir = get_user_cache_home() / app_name;
     create_directories(app_cache_dir);
@@ -310,7 +309,7 @@ get_user_data_home()
 }
 
 file_path
-get_user_logs_dir(optional<string> const& author_name, string const& app_name)
+get_user_logs_dir(optional<string> const&, string const& app_name)
 {
     auto app_logs_dir = get_user_data_home() / app_name / "logs";
     create_directories(app_logs_dir);

@@ -73,6 +73,8 @@ if(FIPS_GCC)
     # Warnings about suggested parentheses occur naturally when using Catch.
     add_compile_options(-Wno-parentheses)
     # unused function parameters
+    add_compile_options(-Wno-unused-parameter)
+    # unused functions
     add_compile_options(-Wno-unused-function)
 elseif(FIPS_MSVC)
     # First strip out the old warning level.
