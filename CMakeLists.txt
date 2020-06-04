@@ -73,7 +73,7 @@ if(FIPS_GCC)
     # Warnings about suggested parentheses occur naturally when using Catch.
     add_compile_options(-Wno-parentheses)
     # unused function parameters
-    add_compile_options(-Wno-unused-function)
+    add_compile_options(-Wno-unused-parameter)
 elseif(FIPS_MSVC)
     # First strip out the old warning level.
     string(REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})

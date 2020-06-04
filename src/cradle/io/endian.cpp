@@ -32,7 +32,7 @@ void
 swap_on_little_endian(uint16_t* word)
 {
 #ifdef CRADLE_LITTLE_ENDIAN
-    return swap_endian(word);
+    swap_endian(word);
 #endif
 }
 
@@ -40,7 +40,7 @@ void
 swap_on_little_endian(uint32_t* word)
 {
 #ifdef CRADLE_LITTLE_ENDIAN
-    return swap_endian(word);
+    swap_endian(word);
 #endif
 }
 
@@ -48,7 +48,7 @@ void
 swap_on_little_endian(uint64_t* word)
 {
 #ifdef CRADLE_LITTLE_ENDIAN
-    return swap_endian(word);
+    swap_endian(word);
 #endif
 }
 
@@ -56,7 +56,7 @@ void
 swap_on_big_endian(uint16_t* word)
 {
 #ifdef CRADLE_BIG_ENDIAN
-    return swap_endian(word);
+    swap_endian(word);
 #endif
 }
 
@@ -64,7 +64,7 @@ void
 swap_on_big_endian(uint32_t* word)
 {
 #ifdef CRADLE_BIG_ENDIAN
-    return swap_endian(word);
+    swap_endian(word);
 #endif
 }
 
@@ -72,7 +72,7 @@ void
 swap_on_big_endian(uint64_t* word)
 {
 #ifdef CRADLE_BIG_ENDIAN
-    return swap_endian(word);
+    swap_endian(word);
 #endif
 }
 
