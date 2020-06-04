@@ -3,7 +3,7 @@
         "directory": {
             "some": "/var/cache/cradle"
         },
-        "size_limit": 1073741824
+        "size_limit": 10737418240
     },
     "cacert_file": "/cradle/cacert.pem",
     "open": true
