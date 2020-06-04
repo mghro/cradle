@@ -16,20 +16,17 @@ namespace cradle {
 
 // NIL
 
-static inline bool
-operator==(nil_t a, nil_t b)
+inline bool operator==(nil_t, nil_t)
 {
     return true;
 }
 
-static inline bool
-operator!=(nil_t a, nil_t b)
+inline bool operator!=(nil_t, nil_t)
 {
     return false;
 }
 
-static inline bool
-operator<(nil_t a, nil_t b)
+inline bool operator<(nil_t, nil_t)
 {
     return false;
 }
@@ -44,7 +41,7 @@ struct type_info_query<nil_t>
     }
 };
 
-static inline size_t deep_sizeof(nil_t)
+inline size_t deep_sizeof(nil_t)
 {
     return 0;
 }
@@ -53,18 +50,17 @@ struct dynamic;
 
 // Note that we don't have to do anything here because callers of to_dynamic
 // are required to provide a default-constructed dynamic, which is already nil.
-static inline void
-to_dynamic(dynamic* v, nil_t n)
+inline void
+to_dynamic(dynamic*, nil_t)
 {
 }
 
-static inline void
-from_dynamic(nil_t* n, dynamic const& v)
+inline void
+from_dynamic(nil_t*, dynamic const&)
 {
 }
 
-static inline size_t
-hash_value(nil_t x)
+inline size_t hash_value(nil_t)
 {
     return 0;
 }
@@ -81,7 +77,7 @@ struct type_info_query<bool>
     }
 };
 
-static inline size_t
+inline size_t
 deep_sizeof(bool)
 {
     return sizeof(bool);
@@ -100,7 +96,7 @@ from_dynamic(bool* x, dynamic const& v);
                                                                                \
     void from_dynamic(T* x, dynamic const& v);                                 \
                                                                                \
-    static inline size_t deep_sizeof(T)                                        \
+    inline size_t deep_sizeof(T)                                               \
     {                                                                          \
         return sizeof(T);                                                      \
     }
@@ -160,7 +156,7 @@ struct type_info_query<string>
     }
 };
 
-static inline size_t
+inline size_t
 deep_sizeof(string const& x)
 {
     return sizeof(string) + sizeof(char) * x.length();
@@ -196,7 +192,7 @@ struct type_info_query<date>
     }
 };
 
-static inline size_t deep_sizeof(date)
+inline size_t deep_sizeof(date)
 {
     return sizeof(date);
 }
@@ -206,7 +202,7 @@ static inline size_t deep_sizeof(date)
 namespace boost {
 namespace gregorian {
 
-static inline size_t
+inline size_t
 hash_value(date const& x)
 {
     return cradle::invoke_hash(cradle::to_string(x));
@@ -250,7 +246,7 @@ struct type_info_query<ptime>
     }
 };
 
-static inline size_t deep_sizeof(ptime)
+inline size_t deep_sizeof(ptime)
 {
     return sizeof(ptime);
 }
@@ -260,7 +256,7 @@ static inline size_t deep_sizeof(ptime)
 namespace boost {
 namespace posix_time {
 
-static inline size_t
+inline size_t
 hash_value(ptime const& x)
 {
     return cradle::invoke_hash(cradle::to_string(x));
@@ -276,7 +272,7 @@ namespace cradle {
 bool
 operator==(blob const& a, blob const& b);
 
-static inline bool
+inline bool
 operator!=(blob const& a, blob const& b)
 {
     return !(a == b);
@@ -295,7 +291,7 @@ struct type_info_query<blob>
     }
 };
 
-static inline size_t
+inline size_t
 deep_sizeof(blob const& b)
 {
     // This ignores the size of the ownership holder, but that's not a big deal.

@@ -77,22 +77,22 @@ struct type_info_query<{{type_info.name}}>
 bool
 operator==({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-static inline bool
+inline bool
 operator!=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a == b); }
 
 bool
 operator<({{type_info.name}} const& a, {{type_info.name}} const& b);
 
-static inline bool
+inline bool
 operator<=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(b < a); }
 
-static inline bool
+inline bool
 operator>({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return b < a; }
 
-static inline bool
+inline bool
 operator>=({{type_info.name}} const& a, {{type_info.name}} const& b)
 { return !(a < b); }
 

@@ -181,12 +181,12 @@ operator>(dynamic const& a, dynamic const& b);
 bool
 operator>=(dynamic const& a, dynamic const& b);
 
-static inline void
+inline void
 to_dynamic(dynamic* v, dynamic const& x)
 {
     *v = x;
 }
-static inline void
+inline void
 from_dynamic(dynamic* x, dynamic const& v)
 {
     *x = v;

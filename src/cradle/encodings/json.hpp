@@ -12,7 +12,7 @@ dynamic
 parse_json_value(char const* json, size_t length);
 
 // Same as above, but accepts a string.
-static inline dynamic
+inline dynamic
 parse_json_value(string const& json)
 {
     return parse_json_value(json.c_str(), json.length());
