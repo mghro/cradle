@@ -74,6 +74,8 @@ if(FIPS_GCC)
     add_compile_options(-Wno-parentheses)
     # unused function parameters
     add_compile_options(-Wno-unused-parameter)
+    # unused functions
+    add_compile_options(-Wno-unused-function)
 elseif(FIPS_MSVC)
     # First strip out the old warning level.
     string(REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
