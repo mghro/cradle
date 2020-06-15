@@ -56,8 +56,9 @@ resolve_iss_object_to_immutable(
         default:
         {
             CRADLE_THROW(
-                bad_http_status_code() << attempted_http_request_info(query)
-                                       << http_response_info(response));
+                bad_http_status_code()
+                << attempted_http_request_info(redact_quest(query))
+                << http_response_info(response));
         }
     }
 }
@@ -106,8 +107,9 @@ get_iss_object_metadata(
         default:
         {
             CRADLE_THROW(
-                bad_http_status_code() << attempted_http_request_info(query)
-                                       << http_response_info(response));
+                bad_http_status_code()
+                << attempted_http_request_info(redact_quest(query))
+                << http_response_info(response));
         }
     }
 }

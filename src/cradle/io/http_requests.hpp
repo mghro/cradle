@@ -38,6 +38,10 @@ make_http_request(
     return make_http_request(method, url, headers, body, none);
 }
 
+// Redact an HTTP request.
+http_request
+redact_request(http_request const& request);
+
 // Parse a http_response as a JSON value.
 dynamic
 parse_json_response(http_response const& response);

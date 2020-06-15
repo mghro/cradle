@@ -254,7 +254,7 @@ make_blob(receive_transmission_state&& transmission)
     return result;
 }
 
-static http_request
+http_request
 redact_request(http_request const& request)
 {
     auto redacted = request;
