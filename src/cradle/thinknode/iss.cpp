@@ -57,7 +57,7 @@ resolve_iss_object_to_immutable(
         {
             CRADLE_THROW(
                 bad_http_status_code()
-                << attempted_http_request_info(redact_quest(query))
+                << attempted_http_request_info(redact_request(query))
                 << http_response_info(response));
         }
     }
@@ -108,7 +108,7 @@ get_iss_object_metadata(
         {
             CRADLE_THROW(
                 bad_http_status_code()
-                << attempted_http_request_info(redact_quest(query))
+                << attempted_http_request_info(redact_request(query))
                 << http_response_info(response));
         }
     }
@@ -141,7 +141,7 @@ get_url_type_string(
         case thinknode_type_info_tag::ARRAY_TYPE:
             return "array/"
                    + get_url_type_string(
-                         session, as_array_type(schema).element_schema);
+                       session, as_array_type(schema).element_schema);
         case thinknode_type_info_tag::BLOB_TYPE:
             return "blob";
         case thinknode_type_info_tag::BOOLEAN_TYPE:
