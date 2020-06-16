@@ -540,6 +540,38 @@ types:
             app: cradle
             name: client_message_content
 
+- name: http_failure_info
+  doc: ''
+  schema:
+    structure:
+    - attempted_request:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: http_request
+    - response:
+        doc: ''
+        schema:
+          named:
+            app: cradle
+            name: http_response
+
+- name: error_response
+  doc: ''
+  schema:
+    union:
+    - bad_status_code:
+        doc: 'an HTTP request returned a bad status code'
+        schema:
+          named:
+            app: cradle
+            name: http_failure_info
+    - unknown:
+        doc: ''
+        schema:
+          string: {}
+
 - name: server_message_content
   doc: ''
   schema:
@@ -559,7 +591,9 @@ types:
     - error:
         doc: ''
         schema:
-          string: {}
+          named:
+            app: cradle
+            name: error_response
     - iss_object_response:
         doc: ''
         schema:

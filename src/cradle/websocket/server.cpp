@@ -1673,13 +1673,27 @@ process_messages(websocket_server_impl& server)
         {
             process_message(server, connection, request);
         }
+        catch (bad_http_status_code& e)
+        {
+            spdlog::get("cradle")->error(e.what());
+            send_response(
+                server,
+                request,
+                make_server_message_content_with_error(
+                    make_error_response_with_bad_status_code(
+                        make_http_failure_info(
+                            get_required_error_info<
+                                attempted_http_request_info>(e),
+                            get_required_error_info<http_response_info>(e)))));
+        }
         catch (std::exception& e)
         {
             spdlog::get("cradle")->error(e.what());
             send_response(
                 server,
                 request,
-                make_server_message_content_with_error(e.what()));
+                make_server_message_content_with_error(
+                    make_error_response_with_unknown(e.what())));
         }
     }
 }
@@ -1729,7 +1743,9 @@ on_message(
             server,
             hdl,
             make_websocket_server_message(
-                request_id, make_server_message_content_with_error(e.what())));
+                request_id,
+                make_server_message_content_with_error(
+                    make_error_response_with_unknown(e.what()))));
     }
 }
 

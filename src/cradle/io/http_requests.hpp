@@ -72,11 +72,6 @@ CRADLE_DEFINE_EXCEPTION(bad_http_status_code)
 // This exception also provides attempted_http_request_info.
 CRADLE_DEFINE_ERROR_INFO(http_response, http_response)
 
-CRADLE_DEFINE_ERROR_INFO(http_request, attempted_http_request)
-// This tells whether or not the request failed due to a potentially
-// transient cause and is therefore worth retrying.
-CRADLE_DEFINE_ERROR_INFO(bool, error_is_transient)
-
 // http_request_system provides global initialization and shutdown of the HTTP
 // request system. Exactly one of these objects must be instantiated by the
 // application, and its scope must dominate the scope of all http_connection
