@@ -8,6 +8,7 @@
 {# Emit the .hpp code for forward declaring a union type. #}
 {% macro forward_declaration_code(type_info) %}
 {{enums.forward_declaration_code(tag_schema_for_union(type_info))}}
+    struct {{type_info.name}};
 {% endmacro %}
 
 {# Emit the preprocessor cleanup code for a union type. #}

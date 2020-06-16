@@ -149,18 +149,17 @@ def test_websocket_server():
         assert session.get_iss_object(test_calc_id) == pytest.approx(a + b + c)
 
         ws.send_binary(
-            msgpack.packb(
-                {
-                    "request_id": "no_id",
-                    "content": {
-                        "kill": None
-                    }
-                },
-                use_bin_type=True))
+            msgpack.packb({
+                "request_id": "no_id",
+                "content": {
+                    "kill": None
+                }
+            },
+                          use_bin_type=True))
         ws.close()
     except:
         # Check on the server.
-        out, err = server_process.communicate()
+        out, err = server_process.communicate(timeout=1)
         eprint("--- server stdout")
         eprint(out)
         eprint("--- server stderr")
