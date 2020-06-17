@@ -261,18 +261,27 @@ retrieve_immutable(
         = retrieve_immutable(connection, session, context_id, immutable_id);
 
     // Cache the result.
-    auto cache_id = cache.initiate_insert(cache_key);
-    auto msgpack = value_to_msgpack_string(object);
+    try
     {
-        auto entry_path = cache.get_path_for_id(cache_id);
-        std::ofstream output;
-        open_file(
-            output,
-            entry_path,
-            std::ios::out | std::ios::trunc | std::ios::binary);
-        output << msgpack;
+        auto cache_id = cache.initiate_insert(cache_key);
+        auto msgpack = value_to_msgpack_string(object);
+        {
+            auto entry_path = cache.get_path_for_id(cache_id);
+            std::ofstream output;
+            open_file(
+                output,
+                entry_path,
+                std::ios::out | std::ios::trunc | std::ios::binary);
+            output << msgpack;
+        }
+        cache.finish_insert(cache_id, compute_crc32(msgpack));
     }
-    cache.finish_insert(cache_id, compute_crc32(msgpack));
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     return object;
 }
@@ -320,7 +329,16 @@ resolve_iss_object_to_immutable(
         connection, session, context_id, object_id, ignore_upgrades);
 
     // Cache the result.
-    cache.insert(cache_key, immutable_id);
+    try
+    {
+        cache.insert(cache_key, immutable_id);
+    }
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     return immutable_id;
 }
@@ -406,18 +424,27 @@ get_iss_object_metadata(
         = get_iss_object_metadata(connection, session, context_id, object_id);
 
     // Cache the result.
-    auto cache_id = cache.initiate_insert(cache_key);
-    auto msgpack = value_to_msgpack_string(to_dynamic(metadata));
+    try
     {
-        auto entry_path = cache.get_path_for_id(cache_id);
-        std::ofstream output;
-        open_file(
-            output,
-            entry_path,
-            std::ios::out | std::ios::trunc | std::ios::binary);
-        output << msgpack;
+        auto cache_id = cache.initiate_insert(cache_key);
+        auto msgpack = value_to_msgpack_string(to_dynamic(metadata));
+        {
+            auto entry_path = cache.get_path_for_id(cache_id);
+            std::ofstream output;
+            open_file(
+                output,
+                entry_path,
+                std::ios::out | std::ios::trunc | std::ios::binary);
+            output << msgpack;
+        }
+        cache.finish_insert(cache_id, compute_crc32(msgpack));
     }
-    cache.finish_insert(cache_id, compute_crc32(msgpack));
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     return metadata;
 }
@@ -471,18 +498,27 @@ get_app_version_info(
         = get_app_version_info(connection, session, account, app, version);
 
     // Cache the result.
-    auto cache_id = cache.initiate_insert(cache_key);
-    auto msgpack = value_to_msgpack_string(to_dynamic(version_info));
+    try
     {
-        auto entry_path = cache.get_path_for_id(cache_id);
-        std::ofstream output;
-        open_file(
-            output,
-            entry_path,
-            std::ios::out | std::ios::trunc | std::ios::binary);
-        output << msgpack;
+        auto cache_id = cache.initiate_insert(cache_key);
+        auto msgpack = value_to_msgpack_string(to_dynamic(version_info));
+        {
+            auto entry_path = cache.get_path_for_id(cache_id);
+            std::ofstream output;
+            open_file(
+                output,
+                entry_path,
+                std::ios::out | std::ios::trunc | std::ios::binary);
+            output << msgpack;
+        }
+        cache.finish_insert(cache_id, compute_crc32(msgpack));
     }
-    cache.finish_insert(cache_id, compute_crc32(msgpack));
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     memory_cache[cache_key] = version_info;
 
@@ -535,11 +571,22 @@ get_context_contents(
         = get_context_contents(connection, session, context_id);
 
     // Cache the result.
-    cache.insert(
-        disk_cache_key,
-        base64_encode(
-            value_to_msgpack_string(to_dynamic(context_contents)),
-            get_mime_base64_character_set()));
+    try
+    {
+        cache.insert(
+            disk_cache_key,
+            base64_encode(
+                value_to_msgpack_string(to_dynamic(context_contents)),
+                get_mime_base64_character_set()));
+    }
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn(
+            "error writing cache entry {}", disk_cache_key);
+    }
+
     memory_cache[mem_cache_key] = context_contents;
 
     return context_contents;
@@ -692,7 +739,16 @@ post_iss_object(
         connection, session, context_id, schema, coerced_object);
 
     // Cache the result.
-    cache.insert(cache_key, object_id);
+    try
+    {
+        cache.insert(cache_key, object_id);
+    }
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     return object_id;
 }
@@ -956,11 +1012,20 @@ get_calculation_request(
         connection, session, context_id, calculation_id);
 
     // Cache the result.
-    cache.insert(
-        cache_key,
-        base64_encode(
-            value_to_msgpack_string(to_dynamic(request)),
-            get_mime_base64_character_set()));
+    try
+    {
+        cache.insert(
+            cache_key,
+            base64_encode(
+                value_to_msgpack_string(to_dynamic(request)),
+                get_mime_base64_character_set()));
+    }
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     return request;
 }
@@ -1043,7 +1108,16 @@ post_shallow_calculation(
         = post_calculation(connection, session, context_id, calculation);
 
     // Cache the result.
-    cache.insert(cache_key, calculation_id);
+    try
+    {
+        cache.insert(cache_key, calculation_id);
+    }
+    catch (...)
+    {
+        // Something went wrong trying to write the cached value, so issue a
+        // warning and move on.
+        spdlog::get("cradle")->warn("error writing cache entry {}", cache_key);
+    }
 
     return calculation_id;
 }
