@@ -61,6 +61,11 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
         integer(1));
     test_json_encoding(
         R"(
+            10737418240
+        )",
+        integer(10737418240));
+    test_json_encoding(
+        R"(
             -1
         )",
         integer(-1));
@@ -285,7 +290,7 @@ TEST_CASE("malformed JSON blob", "[encodings][json]")
         REQUIRE(
             strip_whitespace(get_required_error_info<parsed_text_info>(e))
             == strip_whitespace(
-                   R"(
+                R"(
                     {
                         "type": "base64-encoded-blob"
                     }
@@ -315,7 +320,7 @@ TEST_CASE("malformed JSON blob", "[encodings][json]")
         REQUIRE(
             strip_whitespace(get_required_error_info<parsed_text_info>(e))
             == strip_whitespace(
-                   R"(
+                R"(
                     {
                         "blob": 4,
                         "type": "base64-encoded-blob"
