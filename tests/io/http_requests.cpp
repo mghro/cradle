@@ -69,11 +69,11 @@ TEST_CASE("response headers", "[io][http]")
 {
     auto response = perform_simple_request(make_get_request(
         "http://postman-echo.com/"
-        "response-headers?Cradle-Test-Header=present&Color=navy",
+        "response-headers?cradle-test-header=present&color=navy",
         {{"Accept", "application/json"}}));
     REQUIRE(response.status_code == 200);
     http_header_list expected_headers
-        = {{"Cradle-Test-Header", "present"}, {"Color", "navy"}};
+        = {{"cradle-test-header", "present"}, {"color", "navy"}};
     for (auto const& header : expected_headers)
     {
         CAPTURE(header.first);
