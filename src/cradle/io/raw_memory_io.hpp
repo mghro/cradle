@@ -102,7 +102,7 @@ struct byte_vector_buffer
     byte_vector* bytes;
 
     void
-    write(void const* src, size_t size)
+    write(char const* src, size_t size)
     {
         size_t current_size = bytes->size();
         bytes->resize(bytes->size() + size);
@@ -123,7 +123,7 @@ template<class Buffer>
 void
 raw_write(raw_memory_writer<Buffer>& w, void const* src, size_t size)
 {
-    w.buffer.write(src, size);
+    w.buffer.write(reinterpret_cast<char const*>(src), size);
 }
 
 template<class Integer, class Buffer>
