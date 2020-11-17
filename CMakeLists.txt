@@ -125,7 +125,6 @@ set_property(
             ${PROJECT_SOURCE_DIR}/src
             ${CONAN_MSGPACK_ROOT}
             ${CONAN_CATCH_ROOT}
-            ${CONAN_JSON_ROOT}
             ${CONAN_WEBSOCKETPP_ROOT}
             ${CONAN_SQLITE3_ROOT})
 

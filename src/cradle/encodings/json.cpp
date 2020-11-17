@@ -3,7 +3,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/format.hpp>
 
-#include <nlohmann/json.hpp>
+#include <simdjson.hpp>
 
 #include <cradle/encodings/base64.hpp>
 
@@ -31,22 +31,22 @@ array_resembles_map(nlohmann::json const& json)
 
 // Read a JSON value into a CRADLE dynamic.
 static dynamic
-read_json_value(nlohmann::json const& json)
+read_json_value(simdjson::dom::parser const& json)
 {
     switch (json.type())
     {
-        case nlohmann::json::value_t::null:
+        case simdjson::dom::element_type::NULL_VALUE:
         default: // to avoid warnings
             return nil;
-        case nlohmann::json::value_t::boolean:
+        case simdjson::dom::element_type::BOOL:
             return json.get<bool>();
-        case nlohmann::json::value_t::number_integer:
+        case simdjson::dom::element_type::INT64:
             return boost::numeric_cast<integer>(json.get<int64_t>());
-        case nlohmann::json::value_t::number_unsigned:
+        case simdjson::dom::element_type::UINT64:
             return boost::numeric_cast<integer>(json.get<uint64_t>());
-        case nlohmann::json::value_t::number_float:
+        case simdjson::dom::element_type::DOUBLE:
             return json.get<double>();
-        case nlohmann::json::value_t::string:
+        case simdjson::dom::element_type::STRING:
         {
             // Times are also encoded as JSON strings, so this checks to see if
             // the string parses as a time. If so, it just assumes it's actually
@@ -73,7 +73,7 @@ read_json_value(nlohmann::json const& json)
             }
             return s;
         }
-        case nlohmann::json::value_t::array:
+        case simdjson::dom::element_type::ARRAY:
         {
             // If this resembles an encoded map, read it as that.
             if (!json.empty() && array_resembles_map(json))
@@ -98,7 +98,7 @@ read_json_value(nlohmann::json const& json)
                 return array;
             }
         }
-        case nlohmann::json::value_t::object:
+        case simdjson::dom::element_type::OBJECT:
         {
             // An object is analogous to a map, but blobs and references are
             // also encoded as JSON objects, so we have to check here if it's
@@ -156,10 +156,15 @@ read_json_value(nlohmann::json const& json)
 dynamic
 parse_json_value(char const* json, size_t length)
 {
-    nlohmann::json parsed_json;
+    static simdjson::dom::parser the_parser;
+    static std::mutex the_mutex;
+
+    std::lock_guard<std::mutex> guard(the_mutex);
+
+    simdjson::dom::element doc;
     try
     {
-        parsed_json = nlohmann::json::parse(json, json + length);
+        doc = the_parser.parse(json, json + length);
     }
     catch (std::exception& e)
     {
@@ -168,7 +173,7 @@ parse_json_value(char const* json, size_t length)
                             << parsed_text_info(string(json, json + length))
                             << parsing_error_info(e.what()));
     }
-    return read_json_value(parsed_json);
+    return read_json_value(doc);
 }
 
 static bool
