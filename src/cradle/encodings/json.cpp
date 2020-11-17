@@ -4,6 +4,7 @@
 #include <boost/format.hpp>
 
 #include <nlohmann/json.hpp>
+#include <simdjson.h>
 
 #include <cradle/encodings/base64.hpp>
 
@@ -14,14 +15,18 @@ namespace cradle {
 // Check if a JSON array is actually an encoded map.
 // This is the case if the array contains only key/value pairs.
 static bool
-array_resembles_map(nlohmann::json const& json)
+array_resembles_map(simdjson::dom::array const& array)
 {
-    assert(json.is_array());
-    for (auto const& element : json)
+    if (array.size() == 0)
+        return false;
+    for (auto const& element : array)
     {
-        if (!element.is_object() || element.size() != 2
-            || element.find("key") == element.end()
-            || element.find("value") == element.end())
+        if (element.type() != simdjson::dom::element_type::OBJECT)
+            return false;
+        simdjson::dom::object object = element;
+        if (object.size() != 2
+            || object.at_key("key").error() == simdjson::NO_SUCH_FIELD
+            || object.at_key("value").error() == simdjson::NO_SUCH_FIELD)
         {
             return false;
         }
@@ -31,34 +36,34 @@ array_resembles_map(nlohmann::json const& json)
 
 // Read a JSON value into a CRADLE dynamic.
 static dynamic
-read_json_value(nlohmann::json const& json)
+read_json_value(simdjson::dom::element const& json)
 {
     switch (json.type())
     {
-        case nlohmann::json::value_t::null:
+        case simdjson::dom::element_type::NULL_VALUE:
         default: // to avoid warnings
             return nil;
-        case nlohmann::json::value_t::boolean:
-            return json.get<bool>();
-        case nlohmann::json::value_t::number_integer:
-            return boost::numeric_cast<integer>(json.get<int64_t>());
-        case nlohmann::json::value_t::number_unsigned:
-            return boost::numeric_cast<integer>(json.get<uint64_t>());
-        case nlohmann::json::value_t::number_float:
-            return json.get<double>();
-        case nlohmann::json::value_t::string:
+        case simdjson::dom::element_type::BOOL:
+            return bool(json);
+        case simdjson::dom::element_type::INT64:
+            return boost::numeric_cast<integer>(int64_t(json));
+        case simdjson::dom::element_type::UINT64:
+            return boost::numeric_cast<integer>(uint64_t(json));
+        case simdjson::dom::element_type::DOUBLE:
+            return double(json);
+        case simdjson::dom::element_type::STRING:
         {
             // Times are also encoded as JSON strings, so this checks to see if
             // the string parses as a time. If so, it just assumes it's actually
             // a time.
-            auto s = json.get<string>();
+            auto s = json.get_string().value();
             // First check if it looks anything like a time string.
             if (s.length() > 16 && isdigit(s[0]) && isdigit(s[1])
                 && isdigit(s[2]) && isdigit(s[3]) && s[4] == '-')
             {
                 try
                 {
-                    auto t = parse_ptime(s);
+                    auto t = parse_ptime(string(s));
                     // Check that it can be converted back without changing its
                     // value. This could be necessary if we actually expected a
                     // string here.
@@ -71,15 +76,16 @@ read_json_value(nlohmann::json const& json)
                 {
                 }
             }
-            return s;
+            return string(s);
         }
-        case nlohmann::json::value_t::array:
+        case simdjson::dom::element_type::ARRAY:
         {
+            simdjson::dom::array source = json;
             // If this resembles an encoded map, read it as that.
-            if (!json.empty() && array_resembles_map(json))
+            if (array_resembles_map(source))
             {
                 dynamic_map map;
-                for (auto const& i : json)
+                for (auto const& i : source)
                 {
                     map[read_json_value(i["key"])]
                         = read_json_value(i["value"]);
@@ -90,27 +96,30 @@ read_json_value(nlohmann::json const& json)
             else
             {
                 dynamic_array array;
-                array.reserve(json.size());
-                for (auto const& i : json)
+                array.reserve(source.size());
+                for (auto const& i : source)
                 {
                     array.push_back(read_json_value(i));
                 }
                 return array;
             }
         }
-        case nlohmann::json::value_t::object:
+        case simdjson::dom::element_type::OBJECT:
         {
             // An object is analogous to a map, but blobs and references are
             // also encoded as JSON objects, so we have to check here if it's
             // actually one of those.
-            auto type = json.find("type");
-            if (type != json.end() && type->is_string()
-                && *type == "base64-encoded-blob")
+            simdjson::dom::object object = json;
+            auto type = object.at_key("type");
+            if (type.error() != simdjson::NO_SUCH_FIELD
+                && type.value().is_string()
+                && type.value().get_string().value() == "base64-encoded-blob")
             {
-                auto json_blob = json.find("blob");
-                if (json_blob != json.end() && json_blob->is_string())
+                auto json_blob = object.at_key("blob");
+                if (json_blob.error() != simdjson::NO_SUCH_FIELD
+                    && json_blob.value().is_string())
                 {
-                    string encoded = *json_blob;
+                    auto encoded = json_blob.value().get_string().value();
                     blob x;
                     size_t decoded_size
                         = get_base64_decoded_length(encoded.length());
@@ -121,7 +130,7 @@ read_json_value(nlohmann::json const& json)
                     base64_decode(
                         ptr.get(),
                         &x.size,
-                        encoded.c_str(),
+                        encoded.data(),
                         encoded.length(),
                         get_mime_base64_character_set());
                     return x;
@@ -132,7 +141,7 @@ read_json_value(nlohmann::json const& json)
                     CRADLE_THROW(
                         parsing_error()
                         << expected_format_info("base64-encoded-blob")
-                        << parsed_text_info(json.dump(4))
+                        << parsed_text_info(simdjson::minify(json))
                         << parsing_error_info(
                                "object tagged as blob but missing data"));
                 }
@@ -141,11 +150,9 @@ read_json_value(nlohmann::json const& json)
             {
                 // Otherwise, interpret it as a map.
                 dynamic_map map;
-                for (nlohmann::json::const_iterator i = json.begin();
-                     i != json.end();
-                     ++i)
+                for (auto const& i : object)
                 {
-                    map[i.key()] = read_json_value(i.value());
+                    map[string(i.key)] = read_json_value(i.value);
                 }
                 return map;
             }
@@ -156,10 +163,15 @@ read_json_value(nlohmann::json const& json)
 dynamic
 parse_json_value(char const* json, size_t length)
 {
-    nlohmann::json parsed_json;
+    static simdjson::dom::parser the_parser;
+    static std::mutex the_mutex;
+
+    std::lock_guard<std::mutex> guard(the_mutex);
+
+    simdjson::dom::element doc;
     try
     {
-        parsed_json = nlohmann::json::parse(json, json + length);
+        doc = the_parser.parse(json, length);
     }
     catch (std::exception& e)
     {
@@ -168,7 +180,7 @@ parse_json_value(char const* json, size_t length)
                             << parsed_text_info(string(json, json + length))
                             << parsing_error_info(e.what()));
     }
-    return read_json_value(parsed_json);
+    return read_json_value(doc);
 }
 
 static bool

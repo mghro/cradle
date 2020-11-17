@@ -11,6 +11,22 @@ set(FIPS_RTTI ON)
 fips_setup()
 fips_project(cradle)
 
+function(parse_version major minor patch version)
+    string(REGEX REPLACE "^([0-9]*)[.][0-9]*[.][0-9]*-?.*$" "\\1" x ${version})
+    set(${major} ${x} PARENT_SCOPE)
+    string(REGEX REPLACE "^[0-9]*[.]([0-9]*)[.][0-9]*-?.*$" "\\1" x ${version})
+    set(${minor} ${x} PARENT_SCOPE)
+    string(REGEX REPLACE "^[0-9]*[.][0-9]*[.]([0-9]*-?.*$)" "\\1" x ${version})
+    set(${patch} ${x} PARENT_SCOPE)
+endfunction()
+
+parse_version(
+    COMPILER_MAJOR_VERSION COMPILER_MINOR_VERSION COMPILER_PATCH_VERSION
+    ${CMAKE_CXX_COMPILER_VERSION})
+
+set(COMPILER_MAJOR_MINOR_VERSION
+    "${COMPILER_MAJOR_VERSION}.${COMPILER_MINOR_VERSION}")
+
 # Run Conan to install external C++ libraries.
 # Conan and fips disagree on various build options, so we need to override
 # some of Conan's defaults.
@@ -18,18 +34,18 @@ set(CONAN_OPTIONS)
 if (FIPS_MSVC)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CONAN_OPTIONS
-            -s compiler=Visual\ Studio -s build_type=Debug -s compiler.runtime=MTd)
+            -s compiler=Visual\ Studio -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s build_type=Debug -s compiler.runtime=MTd)
     else()
         set(CONAN_OPTIONS
-            -s compiler=Visual\ Studio -s build_type=Release -s compiler.runtime=MT)
+            -s compiler=Visual\ Studio -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s build_type=Release -s compiler.runtime=MT)
     endif()
 elseif(FIPS_GCC)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CONAN_OPTIONS
-            -s compiler=gcc -s compiler.libcxx=libstdc++11 -s build_type=Debug -o Boost:fPIC=True)
+            -s compiler=gcc -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s compiler.libcxx=libstdc++11 -s build_type=Debug -o Boost:fPIC=True)
     else()
         set(CONAN_OPTIONS
-            -s compiler=gcc -s compiler.libcxx=libstdc++11 -s build_type=Release -o Boost:fPIC=True)
+            -s compiler=gcc -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s compiler.libcxx=libstdc++11 -s build_type=Release -o Boost:fPIC=True)
     endif()
 endif()
 execute_process(

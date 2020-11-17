@@ -154,7 +154,7 @@ struct counting_buffer
     size_t size = 0;
 
     void
-    write(void const* data, size_t size)
+    write(char const* data, size_t size)
     {
         this->size += size;
     }
@@ -279,7 +279,7 @@ struct asio_buffer
     }
 
     void
-    write(void const* data, size_t size)
+    write(char const* data, size_t size)
     {
         boost::asio::write(socket_, boost::asio::buffer(data, size));
     }
