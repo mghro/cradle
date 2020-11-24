@@ -1,5 +1,5 @@
 sudo: required
-dist: xenial
+dist: focal
 
 services:
   - docker
@@ -11,8 +11,8 @@ before_script:
   - docker version
   - scripts/set-up-python.sh --python=python3
   - source .venv/bin/activate
-  - export CC=`which gcc-5`
-  - export CXX=`which g++-5`
+  - export CC=`which gcc`
+  - export CXX=`which g++`
   - scripts/set-up-conan.sh
   - ./fips set config linux-make-debug
   - ./fips gen
