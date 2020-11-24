@@ -27,6 +27,8 @@ parse_version(
 set(COMPILER_MAJOR_MINOR_VERSION
     "${COMPILER_MAJOR_VERSION}.${COMPILER_MINOR_VERSION}")
 
+add_subdirectory(preprocessor)
+
 # Run Conan to install external C++ libraries.
 # Conan and fips disagree on various build options, so we need to override
 # some of Conan's defaults.
