@@ -11,7 +11,7 @@ class CradleConan(ConanFile):
         "msgpack/3.2.1@bincrafters/stable", \
         "cotire/1.7.6@smspillaz/cotire", \
         "libcurl/7.52.1@bincrafters/stable", \
-        "OpenSSL/1.0.2m@conan/stable", \
+        "OpenSSL/1.0.2s@conan/stable", \
         "sqlite3/3.21.0@bincrafters/stable", \
         "FakeIt/master@gasuketsu/stable", \
         "websocketpp/0.7.0@TyRoXx/stable", \
