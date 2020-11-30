@@ -175,38 +175,65 @@ let full_structure_type s =
 (* Generate the C++ get_type_info function for a single instantiation of a
    structure. *)
 let structure_type_info_definition_instance app_id label assignments s =
-  "void add_field_info("
-  ^ "std::vector<cradle::raw_structure_field_info>& fields, " ^ s.structure_id
-  ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " const& x) " ^ "{ "
-  ^ ( match s.structure_super with
-    | Some super -> "add_field_info(fields, as_" ^ super ^ "(x)); "
-    | None -> "" )
-  ^ "using cradle::get_type_info; "
-  ^ String.concat ""
-      (List.map
-         (fun f ->
-           "fields.push_back(cradle::raw_structure_field_info(" ^ "\""
-           ^ f.field_id ^ "\"," ^ "\""
-           ^ String.escaped f.field_description
-           ^ "\"," ^ "get_type_info(x." ^ f.field_id ^ "))); ")
-         s.structure_fields)
-  ^ "} " ^ "cradle::raw_type_info get_proper_type_info(" ^ s.structure_id
-  ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " const& x) " ^ "{ "
-  ^ "std::vector<cradle::raw_structure_field_info> fields; "
-  ^ "add_field_info(fields, x); "
-  ^ "return cradle::raw_type_info(cradle::raw_kind::STRUCTURE, "
-  ^ "cradle::any(cradle::raw_structure_info( " ^ "\"" ^ s.structure_id ^ label
-  ^ "\"," ^ "\""
-  ^ String.escaped s.structure_description
-  ^ "\"," ^ "fields))); " ^ "} " ^ "cradle::raw_type_info get_type_info("
-  ^ s.structure_id
-  ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " const& x) " ^ "{ "
-  ^ "return cradle::raw_type_info(cradle::raw_kind::NAMED_TYPE_REFERENCE, "
-  ^ "cradle::any(cradle::raw_named_type_reference(\"" ^ app_id ^ "\", \""
-  ^ s.structure_id ^ label ^ "\"))); " ^ "} "
+  let full_structure_name =
+    s.structure_id
+    ^ resolved_template_parameter_list assignments s.structure_parameters
+  in
+
+  let api_structure_name = s.structure_id ^ label in
+
+  cpp_code_blocks
+    [
+      [
+        "void";
+        "definitive_type_info_query<" ^ full_structure_name ^ ">::get(";
+        "    cradle::api_type_info* info)";
+        "{";
+        "    std::map<std::string, cradle::api_structure_field_info> fields;";
+        "    structure_field_type_info_adder<" ^ full_structure_name
+        ^ ">::add(&fields);";
+        "    *info =";
+        "        cradle::make_api_type_info_with_structure_type(";
+        "            cradle::api_structure_info(";
+        "                fields));";
+        "}";
+      ];
+      [
+        "void";
+        "type_info_query<" ^ full_structure_name ^ ">::get(";
+        "    cradle::api_type_info* info)";
+        "{";
+        "    *info =";
+        "        cradle::make_api_type_info_with_named_type(";
+        "            cradle::api_named_type_reference(";
+        "                \"" ^ app_id ^ "\", \"" ^ api_structure_name ^ "\"));";
+        "}";
+      ];
+      [
+        "void";
+        "structure_field_type_info_adder<" ^ full_structure_name ^ ">::add(";
+        "    std::map<std::string, cradle::api_structure_field_info>* fields)";
+        "{";
+        ( match s.structure_super with
+        | Some super ->
+            "    structure_field_type_info_adder<" ^ super ^ ">::add(fields); "
+        | None -> "" );
+        String.concat ""
+          (List.map
+             (fun f ->
+               cpp_indented_code_lines "    "
+                 [
+                   "(*fields)[\"" ^ f.field_id ^ "\"] =";
+                   "    cradle::api_structure_field_info(";
+                   "        \"" ^ String.escaped f.field_description ^ "\",";
+                   "        cradle::get_type_info<decltype(std::declval<"
+                   ^ full_structure_name ^ ">()." ^ f.field_id ^ ")>(),";
+                   "        none);";
+                 ])
+             s.structure_fields);
+        "}";
+      ];
+    ]
 
 (* Generate the C++ code to determine the upgrade type. *)
 let structure_upgrade_type_definition_instance app_id label assignments s =
@@ -243,7 +270,7 @@ let structure_upgrade_type_definition_instance app_id label assignments s =
 let structure_upgrade_value_definition_api_instance app_id label assignments s =
   s.structure_id
   ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " upgrade_value_" ^ s.structure_id ^ label ^ "(cradle::value const& v)"
+  ^ " upgrade_value_" ^ s.structure_id ^ label ^ "(cradle::dynamic const& v)"
   ^ "{" ^ s.structure_id
   ^ resolved_template_parameter_list assignments s.structure_parameters
   ^ " x;" ^ "upgrade_value(&x, v); " ^ "return x; " ^ "}"
@@ -254,7 +281,7 @@ let structure_upgrade_value_definition_instance_no_fields app_id label
     assignments s =
   "void auto_upgrade_value(" ^ s.structure_id
   ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " *x, cradle::value const& v)" ^ "{ from_value(x, v); } "
+  ^ " *x, cradle::dynamic const& v)" ^ "{ from_dynamic(x, v); } "
   ^ structure_upgrade_value_definition_api_instance app_id label assignments s
 
 (* If structure has fields loop over them and update values for those fields. *)
@@ -262,8 +289,8 @@ let structure_upgrade_value_definition_instance_with_fields app_id label
     assignments s =
   "void auto_upgrade_value(" ^ s.structure_id
   ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " *x, cradle::value const& v)"
-  ^ "{  auto const& fields = cradle::cast<cradle::value_map>(v); "
+  ^ " *x, cradle::dynamic const& v)"
+  ^ "{  auto const& fields = cradle::cast<cradle::dynamic_map>(v); "
   ^ String.concat ""
       (List.map
          (fun f ->
@@ -290,7 +317,7 @@ let construct_function_options app_id label assignments s =
       {
         parameter_id = "v";
         parameter_type = [ Tid "cradle"; Tseparator; Tid "value" ];
-        parameter_description = "value to update";
+        parameter_description = "value to upgrade";
         parameter_by_reference = true;
       };
     ]
@@ -371,20 +398,43 @@ let structure_type_info_definition app_id s =
          structure_type_info_definition_instance app_id label assignments s)
        instantiations)
 
-(* Generate the C++ get_type_info declaration for a single instantiation of a
-   structure. *)
+(* Generate the C++ type_info_query declarations for a single instantiation of
+   a structure. *)
 let structure_type_info_declaration_instance label assignments s =
-  "void add_field_info("
-  ^ "std::vector<cradle::raw_structure_field_info>& fields, " ^ s.structure_id
-  ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " const& x); " ^ "cradle::raw_type_info get_proper_type_info("
-  ^ s.structure_id
-  ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " const& x); " ^ "cradle::raw_type_info get_type_info(" ^ s.structure_id
-  ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " const& x); "
+  let full_structure_name =
+    s.structure_id
+    ^ resolved_template_parameter_list assignments s.structure_parameters
+  in
+  cpp_code_blocks
+    [
+      [
+        "template<>";
+        "struct definitive_type_info_query<" ^ full_structure_name ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_type_info*);";
+        "};";
+      ];
+      [
+        "template<>";
+        "struct type_info_query<" ^ full_structure_name ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_type_info*);";
+        "};";
+      ];
+      [
+        "template<>";
+        "struct structure_field_type_info_adder<" ^ full_structure_name ^ ">";
+        "{";
+        "    static void";
+        "    add(std::map<std::string, cradle::api_structure_field_info>*);";
+        "};";
+      ];
+    ]
 
-(* Generate the declaration for getting the upgrade type. *)
+(* Generate the declaration for getting the upgrade type of a single
+   instantation of the structure. *)
 let structure_upgrade_type_declaration_instance label assignments s =
   if not (structure_is_internal s) then
     "cradle::upgrade_type get_upgrade_type(" ^ s.structure_id
@@ -392,11 +442,12 @@ let structure_upgrade_type_declaration_instance label assignments s =
     ^ " const&, std::vector<std::type_index> parsed_types);"
   else ""
 
-(* Generate the declaration for function that will upgrade structure. *)
+(* Generate the declaration for the function that will upgrade a single
+   instantiation of the structure. *)
 let structure_upgrade_value_declaration_instance label assignments s =
   "void auto_upgrade_value(" ^ s.structure_id
   ^ resolved_template_parameter_list assignments s.structure_parameters
-  ^ " *x, cradle::value const& v);"
+  ^ " *x, cradle::dynamic const& v);"
 
 (* Generate the declaration for getting the upgrade type. *)
 let structure_upgrade_type_declaration s =
@@ -407,7 +458,7 @@ let structure_upgrade_type_declaration s =
          structure_upgrade_type_declaration_instance label assignments s)
        instantiations)
 
-(* Generate the declaration for function that will upgrade structure. *)
+(* Generate the declaration for the function that will upgrade structure. *)
 let structure_upgrade_value_declaration s =
   let instantiations = enumerate_combinations (get_structure_variants s) in
   String.concat ""
@@ -501,7 +552,7 @@ let structure_request_declaration s =
 (* Generate the C++ code to convert a structure to and from a dynamic value. *)
 let structure_value_conversion_implementation s =
   template_parameters_declaration s.structure_parameters
-  ^ "void write_fields_to_record(cradle::value_map& record, "
+  ^ "void write_fields_to_record(cradle::dynamic_map& record, "
   ^ full_structure_type s ^ " const& x) " ^ "{ "
   ^ "using cradle::write_field_to_record; "
   ^ ( match s.structure_super with
@@ -515,12 +566,12 @@ let structure_value_conversion_implementation s =
          s.structure_fields)
   ^ "} "
   ^ template_parameters_declaration s.structure_parameters
-  ^ "void to_value(cradle::value* v, " ^ full_structure_type s ^ " const& x) "
-  ^ "{ " ^ "cradle::value_map r; " ^ "write_fields_to_record(r, x); "
-  ^ "v->swap_in(r); " ^ "} "
+  ^ "void to_dynamic(cradle::dynamic* v, " ^ full_structure_type s
+  ^ " const& x) " ^ "{ " ^ "cradle::dynamic_map r; "
+  ^ "write_fields_to_record(r, x); " ^ "*v = std::move(r); " ^ "} "
   ^ template_parameters_declaration s.structure_parameters
   ^ "void read_fields_from_record(" ^ full_structure_type s
-  ^ "& x, cradle::value_map const& record) " ^ "{ "
+  ^ "& x, cradle::dynamic_map const& record) " ^ "{ "
   ^ "using cradle::read_field_from_record; "
   ^ ( match s.structure_super with
     | Some super -> "read_fields_from_record(as_" ^ super ^ "(x), record); "
@@ -533,26 +584,27 @@ let structure_value_conversion_implementation s =
          s.structure_fields)
   ^ "} "
   ^ template_parameters_declaration s.structure_parameters
-  ^ "void from_value(" ^ full_structure_type s ^ "* x,"
-  ^ " cradle::value const& v) " ^ "{ " ^ "cradle::value_map const& r = "
-  ^ "cradle::cast<cradle::value_map>(v); " ^ "read_fields_from_record(*x, r); "
-  ^ "} "
-  ^ template_parameters_declaration s.structure_parameters
-  ^ "void read_fields_from_immutable_map(" ^ full_structure_type s ^ "& x, "
-  ^ "std::map<std::string,cradle::untyped_immutable> const& fields) " ^ "{ "
-  ^ ( match s.structure_super with
-    | Some super ->
-        "read_fields_from_immutable_map(as_" ^ super ^ "(x), fields); "
-    | None -> "" )
-  ^ String.concat ""
-      (List.map
-         (fun f ->
-           "try { " ^ "from_immutable(&x." ^ f.field_id ^ ", "
-           ^ "cradle::get_field(fields, \"" ^ f.field_id ^ "\")); "
-           ^ "} catch (cradle::exception& e) { " ^ "e.add_context(\"in field "
-           ^ f.field_id ^ "\"); " ^ "throw; } ")
-         s.structure_fields)
-  ^ "} "
+  ^ "void from_dynamic(" ^ full_structure_type s ^ "* x,"
+  ^ " cradle::dynamic const& v) " ^ "{ " ^ "cradle::dynamic_map const& r = "
+  ^ "cradle::cast<cradle::dynamic_map>(v); "
+  ^ "read_fields_from_record(*x, r); " ^ "} "
+
+(* ^ template_parameters_declaration s.structure_parameters
+   ^ "void read_fields_from_immutable_map(" ^ full_structure_type s ^ "& x, "
+   ^ "std::map<std::string,cradle::untyped_immutable> const& fields) " ^ "{ "
+   ^ ( match s.structure_super with
+     | Some super ->
+         "read_fields_from_immutable_map(as_" ^ super ^ "(x), fields); "
+     | None -> "" )
+   ^ String.concat ""
+       (List.map
+          (fun f ->
+            "try { " ^ "from_immutable(&x." ^ f.field_id ^ ", "
+            ^ "cradle::get_field(fields, \"" ^ f.field_id ^ "\")); "
+            ^ "} catch (cradle::exception& e) { " ^ "e.add_context(\"in field "
+            ^ f.field_id ^ "\"); " ^ "throw; } ")
+          s.structure_fields)
+   ^ "} " *)
 
 (* Generate the definitions of the conversion functions. *)
 let structure_value_conversion_definitions s =
@@ -562,22 +614,22 @@ let structure_value_conversion_definitions s =
 (* Generate the declarations of the conversion functions. *)
 let structure_value_conversion_declarations s =
   if not (has_parameters s) then
-    "void write_fields_to_record(cradle::value_map& record, " ^ s.structure_id
-    ^ " const& x); " ^ "void to_value(cradle::value* v, " ^ s.structure_id
+    "void write_fields_to_record(cradle::dynamic_map& record, " ^ s.structure_id
+    ^ " const& x); " ^ "void to_dynamic(cradle::dynamic* v, " ^ s.structure_id
     ^ " const& x); " ^ "void read_fields_from_record(" ^ s.structure_id
-    ^ "& x, cradle::value_map const& record); " ^ "void from_value("
-    ^ s.structure_id ^ "* x," ^ " cradle::value const& v); "
-    ^ "void read_fields_from_immutable_map(" ^ full_structure_type s ^ "& x, "
-    ^ "std::map<std::string,cradle::untyped_immutable> const& fields); "
-    ^ "std::ostream& operator<<(std::ostream& s, " ^ s.structure_id
-    ^ " const& x);"
+    ^ "& x, cradle::dynamic_map const& record); " ^ "void from_dynamic("
+    ^ s.structure_id ^ "* x," ^ " cradle::dynamic const& v); "
+    (* ^ "void read_fields_from_immutable_map(" ^ full_structure_type s ^ "& x, "
+       ^ "std::map<std::string,cradle::untyped_immutable> const& fields); " *)
+    ^ "std::ostream& operator<<(std::ostream& s, "
+    ^ s.structure_id ^ " const& x);"
   else structure_value_conversion_implementation s
 
 (* Generate the iostream interface for a structure. *)
 let structure_iostream_implementation s =
   template_parameters_declaration s.structure_parameters
   ^ "std::ostream& operator<<(std::ostream& s, " ^ full_structure_type s
-  ^ " const& x) " ^ "{ return generic_ostream_operator(s, x); } "
+  ^ " const& x) " ^ "{ return s << to_dynamic(x); } "
 
 (* Generate the definitions of the stream functions. *)
 let structure_iostream_definitions s =
@@ -673,7 +725,7 @@ let structure_swap_declaration s =
   else
     template_parameters_declaration s.structure_parameters
     ^ "void swap(" ^ full_structure_type s ^ "& a, " ^ full_structure_type s
-    ^ "& b) " ^ "{ " ^ "    using cradle::swap; "
+    ^ "& b) " ^ "{ " ^ "    using std::swap; "
     ^ ( match s.structure_super with
       | Some super -> "swap(as_" ^ super ^ "(a), as_" ^ super ^ "(b)); "
       | None -> "" )
@@ -687,7 +739,7 @@ let structure_swap_declaration s =
 let structure_swap_implementation s =
   if not (has_parameters s) then
     "void swap(" ^ full_structure_type s ^ "& a, " ^ full_structure_type s
-    ^ "& b) " ^ "{ " ^ "    using cradle::swap; "
+    ^ "& b) " ^ "{ " ^ "    using std::swap; "
     ^ ( match s.structure_super with
       | Some super -> "swap(as_" ^ super ^ "(a), as_" ^ super ^ "(b)); "
       | None -> "" )
@@ -735,13 +787,7 @@ let structure_deep_sizeof_implementation s =
    assignment operator. *)
 let structure_constructor_code s =
   (* default constructor *)
-  s.structure_id ^ "() " ^ "{ "
-  ^ "using cradle::ensure_default_initialization; "
-  ^ String.concat ""
-      (List.map
-         (fun f -> "ensure_default_initialization(this->" ^ f.field_id ^ "); ")
-         s.structure_fields)
-  ^ "} "
+  s.structure_id ^ "() " ^ "{} "
   (* field-by-field constructor *)
   ^ ( if List.length s.structure_fields > 0 then
       (* If there's only one field, we need to add 'explicit' so that C++
@@ -836,6 +882,32 @@ let structure_declaration s =
     ^ structure_constructor_code s
     ^ "}; "
 
+(* Generate a structure's "make" constructor. *)
+let structure_make_constructor_definition s =
+  cpp_code_lines
+    [
+      template_parameters_declaration s.structure_parameters;
+      "inline " ^ full_structure_type s;
+      "make_" ^ s.structure_id ^ "(";
+      ( match s.structure_super with
+      | Some super -> super ^ " super, "
+      | None -> "" );
+      String.concat ", "
+        (List.map
+           (fun f -> cpp_code_for_type f.field_type ^ " " ^ f.field_id)
+           s.structure_fields);
+      ")";
+      "{";
+      "return " ^ full_structure_type s ^ "(";
+      ( match s.structure_super with
+      | Some super -> "std::move(super), "
+      | None -> "" );
+      String.concat ", "
+        (List.map (fun f -> "std::move(" ^ f.field_id ^ ")") s.structure_fields);
+      ");";
+      "}";
+    ]
+
 (* If a structure has a supertype, a function is generated to automatically
    extract that subset of the structure. *)
 let structure_subtyping_definitions env s =
@@ -849,37 +921,43 @@ let structure_subtyping_definitions env s =
   | None -> ""
 
 let structure_hash_declaration namespace s =
-  "} namespace std { "
-  ^ ( if not (has_parameters s) then
-      "template<> " ^ "struct hash<" ^ namespace ^ "::" ^ s.structure_id ^ " > "
-      ^ "{ " ^ "size_t operator()(" ^ namespace ^ "::" ^ s.structure_id
-      ^ " const& x) const; " ^ "}; "
-    else
-      template_parameters_declaration s.structure_parameters
-      ^ "struct hash<" ^ namespace ^ "::" ^ full_structure_type s ^ " > " ^ "{ "
-      ^ "size_t operator()(" ^ namespace ^ "::" ^ full_structure_type s
-      ^ " const& x) const " ^ "{ " ^ "size_t h = 0; "
-      ^ String.concat ""
+  if not (has_parameters s) then
+    cpp_code_lines [ "size_t"; "hash_value(" ^ s.structure_id ^ " const& x);" ]
+  else
+    cpp_code_lines
+      [
+        template_parameters_declaration s.structure_parameters;
+        "size_t";
+        "hash_value(" ^ full_structure_type s ^ " const& x)";
+        "{";
+        "    size_t h = 0;";
+        String.concat ""
           (List.map
              (fun f ->
-               "h = cradle::combine_hashes(h, cradle::invoke_hash(x."
-               ^ f.field_id ^ ")); ")
-             s.structure_fields)
-      ^ "return h; " ^ "} " ^ "}; " )
-  ^ "} namespace " ^ namespace ^ " { "
+               "boost::hash_combine(h, cradle::invoke_hash(x." ^ f.field_id
+               ^ ")); ")
+             s.structure_fields);
+        "    return h;";
+        "}";
+      ]
 
 let structure_hash_definition namespace s =
   if not (has_parameters s) then
-    "} namespace std { " ^ "size_t hash<" ^ namespace ^ "::"
-    ^ full_structure_type s ^ " >::" ^ "operator()(" ^ namespace ^ "::"
-    ^ full_structure_type s ^ " const& x) const " ^ "{ " ^ "size_t h = 0; "
-    ^ String.concat ""
-        (List.map
-           (fun f ->
-             "h = cradle::combine_hashes(h, cradle::invoke_hash(x." ^ f.field_id
-             ^ ")); ")
-           s.structure_fields)
-    ^ "return h; " ^ "} " ^ "} namespace " ^ namespace ^ " { "
+    cpp_code_lines
+      [
+        "size_t";
+        "hash_value(" ^ s.structure_id ^ " const& x)";
+        "{";
+        "size_t h = 0; ";
+        String.concat ""
+          (List.map
+             (fun f ->
+               "boost::hash_combine(h, cradle::invoke_hash(x." ^ f.field_id
+               ^ ")); ")
+             s.structure_fields);
+        "return h;";
+        "}";
+      ]
   else ""
 
 (* Generate all the C++ code that needs to appear in the header file for a
@@ -887,10 +965,11 @@ let structure_hash_definition namespace s =
 let hpp_string_of_structure app_id app_namespace env s =
   let namespace = resolve_structure_namespace app_namespace s in
   "} namespace " ^ namespace ^ " { " ^ structure_declaration s
-  ^ structure_request_declaration s
+  (* ^ structure_request_declaration s *)
+  ^ structure_make_constructor_definition s
   ^ structure_type_info_declaration s
-  ^ structure_upgrade_type_declaration s
-  ^ structure_upgrade_value_declaration s
+  (* ^ structure_upgrade_type_declaration s
+     ^ structure_upgrade_value_declaration s *)
   ^ structure_subtyping_definitions env s
   ^ ( if structure_component_is_preexisting s "comparisons" then ""
     else structure_comparison_declarations s )
@@ -907,13 +986,13 @@ let hpp_string_of_structure app_id app_namespace env s =
 let cpp_string_of_structure account_id app_id app_namespace env s =
   let namespace = resolve_structure_namespace app_namespace s in
   "} namespace " ^ namespace ^ " { "
-  ^ structure_request_definition s
+  (* ^ structure_request_definition s *)
   ^ structure_type_info_definition app_id s
-  ^ structure_upgrade_type_definition app_id s
-  ^ structure_upgrade_value_definition app_id s
-  ^ "} namespace " ^ app_namespace ^ " { "
-  ^ structure_upgrade_register_function account_id app_id s
-  ^ "} namespace " ^ namespace ^ " { "
+  (* ^ structure_upgrade_type_definition app_id s
+     ^ structure_upgrade_value_definition app_id s
+     ^ "} namespace " ^ app_namespace ^ " { "
+     ^ structure_upgrade_register_function account_id app_id s
+     ^ "} namespace " ^ namespace ^ " { " *)
   ^ ( if structure_component_is_preexisting s "comparisons" then ""
     else structure_comparison_implementations s )
   ^ structure_swap_implementation s
@@ -929,17 +1008,16 @@ let cpp_string_of_structure account_id app_id app_namespace env s =
    registered with the API. *)
 let cpp_code_to_register_manual_structure app_id cpp_name name revision
     description =
-  "\nregister_api_named_type(api, " ^ "\"" ^ name ^ "\", "
-  ^ string_of_int revision ^ ", " ^ "\"" ^ String.escaped description ^ "\", "
-  ^ "make_api_type_info(get_proper_type_info(" ^ cpp_name ^ "())), "
-  ^ "get_upgrade_type(" ^ cpp_name ^ "(), std::vector<std::type_index>())); "
-
-let contains s1 s2 =
-  let re = Str.regexp_string s2 in
-  try
-    ignore (Str.search_forward re s1 0);
-    true
-  with Not_found -> false
+  cpp_code_lines
+    [
+      "register_api_named_type(";
+      "    api,";
+      "    \"" ^ name ^ "\",";
+      "    " ^ string_of_int revision ^ ",";
+      "    \"" ^ String.escaped description ^ "\",";
+      "    get_definitive_type_info<" ^ cpp_name ^ ">());";
+      (* "    get_upgrade_type(" ^ cpp_name ^ "(), std::vector<std::type_index>())); " *)
+    ]
 
 (* Generate the C++ code to register a structure as part of an API. *)
 let cpp_code_to_register_structure app_id s =

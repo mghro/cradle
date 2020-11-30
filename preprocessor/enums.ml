@@ -45,45 +45,92 @@ let enum_declaration e =
   ^ " " ^ "}; "
 
 let enum_type_info_declaration e =
-  "cradle::raw_type_info get_proper_type_info(" ^ e.enum_id ^ "); "
-  ^ "cradle::raw_type_info get_type_info(" ^ e.enum_id ^ "); "
-  ^ "cradle::raw_enum_info get_enum_type_info(" ^ e.enum_id ^ "); "
+  cpp_code_blocks
+    [
+      [
+        "template<>";
+        "struct definitive_type_info_query<" ^ e.enum_id ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_type_info*);";
+        "};";
+      ];
+      [
+        "template<>";
+        "struct type_info_query<" ^ e.enum_id ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_type_info*);";
+        "};";
+      ];
+      [
+        "template<>";
+        "struct enum_type_info_query<" ^ e.enum_id ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_enum_info*);";
+        "};";
+      ];
+    ]
 
 let enum_type_info_definition app_id e =
-  "cradle::raw_enum_info get_enum_type_info(" ^ e.enum_id ^ ") " ^ "{ "
-  ^ "std::vector<cradle::raw_enum_value_info> values; "
-  ^ String.concat ""
-      (List.map
-         (fun v ->
-           "values.push_back(cradle::raw_enum_value_info(" ^ "\""
-           ^ enum_value_id e v ^ "\"," ^ "\""
-           ^ String.escaped v.ev_description
-           ^ "\")); ")
-         e.enum_values)
-  ^ "return cradle::raw_enum_info( " ^ "\"" ^ e.enum_id ^ "\"," ^ "\""
-  ^ String.escaped e.enum_description
-  ^ "\"," ^ "values); " ^ "} " ^ "cradle::raw_type_info get_proper_type_info("
-  ^ e.enum_id ^ ") " ^ "{ " ^ "return cradle::raw_type_info(raw_kind::ENUM, "
-  ^ "any(get_enum_type_info(" ^ e.enum_id ^ "()))); " ^ "} "
-  ^ "cradle::raw_type_info get_type_info(" ^ e.enum_id ^ ") " ^ "{ "
-  ^ "return cradle::raw_type_info(raw_kind::NAMED_TYPE_REFERENCE, "
-  ^ "any(raw_named_type_reference(\"" ^ app_id ^ "\", \"" ^ e.enum_id
-  ^ "\"))); " ^ "} "
+  cpp_code_blocks
+    [
+      [
+        "void";
+        "definitive_type_info_query<" ^ e.enum_id ^ ">::get(";
+        "    cradle::api_type_info* info)";
+        "{";
+        "    *info =";
+        "        cradle::make_api_type_info_with_enum_type(";
+        "            cradle::get_enum_type_info<" ^ e.enum_id ^ ">());";
+        "}";
+      ];
+      [
+        "void";
+        "type_info_query<" ^ e.enum_id ^ ">::get(";
+        "    cradle::api_type_info* info)";
+        "{";
+        "    *info =";
+        "        cradle::make_api_type_info_with_named_type(";
+        "            cradle::api_named_type_reference(";
+        "                \"" ^ app_id ^ "\", \"" ^ e.enum_id ^ "\"));";
+        "}";
+      ];
+      [
+        "void";
+        "enum_type_info_query<" ^ e.enum_id ^ ">::get(";
+        "    cradle::api_enum_info* info)";
+        "{";
+        "    std::map<std::string, cradle::api_enum_value_info> values;";
+        String.concat ""
+          (List.map
+             (fun v ->
+               cpp_code_lines
+                 [
+                   "values[\"" ^ enum_value_id e v ^ "\"] = ";
+                   "cradle::api_enum_value_info(";
+                   "\"" ^ String.escaped v.ev_description ^ "\");";
+                 ])
+             e.enum_values);
+        "    *info = cradle::api_enum_info(values);";
+        "}";
+      ];
+    ]
 
-(* Generate the function definition for API function that is generated to upgrade the enum. *)
+(* Construct the options for the enum's upgrade function. *)
 let construct_function_options app_id e =
   let make_function_parameter e =
     [
       {
         parameter_id = "v";
         parameter_type = [ Tid "cradle"; Tseparator; Tid "value" ];
-        parameter_description = "value to update";
+        parameter_description = "value to upgrade";
         parameter_by_reference = true;
       };
     ]
   in
   let make_return_type e = [ Tid e.enum_id ] in
-
   {
     function_variants = [];
     function_id = "upgrade_value_" ^ e.enum_id;
@@ -106,12 +153,11 @@ let construct_function_options app_id e =
     function_level = 1;
   }
 
-(* Makes call to register API function for upgrading value for enum. *)
+(* Generate the registration code for the enum's upgrade function. *)
 let enum_upgrade_register_function_instance account_id app_id e =
   if not (enum_is_internal e) then
     let f = construct_function_options app_id e in
     cpp_code_to_define_function_instance account_id app_id f "" []
-    (* f.function_parameters     *)
   else ""
 
 (* Generate the declaration for getting the upgrade type for the enum. *)
@@ -124,7 +170,7 @@ let enum_upgrade_type_declarations e =
 (* Generate the declaration for upgrading the enum. *)
 let enum_upgrade_declaration e =
   if not (enum_is_internal e) then
-    e.enum_id ^ " upgrade_value_" ^ e.enum_id ^ "(cradle::value const& v);"
+    e.enum_id ^ " upgrade_value_" ^ e.enum_id ^ "(cradle::dynamic const& v);"
   else ""
 
 (* Generate the definition for getting the upgrade type for the enum. *)
@@ -140,8 +186,8 @@ let enum_upgrade_type_definition e =
 (* Generate the definition for upgrading the enum. *)
 let enum_upgrade_definition e =
   if not (enum_is_internal e) then
-    e.enum_id ^ " upgrade_value_" ^ e.enum_id ^ "(cradle::value const& v)" ^ "{"
-    ^ e.enum_id ^ " x;" ^ "upgrade_value(&x, v); " ^ "return x; " ^ "}"
+    e.enum_id ^ " upgrade_value_" ^ e.enum_id ^ "(cradle::dynamic const& v)"
+    ^ "{" ^ e.enum_id ^ " x;" ^ "upgrade_value(&x, v); " ^ "return x; " ^ "}"
   else ""
 
 let enum_query_declarations e =
@@ -150,47 +196,113 @@ let enum_query_declarations e =
   ^ "; } " ^ "char const* get_value_id(" ^ e.enum_id ^ " value); "
 
 let enum_query_definitions e =
-  "char const* get_value_id(" ^ e.enum_id ^ " value) " ^ "{ "
-  ^ "switch (value) " ^ "{ "
-  ^ String.concat ""
-      (List.map
-         (fun v ->
-           "case " ^ e.enum_id ^ "::"
-           ^ String.uppercase v.ev_id
-           ^ ": " ^ "return \"" ^ enum_value_id e v ^ "\"; ")
-         e.enum_values)
-  ^ "} " ^ "throw invalid_enum_value(get_enum_type_info(value), "
-  ^ "unsigned(value)); " ^ "} "
+  cpp_code_lines
+    [
+      "char const*";
+      "get_value_id(" ^ e.enum_id ^ " value)";
+      "{";
+      "    switch (value)";
+      "    {";
+      String.concat ""
+        (List.map
+           (fun v ->
+             cpp_code_lines
+               [
+                 "case " ^ e.enum_id ^ "::" ^ String.uppercase v.ev_id ^ ":";
+                 "return \"" ^ enum_value_id e v ^ "\";";
+               ])
+           e.enum_values);
+      "    }";
+      "    CRADLE_THROW(";
+      "        cradle::invalid_enum_value() <<";
+      "            cradle::enum_id_info(\"" ^ e.enum_id ^ "\") <<";
+      "            cradle::enum_value_info(int(value)));";
+      "}";
+    ]
 
 let enum_hash_declaration namespace e =
-  "} namespace std { " ^ "template<> " ^ "struct hash<" ^ namespace ^ "::"
-  ^ e.enum_id ^ " > " ^ "{ " ^ "size_t operator()(" ^ namespace ^ "::"
-  ^ e.enum_id ^ " x) const " ^ "{ return hash<int>()(static_cast<int>(x)); } "
-  ^ "}; " ^ "} namespace " ^ namespace ^ " { "
+  cpp_code_lines
+    [
+      "inline size_t";
+      "hash_value(" ^ e.enum_id ^ " const& x)";
+      "{";
+      "    return size_t(x);";
+      "}";
+    ]
 
 let enum_hash_definition namespace e = ""
 
 let enum_conversion_declarations e =
-  "void to_value(cradle::value* v, " ^ e.enum_id ^ " x); " ^ "void from_value("
-  ^ e.enum_id ^ "* x, cradle::value const& v); "
-  ^ "std::ostream& operator<<(std::ostream& s, " ^ e.enum_id ^ " const& x); "
+  cpp_code_blocks
+    [
+      [
+        "void";
+        "to_dynamic(";
+        "    cradle::dynamic* v,";
+        "    " ^ e.enum_id ^ " x);";
+      ];
+      [
+        "void";
+        "from_dynamic(";
+        "    " ^ e.enum_id ^ "* x,";
+        "    cradle::dynamic const& v);";
+      ];
+      [
+        "std::ostream&";
+        "operator<<(";
+        "    std::ostream& s,";
+        "     " ^ e.enum_id ^ " const& x);";
+      ];
+    ]
 
 let enum_conversion_definitions e =
-  "void to_value(cradle::value* v, " ^ e.enum_id ^ " x) " ^ "{ "
-  ^ "set(*v, get_value_id(x)); " ^ "} " ^ "void from_value(" ^ e.enum_id
-  ^ "* x, cradle::value const& v) " ^ "{ " ^ "string s = cast<string>(v); "
-  ^ String.concat ""
-      (List.map
-         (fun v ->
-           "if (boost::to_lower_copy(s) == \""
-           ^ String.lowercase v.ev_id
-           ^ "\") " ^ "{ " ^ "*x = " ^ e.enum_id ^ "::"
-           ^ String.uppercase v.ev_id
-           ^ "; " ^ "return; " ^ "} ")
-         e.enum_values)
-  ^ "throw invalid_enum_string(get_enum_type_info(" ^ e.enum_id ^ "()), s); "
-  ^ "}" ^ "std::ostream& operator<<(std::ostream& s, " ^ e.enum_id
-  ^ " const& x) " ^ "{ s << get_value_id(x); return s; } "
+  cpp_code_blocks
+    [
+      [
+        "void";
+        "to_dynamic(";
+        "    cradle::dynamic* v,";
+        "    " ^ e.enum_id ^ " x)";
+        "{";
+        "    *v = get_value_id(x);";
+        "}";
+      ];
+      [
+        "void";
+        "from_dynamic(";
+        "    " ^ e.enum_id ^ "* x,";
+        "    cradle::dynamic const& v)";
+        "{";
+        "    string s = cast<string>(v);";
+        String.concat ""
+          (List.map
+             (fun v ->
+               cpp_indented_code_lines "    "
+                 [
+                   "if (boost::to_lower_copy(s) == \""
+                   ^ String.lowercase v.ev_id ^ "\")";
+                   "{";
+                   "    *x = " ^ e.enum_id ^ "::" ^ String.uppercase v.ev_id
+                   ^ ";";
+                   "    return;";
+                   "};";
+                 ])
+             e.enum_values);
+        "    CRADLE_THROW(";
+        "        cradle::invalid_enum_string() <<";
+        "            cradle::enum_id_info(\"" ^ e.enum_id ^ "\") <<";
+        "            cradle::enum_string_info(s));";
+        "}";
+      ];
+      [
+        "std::ostream&";
+        "operator<<(std::ostream& s, " ^ e.enum_id ^ " const& x)";
+        "{";
+        "    s << get_value_id(x);";
+        "    return s;";
+        "}";
+      ];
+    ]
 
 let enum_deep_sizeof_definition e =
   "static inline size_t deep_sizeof(" ^ e.enum_id ^ ") " ^ "{ return sizeof("
@@ -203,17 +315,19 @@ let hpp_string_of_enum account_id app_id namespace e =
   ^ enum_hash_declaration namespace e
   ^ enum_query_declarations e
   ^ enum_conversion_declarations e
-  ^ enum_upgrade_type_declarations e
-  ^ enum_upgrade_declaration e
+
+(* ^ enum_upgrade_type_declarations e
+   ^ enum_upgrade_declaration e *)
 
 let cpp_string_of_enum account_id app_id namespace e =
   enum_type_info_definition app_id e
   ^ enum_hash_definition namespace e
   ^ enum_query_definitions e
   ^ enum_conversion_definitions e
-  ^ enum_upgrade_type_definition e
-  ^ enum_upgrade_definition e
-  ^ enum_upgrade_register_function_instance account_id app_id e
+
+(* ^ enum_upgrade_type_definition e
+   ^ enum_upgrade_definition e
+   ^ enum_upgrade_register_function_instance account_id app_id e *)
 
 (* Generate C++ code to register API function for upgrading values *)
 let cpp_code_to_register_upgrade_function_instance e =
@@ -223,12 +337,29 @@ let cpp_code_to_register_upgrade_function_instance e =
 
 let cpp_code_to_register_enum app_id e =
   if not (enum_is_internal e) then
-    "\nregister_api_named_type(api, " ^ "\"" ^ e.enum_id ^ "\", "
-    ^ string_of_int (get_enum_revision e)
-    ^ ", " ^ "\""
-    ^ String.escaped e.enum_description
-    ^ "\", " ^ "make_api_type_info(get_proper_type_info(" ^ e.enum_id ^ "())), "
-    ^ "get_upgrade_type(" ^ e.enum_id
-    ^ "(), std::vector<std::type_index>())); \n"
-    ^ cpp_code_to_register_upgrade_function_instance e
+    cpp_code_lines
+      [
+        "register_api_named_type(";
+        "    api,";
+        "    \"" ^ e.enum_id ^ "\",";
+        "    " ^ string_of_int (get_enum_revision e) ^ ",";
+        "    \"" ^ String.escaped e.enum_description ^ "\",";
+        "    get_definitive_type_info<" ^ e.enum_id ^ ">());";
+        (* "    get_upgrade_type(" ^ e.enum_id ^ "(), std::vector<std::type_index>())); " *)
+      ]
   else ""
+
+(* Generate the C++ code to clean up the #define namespace for an enum. *)
+let cpp_cleanup_code_for_enum e =
+  String.concat ""
+    (List.map
+       (fun v ->
+         let uppercase_id = String.uppercase v.ev_id in
+         cpp_code_lines
+           [
+             "\n#ifdef " ^ uppercase_id;
+             "\n    #undef " ^ uppercase_id;
+             "\n#endif";
+             "\n";
+           ])
+       e.enum_values)

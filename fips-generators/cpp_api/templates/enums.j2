@@ -76,7 +76,7 @@ type_info_query<{{type_info.name}}>::get(api_type_info* info)
     api_named_type_reference ref;
     ref.app = "cradle";
     ref.name = "{{type_info.name}}";
-    *info = make_api_type_info_with_named(ref);
+    *info = make_api_type_info_with_named_type(ref);
 }
 
 std::string

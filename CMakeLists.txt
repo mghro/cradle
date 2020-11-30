@@ -156,6 +156,24 @@ else()
     set(GENERATE_TAGGED_CONSTRUCTORS False)
 endif()
 
+# Preprocess the API headers.
+file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
+set(preprocessed_files ${headers})
+list(REMOVE_ITEM preprocessed_files
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cradle/core/immutable.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cradle/core/preprocessed.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cradle/core/type_info.hpp")
+preprocess_header_files(
+    generated_srcs generated_headers
+    ACCOUNT_ID mgh
+    # TODO: Make this its own actual app...
+    TYPE_APP_ID dosimetry
+    FUNCTION_APP_ID dosimetry
+    NAMESPACE cradle
+    INDEX_FILE "${CMAKE_CURRENT_BINARY_DIR}/generated/src/cradle/api_index.hpp"
+    INPUT_FILES ${preprocessed_files})
+
 # Add the main library.
 fips_begin_module(cradle)
     fips_src(src/cradle)
@@ -183,8 +201,8 @@ fips_begin_module(cradle)
             FROM ${PROJECT_SOURCE_DIR}/src/${FILE}
             TYPE cpp_api_generator
             OUT_OF_SOURCE
-            SOURCE "generated/${FILE_DIRECTORY}/${FILE_NAME_WE}.cpp"
-            HEADER "generated/${FILE_DIRECTORY}/${FILE_NAME_WE}.hpp"
+            SOURCE "generated-fips/${FILE_DIRECTORY}/${FILE_NAME_WE}.cpp"
+            HEADER "generated-fips/${FILE_DIRECTORY}/${FILE_NAME_WE}.hpp"
             ARGS "{ app_name: cradle, generate_tagged_constructors: ${GENERATE_TAGGED_CONSTRUCTORS} }")
     endforeach()
     # Add the rule for generating version info.
@@ -193,11 +211,15 @@ fips_begin_module(cradle)
         OUT_OF_SOURCE
         HEADER "generated/cradle/version_info.hpp")
 fips_end_module()
+
+target_sources(cradle PRIVATE ${generated_headers} ${generated_srcs})
+
 target_link_libraries(cradle ${CONAN_LIBS})
 target_link_directories(cradle PUBLIC ${CONAN_LIB_DIRS})
+target_include_directories(cradle PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/generated/src")
 target_include_directories(cradle PUBLIC src)
 target_include_directories(cradle PUBLIC src/third-party)
-target_include_directories(cradle PUBLIC ${PROJECT_BINARY_DIR}/generated)
+target_include_directories(cradle PUBLIC ${PROJECT_BINARY_DIR}/generated-fips)
 # Register Conan's include directories with fips.
 target_include_directories(cradle PUBLIC ${CONAN_INCLUDE_DIRS}
     "$<$<CONFIG:Release>:${CONAN_INCLUDE_DIRS_RELEASE}>"

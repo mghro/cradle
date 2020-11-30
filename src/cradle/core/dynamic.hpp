@@ -6,7 +6,7 @@
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-#include <cradle/core/type_info.hpp>
+#include <cradle/core/type_definitions.hpp>
 
 namespace cradle {
 
@@ -97,8 +97,8 @@ get_field(dynamic const** v, dynamic_map const& r, string const& field);
 bool
 get_field(dynamic** v, dynamic_map& r, string const& field);
 
-// Given a dynamic_map that's meant to represent a union value, this checks that
-// the map contains only one value and returns its key.
+// Given a dynamic_map that's meant to represent a union value, this checks
+// that the map contains only one value and returns its key.
 dynamic const&
 get_union_tag(dynamic_map const& map);
 
@@ -156,10 +156,7 @@ template<>
 struct type_info_query<dynamic>
 {
     static void
-    get(api_type_info* info)
-    {
-        *info = make_api_type_info_with_dynamic(api_dynamic_type());
-    }
+    get(api_type_info* info);
 };
 
 size_t
@@ -279,6 +276,9 @@ apply_to_dynamic_pair(Fn&& fn, dynamic const& a, dynamic const& b)
     }
 }
 
+struct api_named_type_reference;
+struct api_type_info;
+
 // Coerce a dynamic value to match the given type.
 // This only applies very gentle coercions (e.g., lossless numeric casts).
 // :look_up_named_type must be implemented by the caller as a means for the
@@ -289,6 +289,36 @@ coerce_value(
         look_up_named_type,
     api_type_info const& type,
     dynamic value);
+
+// This is a generic function for reading a field from a dynamic_map.
+// It exists primarily so that omissible types can override it.
+template<class Field>
+void
+read_field_from_record(
+    Field* field_value, dynamic_map const& record, string const& field_name)
+{
+    auto dynamic_field_value = get_field(record, field_name);
+    try
+    {
+        from_dynamic(field_value, dynamic_field_value);
+    }
+    catch (boost::exception& e)
+    {
+        cradle::add_dynamic_path_element(e, field_name);
+        throw;
+    }
+}
+
+// This is a generic function for writing a field to a dynamic_map.
+// It exists primarily so that omissible types can override it.
+template<class Field>
+void
+write_field_to_record(
+    dynamic_map& record, std::string field_name, Field field_value)
+{
+    to_dynamic(
+        &record[dynamic(std::move(field_name))], std::move(field_value));
+}
 
 } // namespace cradle
 

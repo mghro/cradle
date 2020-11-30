@@ -13,9 +13,6 @@
 #include <cradle/encodings/msgpack.hpp>
 #include <cradle/fs/file_io.hpp>
 
-// Include this again to clean up preprocessor definitions.
-#include <cradle/io/http_types.hpp>
-
 namespace cradle {
 
 dynamic
@@ -48,7 +45,8 @@ get_method_name(http_request_method method)
     return boost::to_upper_copy(string(get_value_id(method)));
 };
 
-http_request_system::http_request_system(optional<file_path> const& cacert_path)
+http_request_system::http_request_system(
+    optional<file_path> const& cacert_path)
 {
     if (curl_global_init(CURL_GLOBAL_ALL))
     {
@@ -361,8 +359,8 @@ http_connection::perform_request(
     CURLcode result = curl_easy_perform(curl);
 
     // Check in again here because if the job was canceled inside the above
-    // call, it will just look like an error. We need the cancellation exception
-    // to be rethrown.
+    // call, it will just look like an error. We need the cancellation
+    // exception to be rethrown.
     check_in();
 
     // Check for low-level CURL errors.

@@ -202,7 +202,7 @@ function(preprocess_header_files
 
     # Write the API index file.
     set(api_index
-        "#include <cradle/api.hpp>\nnamespace ${MY_NAMESPACE} {\n")
+        "#include <cradle/core/api_types.hpp>\nnamespace ${MY_NAMESPACE} {\n")
     foreach(id ${preprocessed_ids})
         set(api_index
             "${api_index}void add_${id}_api(cradle::api_implementation& api)\;\n")

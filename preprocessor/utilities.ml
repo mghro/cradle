@@ -202,3 +202,11 @@ let get_structure_option option_list =
         | _ -> structure_option rest )
   in
   structure_option option_list
+
+let cpp_code_lines lines = String.concat " " lines
+
+let cpp_indented_code_lines indent lines =
+  String.concat " " (List.map (fun line -> indent ^ line) lines)
+
+let cpp_code_blocks blocks =
+  String.concat "" (List.map (fun block -> cpp_code_lines block ^ " ") blocks)

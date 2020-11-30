@@ -45,11 +45,11 @@ struct array_deleter
     }
 };
 
-// ownership_holder is meant to express polymorphic ownership of a resource. The
-// idea is that the resource may be owned in many different ways, and we don't
-// care what way. We only want an object that will provide ownership of the
-// resource until it's destructed. We can achieve this by using an any object to
-// hold the ownership object.
+// ownership_holder is meant to express polymorphic ownership of a resource.
+// The idea is that the resource may be owned in many different ways, and we
+// don't care what way. We only want an object that will provide ownership of
+// the resource until it's destructed. We can achieve this by using an any
+// object to hold the ownership object.
 typedef any ownership_holder;
 
 // Invoke the standard hash function for a value.
@@ -65,26 +65,26 @@ invoke_hash(T const& x)
 // overload resolution.
 #define CRADLE_LAMBDIFY(f) [](auto&&... args) { return f(args...); }
 
-// The following macros are simple wrappers around Boost.Exception to codify how
-// that library should be used within CRADLE.
+// The following macros are simple wrappers around Boost.Exception to codify
+// how that library should be used within CRADLE.
 
-#define CRADLE_DEFINE_EXCEPTION(id)                                            \
-    struct id : virtual boost::exception, virtual std::exception               \
-    {                                                                          \
-        char const*                                                            \
-        what() const noexcept                                                  \
-        {                                                                      \
-            return boost::diagnostic_information_what(*this);                  \
-        }                                                                      \
+#define CRADLE_DEFINE_EXCEPTION(id)                                           \
+    struct id : virtual boost::exception, virtual std::exception              \
+    {                                                                         \
+        char const*                                                           \
+        what() const noexcept                                                 \
+        {                                                                     \
+            return boost::diagnostic_information_what(*this);                 \
+        }                                                                     \
     };
 
-#define CRADLE_DEFINE_ERROR_INFO(T, id)                                        \
+#define CRADLE_DEFINE_ERROR_INFO(T, id)                                       \
     typedef boost::error_info<struct id##_info_tag, T> id##_info;
 
 CRADLE_DEFINE_ERROR_INFO(boost::stacktrace::stacktrace, stacktrace)
 
-#define CRADLE_THROW(x)                                                        \
-    BOOST_THROW_EXCEPTION(                                                     \
+#define CRADLE_THROW(x)                                                       \
+    BOOST_THROW_EXCEPTION(                                                    \
         (x) << stacktrace_info(boost::stacktrace::stacktrace()))
 
 using boost::get_error_info;
@@ -104,9 +104,10 @@ get_required_error_info(Exception const& e)
     if (!info)
     {
         CRADLE_THROW(
-            missing_error_info() << error_info_id_info(typeid(ErrorInfo).name())
-                                 << wrapped_exception_diagnostics_info(
-                                        boost::diagnostic_information(e)));
+            missing_error_info()
+            << error_info_id_info(typeid(ErrorInfo).name())
+            << wrapped_exception_diagnostics_info(
+                   boost::diagnostic_information(e)));
     }
     return *info;
 }
@@ -136,8 +137,8 @@ CRADLE_DEFINE_EXCEPTION(invalid_enum_value)
 CRADLE_DEFINE_ERROR_INFO(string, enum_id)
 CRADLE_DEFINE_ERROR_INFO(int, enum_value)
 
-// invalid_enum_string is thrown when attempting to convert a string value to an
-// enum and the string doesn't match any of the enum's cases.
+// invalid_enum_string is thrown when attempting to convert a string value to
+// an enum and the string doesn't match any of the enum's cases.
 CRADLE_DEFINE_EXCEPTION(invalid_enum_string)
 // Note that this also uses the enum_id info declared above.
 CRADLE_DEFINE_ERROR_INFO(string, enum_string)
@@ -227,6 +228,110 @@ is_tagged_version(repository_info const& info)
 {
     return info.commits_since_tag == 0 && !info.dirty;
 }
+
+// A flag_set is a set of flags, each of which represents a boolean property.
+// It is implemented as a simple unsigned integer, where each bit represents
+// a different property.
+// (The property codes must be defined manually as constants.)
+// The advantage of using this over plain unsigned integers is that this is
+// type-safe and slightly more explicit.
+// A flag_set has a Tag type that identifies the set of properties that go with
+// it. Only properties/sets with the same tag can be combined.
+
+// NO_FLAGS can be implicitly converted to any type of flag_set.
+struct null_flag_set
+{
+};
+static null_flag_set const NO_FLAGS = null_flag_set();
+
+template<class Tag>
+struct flag_set
+{
+    unsigned code;
+    flag_set()
+    {
+    }
+    flag_set(null_flag_set) : code(0)
+    {
+    }
+    explicit flag_set(unsigned code) : code(code)
+    {
+    }
+    // allows use within if statements without other unintended conversions
+    typedef unsigned flag_set::*unspecified_bool_type;
+    operator unspecified_bool_type() const
+    {
+        return code != 0 ? &flag_set::code : 0;
+    }
+};
+
+template<class Tag>
+flag_set<Tag>
+operator|(flag_set<Tag> a, flag_set<Tag> b)
+{
+    return flag_set<Tag>(a.code | b.code);
+}
+template<class Tag>
+flag_set<Tag>&
+operator|=(flag_set<Tag>& a, flag_set<Tag> b)
+{
+    a.code |= b.code;
+    return a;
+}
+template<class Tag>
+flag_set<Tag>
+operator&(flag_set<Tag> a, flag_set<Tag> b)
+{
+    return flag_set<Tag>(a.code & b.code);
+}
+template<class Tag>
+flag_set<Tag>&
+operator&=(flag_set<Tag>& a, flag_set<Tag> b)
+{
+    a.code &= b.code;
+    return a;
+}
+template<class Tag>
+bool
+operator==(flag_set<Tag> a, flag_set<Tag> b)
+{
+    return a.code == b.code;
+}
+template<class Tag>
+bool
+operator!=(flag_set<Tag> a, flag_set<Tag> b)
+{
+    return a.code != b.code;
+}
+template<class Tag>
+bool
+operator<(flag_set<Tag> a, flag_set<Tag> b)
+{
+    return a.code < b.code;
+}
+template<class Tag>
+flag_set<Tag>
+operator~(flag_set<Tag> a)
+{
+    return flag_set<Tag>(~a.code);
+}
+
+template<class Tag>
+size_t
+hash_value(cradle::flag_set<Tag> const& set)
+{
+    return set.code;
+}
+
+#define CRADLE_DEFINE_FLAG_TYPE(type_prefix)                                  \
+    struct type_prefix##_flag_tag                                             \
+    {                                                                         \
+    };                                                                        \
+    typedef cradle::flag_set<type_prefix##_flag_tag> type_prefix##_flag_set;
+
+#define CRADLE_DEFINE_FLAG(type_prefix, code, name)                           \
+    static unsigned const name##_CODE = code;                                 \
+    static cradle::flag_set<type_prefix##_flag_tag> const name(code);
 
 } // namespace cradle
 

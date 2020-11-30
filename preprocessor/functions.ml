@@ -201,21 +201,42 @@ let cpp_code_for_parameter_list_info assignments info_vector parameters =
 
 (* Generate the C++ code to get a function parameter from a list of dynamic
    values. *)
-let cpp_code_to_get_parameter_from_value_list assignments p =
-  cpp_code_for_parameterized_type assignments p.parameter_type
-  ^ " " ^ p.parameter_id ^ "; " ^ "try { " ^ "from_value(&" ^ p.parameter_id
-  ^ ", *arg_i); " ^ "} catch (cradle::exception& e) { "
-  ^ "e.add_context(\"in parameter " ^ p.parameter_id ^ "\"); throw; " ^ "} "
-  ^ "++arg_i; "
+let cpp_code_to_get_parameter_from_dynamic_list assignments p =
+  cpp_code_lines
+    [
+      cpp_code_for_parameterized_type assignments p.parameter_type
+      ^ " " ^ p.parameter_id ^ ";";
+      "try";
+      "{";
+      "    from_dynamic(&" ^ p.parameter_id ^ ", *arg_i);";
+      "}";
+      "catch (boost::exception& e)";
+      "{";
+      "    cradle::add_dynamic_path_element(e, \"" ^ p.parameter_id ^ "\");";
+      "    throw;";
+      "}";
+      "++arg_i;";
+    ]
 
 (* Generate the C++ code to get a function parameter from a mapping of strings
    to dynamic values. *)
-let cpp_code_to_get_parameter_from_value_map assignments p =
-  cpp_code_for_parameterized_type assignments p.parameter_type
-  ^ " " ^ p.parameter_id ^ "; " ^ "try { " ^ "from_value(&" ^ p.parameter_id
-  ^ ", get_field(args, \"" ^ p.parameter_id ^ "\")); "
-  ^ "} catch (cradle::exception& e) { " ^ "e.add_context(\"in parameter "
-  ^ p.parameter_id ^ "\"); throw; " ^ "} "
+let cpp_code_to_get_parameter_from_dynamic_map assignments p =
+  cpp_code_lines
+    [
+      cpp_code_for_parameterized_type assignments p.parameter_type
+      ^ " " ^ p.parameter_id ^ ";";
+      "try";
+      "{";
+      "    from_dynamic(";
+      "        &" ^ p.parameter_id ^ ",";
+      "        get_field(args, \"" ^ p.parameter_id ^ "\"));";
+      "}";
+      "catch (boost::exception& e)";
+      "{";
+      "    cradle::add_dynamic_path_element(e, \"" ^ p.parameter_id ^ "\");";
+      "    throw;";
+      "}";
+    ]
 
 (* Generate the C++ code to get a function parameter from a list of
    untyped_immutables. *)
@@ -223,11 +244,23 @@ let cpp_code_to_get_parameter_from_immutable_list assignments p =
   let parameter_type =
     cpp_code_for_parameterized_type assignments p.parameter_type
   in
-  parameter_type ^ " const* " ^ p.parameter_id ^ "; " ^ "try { "
-  ^ "cradle::cast_immutable_value(&" ^ p.parameter_id
-  ^ ", get_value_pointer(*arg_i)); " ^ "} catch (cradle::exception& e) { "
-  ^ "e.add_context(\"in parameter " ^ p.parameter_id ^ "\"); throw; " ^ "} "
-  ^ "++arg_i; "
+
+  cpp_code_lines
+    [
+      parameter_type ^ " const* " ^ p.parameter_id ^ ";";
+      "try";
+      "{";
+      "    cradle::cast_immutable_value(";
+      "        &" ^ p.parameter_id ^ ",";
+      "        get_value_pointer(*arg_i));";
+      "}";
+      "catch (boost::exception& e)";
+      "{";
+      "    cradle::add_dynamic_path_element(e, \"" ^ p.parameter_id ^ "\");";
+      "    throw;";
+      "}";
+      "++arg_i;";
+    ]
 
 (* Construct the code to call a function f once the arguments have been
    retrieved.
@@ -293,36 +326,36 @@ let cpp_code_to_define_function_instance account_id app_id f label assignments =
     cpp_code_to_call_function f f.function_id args_as_pointers
   in
   let code_to_evaluate_function_dynamically =
-    "cradle::value fn_result; "
+    "cradle::dynamic fn_result; "
     ^
     if is_void f.function_return_type then
       code_to_call_function false ^ "; set(fn_result, nil); "
-    else "to_value(&fn_result, " ^ code_to_call_function false ^ "); "
+    else "to_dynamic(&fn_result, " ^ code_to_call_function false ^ "); "
   in
 
   (* Emit code to call the function with a list of dynamic values as
      arguments. *)
-  "cradle::value execute( " ^ "cradle::check_in_interface& check_in, "
+  "cradle::dynamic execute( " ^ "cradle::check_in_interface& check_in, "
   ^ "cradle::progress_reporter_interface& reporter, "
-  ^ "cradle::value_list const& args) const " ^ "{ " ^ "if (args.size() != "
+  ^ "cradle::dynamic_list const& args) const " ^ "{ " ^ "if (args.size() != "
   ^ string_of_int (List.length f.function_parameters)
   ^ ") " ^ "throw cradle::exception(\"wrong number of arguments (expected "
   ^ string_of_int (List.length f.function_parameters)
-  ^ ")\"); " ^ "cradle::value_list::const_iterator arg_i = args.begin(); "
+  ^ ")\"); " ^ "cradle::dynamic_list::const_iterator arg_i = args.begin(); "
   ^ String.concat ""
       (List.map
-         (cpp_code_to_get_parameter_from_value_list assignments)
+         (cpp_code_to_get_parameter_from_dynamic_list assignments)
          f.function_parameters)
   ^ code_to_evaluate_function_dynamically ^ "return fn_result; " ^ "} "
   (* Emit code to call the function with the arguments passed as a map of
      strings to dynamic values. *)
-  ^ "cradle::value execute("
+  ^ "cradle::dynamic execute("
   ^ "cradle::check_in_interface& check_in, "
   ^ "cradle::progress_reporter_interface& reporter, "
-  ^ "cradle::value_map const& args) const " ^ "{ "
+  ^ "cradle::dynamic_map const& args) const " ^ "{ "
   ^ String.concat ""
       (List.map
-         (cpp_code_to_get_parameter_from_value_map assignments)
+         (cpp_code_to_get_parameter_from_dynamic_map assignments)
          f.function_parameters)
   ^ code_to_evaluate_function_dynamically ^ "return fn_result; " ^ "} "
   (* Emit code to call the function with a list of untyped_immutables as
@@ -465,7 +498,7 @@ let cpp_code_to_define_function account_id app_id namespace f =
   (* Define all the API instance redirections. *)
   ^ concat_code_for_function_instances cpp_function_redirection_code f
   (* Define the request interface. *)
-  ^ define_request_interface_for_function account_id app_id f
+  (* ^ define_request_interface_for_function account_id app_id f *)
   ^
   if List.length f.function_template_parameters == 0 then
     match f.function_body with
@@ -564,5 +597,6 @@ let hpp_code_for_function account_id app_id namespace f =
     else "" )
   (* Declare all the API instance redirections. *)
   ^ concat_code_for_function_instances hpp_function_redirection_code f
-  ^ (* Create the background interface. *)
-  declare_request_interface_for_function account_id app_id f
+
+(* Create the background interface. *)
+(* ^ declare_request_interface_for_function account_id app_id f *)

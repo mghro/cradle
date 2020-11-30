@@ -155,7 +155,8 @@ TEST_CASE("map type interface", "[core][types]")
 
     REQUIRE(
         deep_sizeof(std::map<int, int>({{0, 1}}))
-        == deep_sizeof(std::map<int, int>()) + deep_sizeof(0) + deep_sizeof(1));
+        == deep_sizeof(std::map<int, int>()) + deep_sizeof(0)
+               + deep_sizeof(1));
 }
 
 TEST_CASE("generated type interfaces", "[core][types]")
@@ -166,21 +167,4 @@ TEST_CASE("generated type interfaces", "[core][types]")
             make_disk_cache_config(some(string("abc")), 12),
             make_disk_cache_config(some(string("def")), 1));
     }
-
-#if defined(__GNUC__) && __GNUC__ >= 6
-    {
-        INFO("Test tagged constructors.");
-        api_structure_field_info info;
-        info = make_api_structure_field_info(
-            _doc("docs"), _schema(make_api_type_info_with_nil(api_nil_type())));
-        REQUIRE(info.doc == "docs");
-        REQUIRE(info.omissible == none);
-        REQUIRE(info.schema == make_api_type_info_with_nil(api_nil_type()));
-        info = make_api_structure_field_info(
-            _doc("docs"),
-            _omissible(true),
-            _schema(make_api_type_info_with_nil(api_nil_type())));
-        REQUIRE(info.omissible == some(true));
-    }
-#endif
 }

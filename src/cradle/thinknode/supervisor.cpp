@@ -56,12 +56,12 @@ make_docker_request(
             return make_http_request(
                 method, "http://localhost:2375" + path, headers, body);
         case docker_service_type::LINUX:
-            return make_http_request(
+            return http_request{
                 method,
                 "http://localhost" + path,
                 headers,
                 body,
-                some(string("/var/run/docker.sock")));
+                some(string("/var/run/docker.sock"))};
         default:
             CRADLE_THROW(
                 invalid_enum_value()
@@ -154,18 +154,19 @@ spawn_provider(
               "Im5wdGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lz"
               "dHJ5"
               "LW1naC50aGlua25vZGUuY29tIgp9"}},
-            value_to_json_blob(
-                dynamic({{"Image",
-                          "registry-mgh.thinknode.com/" + account + "/" + app
-                              + "@" + extract_tag(image)},
-                         {"Env",
-                          {service_type == docker_service_type::WINDOWS
-                               ? "THINKNODE_HOST=host.docker.internal"
-                               : "THINKNODE_HOST=localhost",
-                           "THINKNODE_PORT=41079",
-                           "THINKNODE_PID=the_pid_which_must_be_length_32_"}},
-                         {"HostConfig", {{"NetworkMode", "host"}}}})));
-        auto response = connection.perform_request(check_in, reporter, request);
+            value_to_json_blob(dynamic(
+                {{"Image",
+                  "registry-mgh.thinknode.com/" + account + "/" + app + "@"
+                      + extract_tag(image)},
+                 {"Env",
+                  {service_type == docker_service_type::WINDOWS
+                       ? "THINKNODE_HOST=host.docker.internal"
+                       : "THINKNODE_HOST=localhost",
+                   "THINKNODE_PORT=41079",
+                   "THINKNODE_PID=the_pid_which_must_be_length_32_"}},
+                 {"HostConfig", {{"NetworkMode", "host"}}}})));
+        auto response
+            = connection.perform_request(check_in, reporter, request);
         id = cast<string>(
             get_field(cast<dynamic_map>(parse_json_response(response)), "Id"));
     }
@@ -220,8 +221,8 @@ supervise_thinknode_calculation(
         // Process messages from the supervisor.
         while (1)
         {
-            auto message
-                = read_message<thinknode_provider_message>(socket, ipc_version);
+            auto message = read_message<thinknode_provider_message>(
+                socket, ipc_version);
             switch (get_tag(message))
             {
                 case thinknode_provider_message_tag::REGISTRATION:

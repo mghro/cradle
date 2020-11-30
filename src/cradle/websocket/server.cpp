@@ -130,8 +130,9 @@ struct client_connection
 
 struct client_connection_list
 {
-    std::map<connection_hdl, client_connection, std::owner_less<connection_hdl>>
-        connections;
+    std::
+        map<connection_hdl, client_connection, std::owner_less<connection_hdl>>
+            connections;
     std::mutex mutex;
 };
 
@@ -300,11 +301,12 @@ resolve_iss_object_to_immutable(
         << CRADLE_LOG_ARG(ignore_upgrades));
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"resolve_iss_object_to_immutable",
-                                         session.api_url,
-                                         ignore_upgrades ? "n/a" : context_id,
-                                         object_id})));
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"resolve_iss_object_to_immutable",
+             session.api_url,
+             ignore_upgrades ? "n/a" : context_id,
+             object_id})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -391,11 +393,12 @@ get_iss_object_metadata(
     string const& object_id)
 {
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"get_iss_object_metadata",
-                                         session.api_url,
-                                         context_id,
-                                         object_id})));
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"get_iss_object_metadata",
+             session.api_url,
+             context_id,
+             object_id})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -460,7 +463,11 @@ get_app_version_info(
 {
     auto cache_key
         = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
-            {"get_app_version_info", session.api_url, account, app, version})));
+            {"get_app_version_info",
+             session.api_url,
+             account,
+             app,
+             version})));
 
     static std::unordered_map<string, thinknode_app_version_info> memory_cache;
     auto cache_entry = memory_cache.find(cache_key);
@@ -601,7 +608,8 @@ resolve_context_app(
     string const& account,
     string const& app)
 {
-    auto context = get_context_contents(cache, connection, session, context_id);
+    auto context
+        = get_context_contents(cache, connection, session, context_id);
     for (auto const& app_info : context.contents)
     {
         if (app_info.account == account && app_info.app == app)
@@ -648,7 +656,7 @@ resolve_named_type_reference(
         connection,
         session,
         context_id,
-        ref.account ? *ref.account : get_account_name(session),
+        get_account_name(session),
         ref.app);
     for (auto const& type : version_info.manifest->types)
     {
@@ -709,12 +717,13 @@ post_iss_object(
         decoded_object);
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"post_iss_object",
-                                         session.api_url,
-                                         context_id,
-                                         to_dynamic(schema),
-                                         coerced_object})));
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"post_iss_object",
+             session.api_url,
+             context_id,
+             to_dynamic(schema),
+             coerced_object})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -765,48 +774,48 @@ type_contains_references(
 
     switch (get_tag(type))
     {
-        case api_type_info_tag::ARRAY:
-            return recurse(as_array(type).element_schema);
-        case api_type_info_tag::BLOB:
+        case api_type_info_tag::ARRAY_TYPE:
+            return recurse(as_array_type(type).element_schema);
+        case api_type_info_tag::BLOB_TYPE:
             return false;
-        case api_type_info_tag::BOOLEAN:
+        case api_type_info_tag::BOOLEAN_TYPE:
             return false;
-        case api_type_info_tag::DATETIME:
+        case api_type_info_tag::DATETIME_TYPE:
             return false;
-        case api_type_info_tag::DYNAMIC:
+        case api_type_info_tag::DYNAMIC_TYPE:
             // Technically, there could be a reference stored within a
             // dynamic (or in blobs, strings, etc.), but we're only looking
             // for explicitly typed references.
             return false;
-        case api_type_info_tag::ENUM:
+        case api_type_info_tag::ENUM_TYPE:
             return false;
-        case api_type_info_tag::FLOAT:
+        case api_type_info_tag::FLOAT_TYPE:
             return false;
-        case api_type_info_tag::INTEGER:
+        case api_type_info_tag::INTEGER_TYPE:
             return false;
-        case api_type_info_tag::MAP:
-            return recurse(as_map(type).key_schema)
-                   || recurse(as_map(type).value_schema);
-        case api_type_info_tag::NAMED:
-            return recurse(look_up_named_type(as_named(type)));
-        case api_type_info_tag::NIL:
+        case api_type_info_tag::MAP_TYPE:
+            return recurse(as_map_type(type).key_schema)
+                   || recurse(as_map_type(type).value_schema);
+        case api_type_info_tag::NAMED_TYPE:
+            return recurse(look_up_named_type(as_named_type(type)));
+        case api_type_info_tag::NIL_TYPE:
         default:
             return false;
-        case api_type_info_tag::OPTIONAL_:
-            return recurse(as_optional_(type));
-        case api_type_info_tag::REFERENCE:
+        case api_type_info_tag::OPTIONAL_TYPE:
+            return recurse(as_optional_type(type));
+        case api_type_info_tag::REFERENCE_TYPE:
             return true;
-        case api_type_info_tag::STRING:
+        case api_type_info_tag::STRING_TYPE:
             return false;
-        case api_type_info_tag::STRUCTURE:
+        case api_type_info_tag::STRUCTURE_TYPE:
             return std::any_of(
-                as_structure(type).begin(),
-                as_structure(type).end(),
+                as_structure_type(type).fields.begin(),
+                as_structure_type(type).fields.end(),
                 [&](auto const& pair) { return recurse(pair.second.schema); });
-        case api_type_info_tag::UNION:
+        case api_type_info_tag::UNION_TYPE:
             return std::any_of(
-                as_union(type).begin(),
-                as_union(type).end(),
+                as_union_type(type).members.begin(),
+                as_union_type(type).members.end(),
                 [&](auto const& pair) { return recurse(pair.second.schema); });
     }
 }
@@ -825,29 +834,28 @@ visit_references(
 
     switch (get_tag(type))
     {
-        case api_type_info_tag::ARRAY:
+        case api_type_info_tag::ARRAY_TYPE:
             for (auto const& item : cast<dynamic_array>(value))
             {
-                recurse(as_array(type).element_schema, item);
+                recurse(as_array_type(type).element_schema, item);
             }
             break;
-        case api_type_info_tag::BLOB:
+        case api_type_info_tag::BLOB_TYPE:
             break;
-        case api_type_info_tag::BOOLEAN:
+        case api_type_info_tag::BOOLEAN_TYPE:
             break;
-        case api_type_info_tag::DATETIME:
+        case api_type_info_tag::DATETIME_TYPE:
             break;
-        case api_type_info_tag::DYNAMIC:
+        case api_type_info_tag::DYNAMIC_TYPE:
             break;
-        case api_type_info_tag::ENUM:
+        case api_type_info_tag::ENUM_TYPE:
             break;
-        case api_type_info_tag::FLOAT:
+        case api_type_info_tag::FLOAT_TYPE:
             break;
-        case api_type_info_tag::INTEGER:
+        case api_type_info_tag::INTEGER_TYPE:
             break;
-        case api_type_info_tag::MAP:
-        {
-            auto const& map_type = as_map(type);
+        case api_type_info_tag::MAP_TYPE: {
+            auto const& map_type = as_map_type(type);
             for (auto const& pair : cast<dynamic_map>(value))
             {
                 recurse(map_type.key_schema, pair.first);
@@ -855,32 +863,30 @@ visit_references(
             }
             break;
         }
-        case api_type_info_tag::NAMED:
-            recurse(look_up_named_type(as_named(type)), value);
+        case api_type_info_tag::NAMED_TYPE:
+            recurse(look_up_named_type(as_named_type(type)), value);
             break;
-        case api_type_info_tag::NIL:
+        case api_type_info_tag::NIL_TYPE:
         default:
             break;
-        case api_type_info_tag::OPTIONAL_:
-        {
+        case api_type_info_tag::OPTIONAL_TYPE: {
             auto const& map = cast<dynamic_map>(value);
             string tag;
             from_dynamic(&tag, cradle::get_union_tag(map));
             if (tag == "some")
             {
-                recurse(as_optional_(type), get_field(map, "some"));
+                recurse(as_optional_type(type), get_field(map, "some"));
             }
             break;
         }
-        case api_type_info_tag::REFERENCE:
+        case api_type_info_tag::REFERENCE_TYPE:
             visitor(cast<string>(value));
-        case api_type_info_tag::STRING:
+        case api_type_info_tag::STRING_TYPE:
             break;
-        case api_type_info_tag::STRUCTURE:
-        {
-            auto const& structure_type = as_structure(type);
+        case api_type_info_tag::STRUCTURE_TYPE: {
+            auto const& structure_type = as_structure_type(type);
             auto const& map = cast<dynamic_map>(value);
-            for (auto const& pair : structure_type)
+            for (auto const& pair : structure_type.fields)
             {
                 auto const& field_info = pair.second;
                 dynamic const* field_value;
@@ -892,13 +898,12 @@ visit_references(
             }
             break;
         }
-        case api_type_info_tag::UNION:
-        {
-            auto const& union_type = as_union(type);
+        case api_type_info_tag::UNION_TYPE: {
+            auto const& union_type = as_union_type(type);
             auto const& map = cast<dynamic_map>(value);
             string tag;
             from_dynamic(&tag, cradle::get_union_tag(map));
-            for (auto const& pair : union_type)
+            for (auto const& pair : union_type.members)
             {
                 auto const& member_name = pair.first;
                 auto const& member_info = pair.second;
@@ -985,8 +990,9 @@ get_calculation_request(
     string const& calculation_id)
 {
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(value_to_msgpack_string(
-        dynamic({"get_calculation_request", session.api_url, calculation_id})));
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"get_calculation_request", session.api_url, calculation_id})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -995,8 +1001,9 @@ get_calculation_request(
         if (entry && entry->value)
         {
             spdlog::get("cradle")->info("cache hit on {}", cache_key);
-            return from_dynamic<calculation_request>(parse_msgpack_value(
-                base64_decode(*entry->value, get_mime_base64_character_set())));
+            return from_dynamic<calculation_request>(
+                parse_msgpack_value(base64_decode(
+                    *entry->value, get_mime_base64_character_set())));
         }
     }
     catch (...)
@@ -1035,7 +1042,8 @@ struct simple_calculation_retriever : calculation_retrieval_interface
     disk_cache& cache;
     http_connection& connection;
 
-    simple_calculation_retriever(disk_cache& cache, http_connection& connection)
+    simple_calculation_retriever(
+        disk_cache& cache, http_connection& connection)
         : cache(cache), connection(connection)
     {
     }
@@ -1079,11 +1087,12 @@ post_shallow_calculation(
         return as_reference(calculation);
 
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"post_calculation",
-                                         session.api_url,
-                                         context_id,
-                                         to_dynamic(calculation)})));
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"post_calculation",
+             session.api_url,
+             context_id,
+             to_dynamic(calculation)})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -1224,7 +1233,8 @@ struct simple_calculation_submitter : calculation_submission_interface
     disk_cache& cache;
     http_connection& connection;
 
-    simple_calculation_submitter(disk_cache& cache, http_connection& connection)
+    simple_calculation_submitter(
+        disk_cache& cache, http_connection& connection)
         : cache(cache), connection(connection)
     {
     }
@@ -1314,10 +1324,10 @@ compute_iss_tree_diff(
 {
     object_tree_diff tree_diff;
 
-    auto object_a
-        = get_iss_object(cache, connection, session, context_id_a, object_id_a);
-    auto object_b
-        = get_iss_object(cache, connection, session, context_id_b, object_id_b);
+    auto object_a = get_iss_object(
+        cache, connection, session, context_id_a, object_id_a);
+    auto object_b = get_iss_object(
+        cache, connection, session, context_id_b, object_id_b);
     auto diff = compute_value_diff(object_a, object_b);
 
     value_diff relevant_diff;
@@ -1475,8 +1485,7 @@ process_message(
     auto const& content = request.message.content;
     switch (get_tag(content))
     {
-        case client_message_content_tag::REGISTRATION:
-        {
+        case client_message_content_tag::REGISTRATION: {
             auto const& registration = as_registration(content);
             access_client(server.clients, request.client, [&](auto& client) {
                 client.name = registration.name;
@@ -1484,8 +1493,7 @@ process_message(
             });
             break;
         }
-        case client_message_content_tag::TEST:
-        {
+        case client_message_content_tag::TEST: {
             websocket_test_response response;
             response.name = get_client(server.clients, request.client).name;
             response.message = as_test(content).message;
@@ -1495,14 +1503,12 @@ process_message(
                 make_server_message_content_with_test(response));
             break;
         }
-        case client_message_content_tag::CACHE_INSERT:
-        {
+        case client_message_content_tag::CACHE_INSERT: {
             auto& insertion = as_cache_insert(content);
             server.cache.insert(insertion.key, insertion.value);
             break;
         }
-        case client_message_content_tag::CACHE_QUERY:
-        {
+        case client_message_content_tag::CACHE_QUERY: {
             auto const& key = as_cache_query(content);
             auto entry = server.cache.find(key);
             send_response(
@@ -1513,8 +1519,7 @@ process_message(
                         key, entry ? entry->value : none)));
             break;
         }
-        case client_message_content_tag::ISS_OBJECT:
-        {
+        case client_message_content_tag::ISS_OBJECT: {
             auto const& gio = as_iss_object(content);
             auto object = get_iss_object(
                 server.cache,
@@ -1531,8 +1536,7 @@ process_message(
                     iss_object_response{std::move(encoded_object)}));
             break;
         }
-        case client_message_content_tag::RESOLVE_ISS_OBJECT:
-        {
+        case client_message_content_tag::RESOLVE_ISS_OBJECT: {
             auto const& rio = as_resolve_iss_object(content);
             auto immutable_id = resolve_iss_object_to_immutable(
                 server.cache,
@@ -1548,8 +1552,7 @@ process_message(
                     resolve_iss_object_response{immutable_id}));
             break;
         }
-        case client_message_content_tag::ISS_OBJECT_METADATA:
-        {
+        case client_message_content_tag::ISS_OBJECT_METADATA: {
             auto const& giom = as_iss_object_metadata(content);
             auto metadata = get_iss_object_metadata(
                 server.cache,
@@ -1564,8 +1567,7 @@ process_message(
                     iss_object_metadata_response{std::move(metadata)}));
             break;
         }
-        case client_message_content_tag::POST_ISS_OBJECT:
-        {
+        case client_message_content_tag::POST_ISS_OBJECT: {
             auto const& pio = as_post_iss_object(content);
             auto object_id = post_iss_object(
                 server.cache,
@@ -1582,8 +1584,7 @@ process_message(
                     make_post_iss_object_response(object_id)));
             break;
         }
-        case client_message_content_tag::COPY_ISS_OBJECT:
-        {
+        case client_message_content_tag::COPY_ISS_OBJECT: {
             auto const& cio = as_copy_iss_object(content);
             auto source_bucket
                 = get_context_contents(
@@ -1603,11 +1604,11 @@ process_message(
             send_response(
                 server,
                 request,
-                make_server_message_content_with_copy_iss_object_response(nil));
+                make_server_message_content_with_copy_iss_object_response(
+                    nil));
             break;
         }
-        case client_message_content_tag::CALCULATION_REQUEST:
-        {
+        case client_message_content_tag::CALCULATION_REQUEST: {
             auto const& gcr = as_calculation_request(content);
             auto calc = get_calculation_request(
                 server.cache,
@@ -1622,8 +1623,7 @@ process_message(
                     make_calculation_request_response(calc)));
             break;
         }
-        case client_message_content_tag::CALCULATION_DIFF:
-        {
+        case client_message_content_tag::CALCULATION_DIFF: {
             auto const& cdr = as_calculation_diff(content);
             auto diff = compute_calc_tree_diff(
                 server.cache,
@@ -1640,8 +1640,7 @@ process_message(
                     diff));
             break;
         }
-        case client_message_content_tag::ISS_DIFF:
-        {
+        case client_message_content_tag::ISS_DIFF: {
             auto const& idr = as_iss_diff(content);
             auto diff = compute_iss_tree_diff(
                 server.cache,
@@ -1657,8 +1656,7 @@ process_message(
                 make_server_message_content_with_iss_diff_response(diff));
             break;
         }
-        case client_message_content_tag::CALCULATION_SEARCH:
-        {
+        case client_message_content_tag::CALCULATION_SEARCH: {
             auto const& csr = as_calculation_search(content);
             auto matches = search_calculation(
                 server.cache,
@@ -1674,8 +1672,7 @@ process_message(
                     make_calculation_search_response(matches)));
             break;
         }
-        case client_message_content_tag::POST_CALCULATION:
-        {
+        case client_message_content_tag::POST_CALCULATION: {
             auto const& pc = as_post_calculation(content);
             auto calc_id = post_calculation(
                 server.cache,
@@ -1690,8 +1687,7 @@ process_message(
                     make_post_calculation_response(calc_id)));
             break;
         }
-        case client_message_content_tag::RESOLVE_META_CHAIN:
-        {
+        case client_message_content_tag::RESOLVE_META_CHAIN: {
             auto const& rmc = as_resolve_meta_chain(content);
             auto calc_id = resolve_meta_chain(
                 server.cache,
@@ -1710,8 +1706,7 @@ process_message(
                     make_resolve_meta_chain_response(calc_id)));
             break;
         }
-        case client_message_content_tag::PERFORM_LOCAL_CALC:
-        {
+        case client_message_content_tag::PERFORM_LOCAL_CALC: {
             auto const& pc = as_perform_local_calc(content);
             auto result = perform_local_calc(
                 server.cache,
@@ -1725,8 +1720,7 @@ process_message(
                 make_server_message_content_with_local_calc_result(result));
             break;
         }
-        case client_message_content_tag::KILL:
-        {
+        case client_message_content_tag::KILL: {
             break;
         }
     }

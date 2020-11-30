@@ -3,6 +3,7 @@
 
 #include <cradle/core/utilities.hpp>
 
+#include <boost/core/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include <iostream>
@@ -60,14 +61,51 @@ struct blob
     }
 };
 
-// type_info_query<T>::get(&info) should fill info with the CRADLE type info for
-// the type T. All CRADLE regular types must provide a specialization of this.
+// type_info_query<T>::get(&info) should set :info to the CRADLE type info for
+// the type T from the perspective of someone *using* T. This might not be the
+// full definition of T (e.g., for named types, it's just the name).
+//
+// All CRADLE regular types must provide a specialization of this.
+//
 template<class T>
 struct type_info_query
 {
 };
 
 struct api_type_info;
+
+// definitive_type_info_query<T>::get(&info) should set *info to the definitive
+// CRADLE type info for the type T. This is always the full definition of the
+// type, even for named types.
+//
+// The default implementation of this simply forwards to the regular query.
+//
+template<class T>
+struct definitive_type_info_query : type_info_query<T>
+{
+};
+
+// enum_type_info_query<T>::get(&info) should set :info to the enum type info
+// for the type T.
+//
+// All CRADLE enum types must provide a specialization of this.
+//
+template<class T>
+struct enum_type_info_query
+{
+};
+
+struct api_enum_info;
+
+// structure_field_type_info_adder<T>::add(&fields), where T is a structure
+// type, adds the CRADLE type info for the fields of T to the map :fields.
+//
+// This should be implemented by all CRADLE structure types.
+//
+template<class T>
+struct structure_field_type_info_adder
+{
+};
 
 struct dynamic;
 
@@ -241,6 +279,105 @@ struct dynamic
 
     value_type type_;
     any value_;
+};
+
+// omissible<T> is the same as optional<T>, but it obeys thinknode's behavior
+// foe omissible fields. (It should only be used as a field in a structure.)
+// optional<T> stores an optional value of type T (or no value).
+template<class T>
+struct omissible
+{
+    typedef T value_type;
+    omissible() : valid_(false)
+    {
+    }
+    omissible(T const& value) : value_(value), valid_(true)
+    {
+    }
+    omissible(boost::none_t) : valid_(false)
+    {
+    }
+    omissible(optional<T> const& opt)
+        : valid_(opt ? true : false), value_(opt ? opt.get() : T())
+    {
+    }
+    omissible&
+    operator=(T const& value)
+    {
+        value_ = value;
+        valid_ = true;
+        return *this;
+    }
+    omissible& operator=(boost::none_t)
+    {
+        valid_ = false;
+        return *this;
+    }
+    omissible&
+    operator=(optional<T> const& opt)
+    {
+        valid_ = opt ? true : false;
+        value_ = opt ? opt.get() : T();
+        return *this;
+    }
+    // allows use within if statements without other unintended conversions
+    typedef bool omissible::*unspecified_bool_type;
+    operator unspecified_bool_type() const
+    {
+        return valid_ ? &omissible::valid_ : 0;
+    }
+    T const&
+    get() const
+    {
+        assert(valid_);
+        return value_;
+    }
+    T&
+    get()
+    {
+        assert(valid_);
+        return value_;
+    }
+    T const&
+    operator*() const
+    {
+        assert(valid_);
+        return value_;
+    }
+    T&
+    operator*()
+    {
+        assert(valid_);
+        return value_;
+    }
+
+ private:
+    T value_;
+    bool valid_;
+};
+
+// IMMUTABLES
+
+struct untyped_immutable_value : boost::noncopyable
+{
+    virtual ~untyped_immutable_value()
+    {
+    }
+    virtual api_type_info
+    type_info() const = 0;
+    virtual size_t
+    deep_size() const = 0;
+    virtual size_t
+    hash() const = 0;
+    virtual dynamic
+    as_dynamic() const = 0;
+    virtual bool
+    equals(untyped_immutable_value const* other) const = 0;
+};
+
+struct untyped_immutable
+{
+    std::shared_ptr<untyped_immutable_value> ptr;
 };
 
 } // namespace cradle

@@ -12,7 +12,7 @@
 #include "http_requests.hpp"
 
 // Include this again to clean up preprocessor definitions.
-#include <cradle/io/http_types.hpp>
+#include <cradle/io/http_requests.hpp>
 
 using namespace cradle;
 
@@ -46,9 +46,10 @@ perform_simple_request(http_request const& request)
 
 TEST_CASE("request headers", "[io][http]")
 {
-    http_header_list request_headers = {{"Accept", "application/json"},
-                                        {"Cradle-Test-Header", "present"},
-                                        {"Color", "navy"}};
+    http_header_list request_headers
+        = {{"Accept", "application/json"},
+           {"Cradle-Test-Header", "present"},
+           {"Color", "navy"}};
     auto response = perform_simple_request(
         make_get_request("http://postman-echo.com/headers", request_headers));
     REQUIRE(response.status_code == 200);
@@ -169,7 +170,8 @@ TEST_CASE("404 response code", "[io][http]")
     catch (bad_http_status_code& e)
     {
         REQUIRE(
-            get_required_error_info<attempted_http_request_info>(e) == request);
+            get_required_error_info<attempted_http_request_info>(e)
+            == request);
         REQUIRE(
             get_required_error_info<http_response_info>(e).status_code == 404);
     }
@@ -211,7 +213,8 @@ TEST_CASE("500 response code", "[io][http]")
     catch (bad_http_status_code& e)
     {
         REQUIRE(
-            get_required_error_info<attempted_http_request_info>(e) == request);
+            get_required_error_info<attempted_http_request_info>(e)
+            == request);
         REQUIRE(
             get_required_error_info<http_response_info>(e).status_code == 500);
     }
@@ -230,7 +233,8 @@ TEST_CASE("bad hostname", "[io][http]")
     catch (http_request_failure& e)
     {
         REQUIRE(
-            get_required_error_info<attempted_http_request_info>(e) == request);
+            get_required_error_info<attempted_http_request_info>(e)
+            == request);
         REQUIRE(
             !get_required_error_info<internal_error_message_info>(e).empty());
     }

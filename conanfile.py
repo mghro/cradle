@@ -13,7 +13,7 @@ class CradleConan(ConanFile):
         "libcurl/7.52.1@bincrafters/stable", \
         "OpenSSL/1.0.2s@conan/stable", \
         "sqlite3/3.21.0@bincrafters/stable", \
-        "FakeIt/master@gasuketsu/stable", \
+        "FakeIt/2.0.4@gasuketsu/stable", \
         "websocketpp/0.7.0@TyRoXx/stable", \
         "zlib/1.2.11@conan/stable", \
         "bzip2/1.0.6@conan/stable", \

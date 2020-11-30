@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <cradle/common.hpp>
+#include <cradle/core/type_info.hpp>
 #include <cradle/encodings/yaml.hpp>
 
 namespace cradle {
@@ -82,8 +83,7 @@ dynamic::dynamic(std::initializer_list<dynamic> list)
     }
 }
 
-void
-dynamic::set(nil_t)
+void dynamic::set(nil_t)
 {
     type_ = value_type::NIL;
 }
@@ -293,6 +293,12 @@ get_union_tag(dynamic_map const& map)
 }
 
 void
+type_info_query<dynamic>::get(api_type_info* info)
+{
+    *info = make_api_type_info_with_dynamic_type(api_dynamic_type());
+}
+
+void
 add_dynamic_path_element(boost::exception& e, dynamic const& path_element)
 {
     std::list<dynamic>* info = get_error_info<dynamic_value_path_info>(e);
@@ -313,21 +319,21 @@ value_requires_coercion(
     api_type_info const& type,
     dynamic const& value)
 {
-    auto recurse =
-        [&look_up_named_type](api_type_info const& type, dynamic const& value) {
-            return value_requires_coercion(look_up_named_type, type, value);
-        };
+    auto recurse = [&look_up_named_type](
+                       api_type_info const& type, dynamic const& value) {
+        return value_requires_coercion(look_up_named_type, type, value);
+    };
 
     switch (get_tag(type))
     {
-        case api_type_info_tag::ARRAY: {
+        case api_type_info_tag::ARRAY_TYPE: {
             integer index = 0;
             for (auto const& item : cast<dynamic_array>(value))
             {
                 auto this_index = index++;
                 try
                 {
-                    if (recurse(as_array(type).element_schema, item))
+                    if (recurse(as_array_type(type).element_schema, item))
                         return true;
                 }
                 catch (boost::exception& e)
@@ -338,13 +344,13 @@ value_requires_coercion(
             }
             return false;
         }
-        case api_type_info_tag::BLOB:
+        case api_type_info_tag::BLOB_TYPE:
             check_type(value_type::BLOB, value.type());
             return false;
-        case api_type_info_tag::BOOLEAN:
+        case api_type_info_tag::BOOLEAN_TYPE:
             check_type(value_type::BOOLEAN, value.type());
             return false;
-        case api_type_info_tag::DATETIME:
+        case api_type_info_tag::DATETIME_TYPE:
             // Be forgiving of clients that leave their datetimes as strings.
             if (value.type() == value_type::STRING)
             {
@@ -359,23 +365,24 @@ value_requires_coercion(
             }
             check_type(value_type::DATETIME, value.type());
             return false;
-        case api_type_info_tag::DYNAMIC:
+        case api_type_info_tag::DYNAMIC_TYPE:
             return false;
-        case api_type_info_tag::ENUM:
+        case api_type_info_tag::ENUM_TYPE:
             check_type(value_type::STRING, value.type());
-            if (as_enum(type).find(cast<string>(value)) == as_enum(type).end())
+            if (as_enum_type(type).values.find(cast<string>(value))
+                == as_enum_type(type).values.end())
             {
                 CRADLE_THROW(
                     cradle::invalid_enum_string()
                     << cradle::enum_string_info(cast<string>(value)));
             }
             return false;
-        case api_type_info_tag::FLOAT:
+        case api_type_info_tag::FLOAT_TYPE:
             if (value.type() == value_type::INTEGER)
                 return true;
             check_type(value_type::FLOAT, value.type());
             return false;
-        case api_type_info_tag::INTEGER:
+        case api_type_info_tag::INTEGER_TYPE:
             if (value.type() == value_type::FLOAT)
             {
                 double d = cast<double>(value);
@@ -386,8 +393,8 @@ value_requires_coercion(
             }
             check_type(value_type::INTEGER, value.type());
             return false;
-        case api_type_info_tag::MAP: {
-            auto const& map_type = as_map(type);
+        case api_type_info_tag::MAP_TYPE: {
+            auto const& map_type = as_map_type(type);
             // This is a little hack to support the fact that JSON maps are
             // encoded as arrays and they don't get recognized as maps when
             // they're empty.
@@ -414,20 +421,21 @@ value_requires_coercion(
             }
             return false;
         }
-        case api_type_info_tag::NAMED:
-            return recurse(look_up_named_type(as_named(type)), value);
-        case api_type_info_tag::NIL:
+        case api_type_info_tag::NAMED_TYPE:
+            return recurse(look_up_named_type(as_named_type(type)), value);
+        case api_type_info_tag::NIL_TYPE:
         default:
             check_type(value_type::NIL, value.type());
             return false;
-        case api_type_info_tag::OPTIONAL_: {
+        case api_type_info_tag::OPTIONAL_TYPE: {
             auto const& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
             if (tag == "some")
             {
                 try
                 {
-                    return recurse(as_optional_(type), get_field(map, "some"));
+                    return recurse(
+                        as_optional_type(type), get_field(map, "some"));
                 }
                 catch (boost::exception& e)
                 {
@@ -446,16 +454,16 @@ value_requires_coercion(
                     invalid_optional_type() << optional_type_tag_info(tag));
             }
         }
-        case api_type_info_tag::REFERENCE:
+        case api_type_info_tag::REFERENCE_TYPE:
             check_type(value_type::STRING, value.type());
             return false;
-        case api_type_info_tag::STRING:
+        case api_type_info_tag::STRING_TYPE:
             check_type(value_type::STRING, value.type());
             return false;
-        case api_type_info_tag::STRUCTURE: {
-            auto const& structure_type = as_structure(type);
+        case api_type_info_tag::STRUCTURE_TYPE: {
+            auto const& structure_type = as_structure_type(type);
             auto const& map = cast<dynamic_map>(value);
-            for (auto const& key_value : structure_type)
+            for (auto const& key_value : structure_type.fields)
             {
                 auto const& field_name = key_value.first;
                 auto const& field_info = key_value.second;
@@ -483,11 +491,11 @@ value_requires_coercion(
             }
             return false;
         }
-        case api_type_info_tag::UNION: {
-            auto const& union_type = as_union(type);
+        case api_type_info_tag::UNION_TYPE: {
+            auto const& union_type = as_union_type(type);
             auto const& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
-            for (auto const& key_value : union_type)
+            for (auto const& key_value : union_type.members)
             {
                 auto const& member_name = key_value.first;
                 auto const& member_info = key_value.second;
@@ -527,14 +535,14 @@ coerce_value_impl(
 
     switch (get_tag(type))
     {
-        case api_type_info_tag::ARRAY: {
+        case api_type_info_tag::ARRAY_TYPE: {
             integer index = 0;
             for (dynamic& item : cast<dynamic_array>(value))
             {
                 auto this_index = index++;
                 try
                 {
-                    recurse(as_array(type).element_schema, item);
+                    recurse(as_array_type(type).element_schema, item);
                 }
                 catch (boost::exception& e)
                 {
@@ -544,13 +552,13 @@ coerce_value_impl(
             }
             break;
         }
-        case api_type_info_tag::BLOB:
+        case api_type_info_tag::BLOB_TYPE:
             check_type(value_type::BLOB, value.type());
             break;
-        case api_type_info_tag::BOOLEAN:
+        case api_type_info_tag::BOOLEAN_TYPE:
             check_type(value_type::BOOLEAN, value.type());
             break;
-        case api_type_info_tag::DATETIME:
+        case api_type_info_tag::DATETIME_TYPE:
             // Be forgiving of clients that leave their datetimes as strings.
             if (value.type() == value_type::STRING)
             {
@@ -565,18 +573,19 @@ coerce_value_impl(
             }
             check_type(value_type::DATETIME, value.type());
             break;
-        case api_type_info_tag::DYNAMIC:
+        case api_type_info_tag::DYNAMIC_TYPE:
             break;
-        case api_type_info_tag::ENUM:
+        case api_type_info_tag::ENUM_TYPE:
             check_type(value_type::STRING, value.type());
-            if (as_enum(type).find(cast<string>(value)) == as_enum(type).end())
+            if (as_enum_type(type).values.find(cast<string>(value))
+                == as_enum_type(type).values.end())
             {
                 CRADLE_THROW(
                     cradle::invalid_enum_string()
                     << cradle::enum_string_info(cast<string>(value)));
             }
             break;
-        case api_type_info_tag::FLOAT:
+        case api_type_info_tag::FLOAT_TYPE:
             if (value.type() == value_type::INTEGER)
             {
                 value = boost::numeric_cast<double>(cast<integer>(value));
@@ -584,7 +593,7 @@ coerce_value_impl(
             }
             check_type(value_type::FLOAT, value.type());
             break;
-        case api_type_info_tag::INTEGER:
+        case api_type_info_tag::INTEGER_TYPE:
             if (value.type() == value_type::FLOAT)
             {
                 double d = cast<double>(value);
@@ -598,8 +607,8 @@ coerce_value_impl(
             }
             check_type(value_type::INTEGER, value.type());
             break;
-        case api_type_info_tag::MAP: {
-            auto const& map_type = as_map(type);
+        case api_type_info_tag::MAP_TYPE: {
+            auto const& map_type = as_map_type(type);
             // This is a little hack to support the fact that JSON maps are
             // encoded as arrays and they don't get recognized as maps when
             // they're empty.
@@ -663,21 +672,21 @@ coerce_value_impl(
             }
             break;
         }
-        case api_type_info_tag::NAMED:
-            recurse(look_up_named_type(as_named(type)), value);
+        case api_type_info_tag::NAMED_TYPE:
+            recurse(look_up_named_type(as_named_type(type)), value);
             break;
-        case api_type_info_tag::NIL:
+        case api_type_info_tag::NIL_TYPE:
         default:
             check_type(value_type::NIL, value.type());
             break;
-        case api_type_info_tag::OPTIONAL_: {
+        case api_type_info_tag::OPTIONAL_TYPE: {
             auto& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
             if (tag == "some")
             {
                 try
                 {
-                    recurse(as_optional_(type), get_field(map, "some"));
+                    recurse(as_optional_type(type), get_field(map, "some"));
                 }
                 catch (boost::exception& e)
                 {
@@ -696,16 +705,16 @@ coerce_value_impl(
             }
             break;
         }
-        case api_type_info_tag::REFERENCE:
+        case api_type_info_tag::REFERENCE_TYPE:
             check_type(value_type::STRING, value.type());
             break;
-        case api_type_info_tag::STRING:
+        case api_type_info_tag::STRING_TYPE:
             check_type(value_type::STRING, value.type());
             break;
-        case api_type_info_tag::STRUCTURE: {
-            auto const& structure_type = as_structure(type);
+        case api_type_info_tag::STRUCTURE_TYPE: {
+            auto const& structure_type = as_structure_type(type);
             auto& map = cast<dynamic_map>(value);
-            for (auto const& key_value : structure_type)
+            for (auto const& key_value : structure_type.fields)
             {
                 auto const& field_name = key_value.first;
                 auto const& field_info = key_value.second;
@@ -732,11 +741,11 @@ coerce_value_impl(
             }
             break;
         }
-        case api_type_info_tag::UNION: {
-            auto const& union_type = as_union(type);
+        case api_type_info_tag::UNION_TYPE: {
+            auto const& union_type = as_union_type(type);
             auto& map = cast<dynamic_map>(value);
             auto const& tag = cast<string>(cradle::get_union_tag(map));
-            for (auto const& key_value : union_type)
+            for (auto const& key_value : union_type.members)
             {
                 auto const& member_name = key_value.first;
                 auto const& member_info = key_value.second;

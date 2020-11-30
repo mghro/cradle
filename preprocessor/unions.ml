@@ -9,7 +9,7 @@ open Functions
    union is valid. *)
 let type_enum_of_union u =
   {
-    enum_id = u.union_id ^ "_type";
+    enum_id = u.union_id ^ "_tag";
     enum_values =
       List.map
         (fun m -> { ev_id = m.um_id; ev_label = m.um_id; ev_description = "" })
@@ -51,11 +51,11 @@ let union_has_registered_enum u =
     u.union_options
 
 let cpp_enum_value_of_union_member u m =
-  u.union_id ^ "_type::" ^ String.uppercase m.um_id
+  u.union_id ^ "_tag::" ^ String.uppercase m.um_id
 
 let union_declaration u =
   "struct " ^ u.union_id ^ " " ^ "{ " (* members *) ^ u.union_id
-  ^ "_type type; " ^ "cradle::any contents_; "
+  ^ "_tag type; " ^ "cradle::any contents_; "
   (* default constructor *)
   ^ u.union_id
   ^ "() {} "
@@ -79,8 +79,25 @@ let union_declaration u =
   ^ "contents_ = std::move(other.contents_); " ^ "return *this; " ^ "} " ^ "}; "
 
 let union_type_info_declaration u =
-  "cradle::raw_type_info get_proper_type_info(" ^ u.union_id ^ "); "
-  ^ "cradle::raw_type_info get_type_info(" ^ u.union_id ^ "); "
+  cpp_code_blocks
+    [
+      [
+        "template<>";
+        "struct definitive_type_info_query<" ^ u.union_id ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_type_info*);";
+        "};";
+      ];
+      [
+        "template<>";
+        "struct type_info_query<" ^ u.union_id ^ ">";
+        "{";
+        "    static void";
+        "    get(cradle::api_type_info*);";
+        "};";
+      ];
+    ]
 
 (* Generate the declaration for getting the upgrade type. *)
 let union_upgrade_type_info_declaration u =
@@ -92,36 +109,54 @@ let union_upgrade_type_info_declaration u =
 (* Generate the declaration for function that will upgrade the union. *)
 let union_auto_upgrade_value_declaration u =
   if not (union_is_internal u) then
-    "void auto_upgrade_value(" ^ u.union_id ^ " *x, cradle::value const& v); "
+    "void auto_upgrade_value(" ^ u.union_id ^ " *x, cradle::dynamic const& v); "
   else ""
 
 (* Generate the C++ code for API function declaration that will be used to
     upgrade the value if it is needed. *)
 let union_upgrade_value_declaration_api_instance app_id u =
-  u.union_id ^ " upgrade_value_" ^ u.union_id ^ "(cradle::value const& v);"
+  u.union_id ^ " upgrade_value_" ^ u.union_id ^ "(cradle::dynamic const& v);"
 
 let union_type_info_definition app_id u =
-  "cradle::raw_type_info get_proper_type_info(" ^ u.union_id ^ ") " ^ "{ "
-  ^ "using cradle::get_type_info; "
-  ^ "std::vector<cradle::raw_union_member_info> members; "
-  ^ String.concat ""
-      (List.map
-         (fun m ->
-           "members.push_back(cradle::raw_union_member_info(" ^ "\"" ^ m.um_id
-           ^ "\"," ^ "\""
-           ^ String.escaped m.um_description
-           ^ "\"," ^ "get_type_info("
-           ^ cpp_code_for_type m.um_type
-           ^ "()))); ")
-         u.union_members)
-  ^ "return cradle::raw_type_info(raw_kind::UNION, "
-  ^ "any(cradle::raw_union_info( " ^ "\"" ^ u.union_id ^ "\"," ^ "\""
-  ^ String.escaped u.union_description
-  ^ "\"," ^ "members))); " ^ "} " ^ "cradle::raw_type_info get_type_info("
-  ^ u.union_id ^ ") " ^ "{ "
-  ^ "return cradle::raw_type_info(raw_kind::NAMED_TYPE_REFERENCE, "
-  ^ "any(raw_named_type_reference(\"" ^ app_id ^ "\", \"" ^ u.union_id
-  ^ "\"))); " ^ "} "
+  cpp_code_blocks
+    [
+      [
+        "void";
+        "definitive_type_info_query<" ^ u.union_id ^ ">::get(";
+        "    cradle::api_type_info* info)";
+        "{";
+        "    std::map<std::string, cradle::api_union_member_info> members;";
+        String.concat ""
+          (List.map
+             (fun m ->
+               cpp_indented_code_lines "    "
+                 [
+                   "members[\"" ^ m.um_id ^ "\"] =";
+                   "    cradle::api_union_member_info(";
+                   "        \"" ^ String.escaped m.um_description ^ "\",";
+                   "        cradle::get_type_info<"
+                   ^ cpp_code_for_type m.um_type
+                   ^ ">());";
+                 ])
+             u.union_members);
+        "    *info =";
+        "        cradle::make_api_type_info_with_union_type(";
+        "            cradle::api_union_info(";
+        "                members));";
+        "}";
+      ];
+      [
+        "void";
+        "type_info_query<" ^ u.union_id ^ ">::get(";
+        "    cradle::api_type_info* info)";
+        "{";
+        "    *info =";
+        "        cradle::make_api_type_info_with_named_type(";
+        "            cradle::api_named_type_reference(";
+        "                \"" ^ app_id ^ "\", \"" ^ u.union_id ^ "\"));";
+        "}";
+      ];
+    ]
 
 (* Generate the C++ code to determine the upgrade type *)
 let union_upgrade_type_info_definition app_id u =
@@ -152,12 +187,12 @@ let union_upgrade_type_info_definition app_id u =
 (* Matches up union member to its upgrade function and sets value to upgraded member value *)
 let union_auto_upgrade_value_definition app_id u =
   if not (union_is_internal u) then
-    "void auto_upgrade_value(" ^ u.union_id ^ " *x, cradle::value const& v)"
-    ^ "{ " ^ "auto const& fields = cradle::cast<cradle::value_map>(v); "
+    "void auto_upgrade_value(" ^ u.union_id ^ " *x, cradle::dynamic const& v)"
+    ^ "{ " ^ "auto const& fields = cradle::cast<cradle::dynamic_map>(v); "
     ^ String.concat ""
         (List.map
            (fun m ->
-             "{ auto i = fields.find(value(\"" ^ m.um_id ^ "\")); "
+             "{ auto i = fields.find(dynamic(\"" ^ m.um_id ^ "\")); "
              ^ "if (i != fields.end()) " ^ "{ "
              ^ cpp_code_for_type m.um_type
              ^ " ut;" ^ "upgrade_value(&ut, i->second);" ^ u.union_id
@@ -169,8 +204,8 @@ let union_auto_upgrade_value_definition app_id u =
 
 (* Generate the C++ code for API function that will be used to upgrade the value. *)
 let union_upgrade_value_definition_api_instance app_id u =
-  u.union_id ^ " upgrade_value_" ^ u.union_id ^ "(cradle::value const& v)" ^ "{"
-  ^ u.union_id ^ " x;" ^ "upgrade_value(&x, v); " ^ "return x; " ^ "}"
+  u.union_id ^ " upgrade_value_" ^ u.union_id ^ "(cradle::dynamic const& v)"
+  ^ "{" ^ u.union_id ^ " x;" ^ "upgrade_value(&x, v); " ^ "return x; " ^ "}"
 
 (* Generate the function definition for API function that is generated to upgrade the union. *)
 let construct_union_upgrade_function_options app_id u =
@@ -179,7 +214,7 @@ let construct_union_upgrade_function_options app_id u =
       {
         parameter_id = "v";
         parameter_type = [ Tid "cradle"; Tseparator; Tid "value" ];
-        parameter_description = "value to update";
+        parameter_description = "value to upgrade";
         parameter_by_reference = true;
       };
     ]
@@ -245,14 +280,20 @@ let union_constructor_definitions u =
        u.union_members)
 
 let union_accessor_declarations u =
-  String.concat ""
-    (List.map
-       (fun m ->
-         "bool static inline is_" ^ m.um_id ^ "(" ^ u.union_id ^ " const& x) { "
-         ^ "return x.type == "
-         ^ cpp_enum_value_of_union_member u m
-         ^ "; " ^ "} ")
-       u.union_members)
+  cpp_code_lines
+    [
+      "static inline " ^ u.union_id ^ "_tag ";
+      "get_tag(" ^ u.union_id ^ " const& x)";
+      "{ return x.type; } ";
+    ]
+  ^ String.concat ""
+      (List.map
+         (fun m ->
+           "bool static inline is_" ^ m.um_id ^ "(" ^ u.union_id
+           ^ " const& x) { " ^ "return x.type == "
+           ^ cpp_enum_value_of_union_member u m
+           ^ "; " ^ "} ")
+         u.union_members)
   ^ String.concat ""
       (List.map
          (fun m ->
@@ -284,9 +325,9 @@ let union_accessor_definitions u =
          ^ " const& as_" ^ m.um_id ^ "(" ^ u.union_id ^ " const& x) " ^ "{ "
          ^ "assert(x.type == "
          ^ cpp_enum_value_of_union_member u m
-         ^ "); " ^ "return unsafe_any_cast<"
+         ^ "); " ^ "return boost::any_cast<"
          ^ cpp_code_for_type m.um_type
-         ^ ">(" ^ "x.contents_); " ^ "} ")
+         ^ " const& >(" ^ "x.contents_); " ^ "} ")
        u.union_members)
   ^ String.concat ""
       (List.map
@@ -295,9 +336,9 @@ let union_accessor_definitions u =
            ^ "& as_" ^ m.um_id ^ "(" ^ u.union_id ^ "& x) " ^ "{ "
            ^ "assert(x.type == "
            ^ cpp_enum_value_of_union_member u m
-           ^ "); " ^ "return unsafe_any_cast<"
+           ^ "); " ^ "return boost::any_cast<"
            ^ cpp_code_for_type m.um_type
-           ^ ">(" ^ "x.contents_); " ^ "} ")
+           ^ "&>(" ^ "x.contents_); " ^ "} ")
          u.union_members)
   ^ String.concat ""
       (List.map
@@ -333,26 +374,25 @@ let union_deep_sizeof_definition u =
   ^ "} " ^ "return size; " ^ "} "
 
 let union_conversion_declarations u =
-  "void to_value(cradle::value* v, " ^ u.union_id ^ " const& x); "
-  ^ "void from_value(" ^ u.union_id ^ "* x, cradle::value const& v); "
+  "void to_dynamic(cradle::dynamic* v, " ^ u.union_id ^ " const& x); "
+  ^ "void from_dynamic(" ^ u.union_id ^ "* x, cradle::dynamic const& v); "
   ^ "std::ostream& operator<<(std::ostream& s, " ^ u.union_id ^ " const& x); "
 
 let union_conversion_definitions u =
-  "void to_value(cradle::value* v, " ^ u.union_id ^ " const& x) " ^ "{ "
-  ^ "cradle::value_map s; " ^ "switch (x.type) " ^ "{ "
+  "void to_dynamic(cradle::dynamic* v, " ^ u.union_id ^ " const& x) " ^ "{ "
+  ^ "cradle::dynamic_map s; " ^ "switch (x.type) " ^ "{ "
   ^ String.concat ""
       (List.map
          (fun m ->
            "case "
            ^ cpp_enum_value_of_union_member u m
-           ^ ": " ^ "to_value(&s[value(\"" ^ m.um_id ^ "\")], as_" ^ m.um_id
+           ^ ": " ^ "to_dynamic(&s[dynamic(\"" ^ m.um_id ^ "\")], as_" ^ m.um_id
            ^ "(x)); " ^ "break; ")
          u.union_members)
-  ^ "} " ^ "v->swap_in(s); " ^ "} " ^ "void from_value(" ^ u.union_id
-  ^ "* x, cradle::value const& v) " ^ "{ " ^ "cradle::value_map const& s = "
-  ^ "cradle::cast<cradle::value_map>(v); "
-  ^ "from_value(&x->type, get_union_value_type(s)); " ^ "switch (x->type) "
-  ^ "{ "
+  ^ "} " ^ "*v = std::move(s); " ^ "} " ^ "void from_dynamic(" ^ u.union_id
+  ^ "* x, cradle::dynamic const& v) " ^ "{ " ^ "cradle::dynamic_map const& s = "
+  ^ "cradle::cast<cradle::dynamic_map>(v); "
+  ^ "from_dynamic(&x->type, get_union_tag(s)); " ^ "switch (x->type) " ^ "{ "
   ^ String.concat ""
       (List.map
          (fun m ->
@@ -360,18 +400,18 @@ let union_conversion_definitions u =
            ^ cpp_enum_value_of_union_member u m
            ^ ": " ^ " { "
            ^ cpp_code_for_type m.um_type
-           ^ " tmp; " ^ "from_value(&tmp, get_field(s, \"" ^ m.um_id ^ "\")); "
-           ^ "x->contents_ = tmp; " ^ "break; " ^ " } ")
+           ^ " tmp; " ^ "from_dynamic(&tmp, get_field(s, \"" ^ m.um_id
+           ^ "\")); " ^ "x->contents_ = tmp; " ^ "break; " ^ " } ")
          u.union_members)
   ^ "} " ^ "} " ^ "std::ostream& operator<<(std::ostream& s, " ^ u.union_id
-  ^ " const& x) " ^ "{ return generic_ostream_operator(s, x); } "
+  ^ " const& x) " ^ "{ return s << to_dynamic(x); } "
 
 let union_swap_declaration u =
   "void swap(" ^ u.union_id ^ "& a, " ^ u.union_id ^ "& b); "
 
 let union_swap_definition u =
   "void swap(" ^ u.union_id ^ "& a, " ^ u.union_id ^ "& b) " ^ "{ "
-  ^ "using cradle::swap; " ^ "swap(a.type, b.type); "
+  ^ "using std::swap; " ^ "swap(a.type, b.type); "
   ^ "swap(a.contents_, b.contents_); " ^ "} "
 
 let union_comparison_declarations u =
@@ -406,23 +446,27 @@ let union_comparison_definitions u =
   ^ "} " ^ "return false; " ^ "} "
 
 let union_hash_declarations namespace u =
-  "} namespace std { " ^ "template<> " ^ "struct hash<" ^ namespace ^ "::"
-  ^ u.union_id ^ " > " ^ "{ " ^ "size_t operator()(" ^ namespace ^ "::"
-  ^ u.union_id ^ " const& x) const; " ^ "}; " ^ "} namespace " ^ namespace
-  ^ " { "
+  "size_t hash_value(" ^ u.union_id ^ " const& x);"
 
 let union_hash_definitions namespace u =
-  "} namespace std { " ^ "size_t hash<" ^ namespace ^ "::" ^ u.union_id ^ " >::"
-  ^ "operator()(" ^ namespace ^ "::" ^ u.union_id ^ " const& x) const " ^ "{ "
-  ^ "switch (x.type) " ^ "{ "
-  ^ String.concat ""
-      (List.map
-         (fun m ->
-           "case " ^ namespace ^ "::"
-           ^ cpp_enum_value_of_union_member u m
-           ^ ": " ^ "return cradle::invoke_hash(as_" ^ m.um_id ^ "(x)); ")
-         u.union_members)
-  ^ "} " ^ "assert(0); return 0; " ^ "} " ^ "} namespace " ^ namespace ^ " { "
+  cpp_code_lines
+    [
+      "size_t hash_value(" ^ u.union_id ^ " const& x)";
+      "{";
+      "    switch (x.type)";
+      "    {";
+      String.concat ""
+        (List.map
+           (fun m ->
+             "case "
+             ^ cpp_enum_value_of_union_member u m
+             ^ ": " ^ "return cradle::invoke_hash(as_" ^ m.um_id ^ "(x)); ")
+           u.union_members);
+      "    }";
+      "assert(0);";
+      "return 0;";
+      "}";
+    ]
 
 (* Generate C++ code to register API function for upgrading values *)
 let cpp_code_to_register_upgrade_function_instance u =
@@ -441,9 +485,10 @@ let hpp_string_of_union account_id app_id namespace u =
   ^ union_swap_declaration u
   ^ union_conversion_declarations u
   ^ union_deep_sizeof_declaration u
-  ^ union_upgrade_type_info_declaration u
-  ^ union_auto_upgrade_value_declaration u
-  ^ union_upgrade_value_declaration_api_instance app_id u
+
+(* ^ union_upgrade_type_info_declaration u
+   ^ union_auto_upgrade_value_declaration u
+   ^ union_upgrade_value_declaration_api_instance app_id u *)
 
 let cpp_string_of_union account_id app_id namespace u =
   cpp_string_of_enum account_id app_id namespace (type_enum_of_union u)
@@ -455,22 +500,31 @@ let cpp_string_of_union account_id app_id namespace u =
   ^ union_swap_definition u
   ^ union_conversion_definitions u
   ^ union_deep_sizeof_definition u
-  ^ union_upgrade_type_info_definition app_id u
-  ^ union_auto_upgrade_value_definition app_id u
-  ^ union_upgrade_value_definition_api_instance app_id u
-  ^ union_upgrade_register_function_instance account_id app_id u
+
+(* ^ union_upgrade_type_info_definition app_id u
+   ^ union_auto_upgrade_value_definition app_id u
+   ^ union_upgrade_value_definition_api_instance app_id u
+   ^ union_upgrade_register_function_instance account_id app_id u *)
 
 let cpp_code_to_register_union app_id u =
   if not (union_is_internal u) then
     ( if union_has_registered_enum u then
       cpp_code_to_register_enum app_id (type_enum_of_union u)
     else "" )
-    ^ "\nregister_api_named_type(api, " ^ "\"" ^ u.union_id ^ "\", "
-    ^ string_of_int (get_union_revision u)
-    ^ ", " ^ "\""
-    ^ String.escaped u.union_description
-    ^ "\", " ^ "make_api_type_info(get_proper_type_info(" ^ u.union_id
-    ^ "())), " ^ "get_upgrade_type(" ^ u.union_id
-    ^ "(), std::vector<std::type_index>())); \n"
-    ^ cpp_code_to_register_upgrade_function_instance u
+    ^ cpp_code_lines
+        [
+          "register_api_named_type(";
+          "    api,";
+          "    \"" ^ u.union_id ^ "\",";
+          "    " ^ string_of_int (get_union_revision u) ^ ",";
+          "    \"" ^ String.escaped u.union_description ^ "\",";
+          "    get_definitive_type_info<" ^ u.union_id ^ ">());";
+          (* "    get_upgrade_type(" ^ u.union_id ^ "(), std::vector<std::type_index>())); " *)
+        ] (* ^ cpp_code_to_register_upgrade_function_instance u *)
+  else ""
+
+(* Generate the C++ code to clean up the #define namespace for a union. *)
+let cpp_cleanup_code_for_union u =
+  if union_has_registered_enum u then
+    cpp_cleanup_code_for_enum (type_enum_of_union u)
   else ""
