@@ -8,7 +8,7 @@ apt-get update -qy
 apt-get install -y software-properties-common apt-transport-https
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 apt-get update -qy
-apt-get install -y --upgrade python3 python3-dev lcov git curl make
+apt-get install -y --upgrade python3 python3-dev lcov git curl make ocaml-nox
 curl -sSL https://cmake.org/files/v3.17/cmake-3.17.2-Linux-x86_64.sh -o install-cmake.sh
 chmod +x install-cmake.sh
 ./install-cmake.sh --prefix=/usr/local --skip-license
