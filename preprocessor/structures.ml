@@ -930,7 +930,9 @@ let structure_hash_declaration namespace s =
         "size_t";
         "hash_value(" ^ full_structure_type s ^ " const& x)";
         "{";
-        "    size_t h = 0;";
+        ( match s.structure_super with
+        | Some super -> "size_t h = cradle::invoke_hash(as_" ^ super ^ "(x));"
+        | None -> "size_t h = 0;" );
         String.concat ""
           (List.map
              (fun f ->
@@ -948,7 +950,9 @@ let structure_hash_definition namespace s =
         "size_t";
         "hash_value(" ^ s.structure_id ^ " const& x)";
         "{";
-        "size_t h = 0; ";
+        ( match s.structure_super with
+        | Some super -> "size_t h = cradle::invoke_hash(as_" ^ super ^ "(x));"
+        | None -> "size_t h = 0;" );
         String.concat ""
           (List.map
              (fun f ->
