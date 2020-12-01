@@ -5,6 +5,7 @@
 #include <cradle/core/dynamic.hpp>
 #include <cradle/core/immutable.hpp>
 #include <cradle/core/monitoring.hpp>
+#include <cradle/core/omissible.hpp>
 #include <cradle/core/upgrades.hpp>
 
 #endif
