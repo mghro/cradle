@@ -1,5 +1,5 @@
 imports:
-  - 'cradle/core/diff_types'
+  - 'cradle/core/diff'
   - 'cradle/thinknode/types'
 
 types:
