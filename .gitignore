@@ -6,4 +6,4 @@
 .venv
 *.pyc
 python/config.yml
-*build*
+/*build*
