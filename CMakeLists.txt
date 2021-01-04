@@ -209,7 +209,7 @@ fips_begin_module(cradle)
     fips_generate(
         FROM ${PROJECT_SOURCE_DIR}/fips-generators/version_info_generator.py
         OUT_OF_SOURCE
-        HEADER "generated/cradle/version_info.hpp")
+        HEADER "generated/src/cradle/version_info.hpp")
 fips_end_module()
 
 target_sources(cradle PRIVATE ${generated_headers} ${generated_srcs})

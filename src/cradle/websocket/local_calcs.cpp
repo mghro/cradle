@@ -5,6 +5,7 @@
 #include <picosha2.h>
 
 #include <cradle/core/dynamic.hpp>
+#include <cradle/core/logging.hpp>
 #include <cradle/encodings/msgpack.hpp>
 #include <cradle/fs/file_io.hpp>
 #include <cradle/thinknode/supervisor.hpp>

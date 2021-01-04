@@ -53,7 +53,7 @@ def cpp_type_for_schema(schema, omissible=False):
         "string": lambda _: "std::string",
         "blob": lambda _: "cradle::blob",
         "optional":
-        lambda t: "boost::optional<" + cpp_type_for_schema(t) + ">",
+        lambda t: "optional<" + cpp_type_for_schema(t) + ">",
         "array": cpp_type_for_array,
         "map": cpp_type_for_map,
         "reference": lambda _: "std::string",

@@ -326,6 +326,10 @@ struct omissible
     {
         return valid_ ? &omissible::valid_ : 0;
     }
+    operator optional<T>() const
+    {
+        return valid_ ? optional<T>(value_) : optional<T>();
+    }
     T const&
     get() const
     {

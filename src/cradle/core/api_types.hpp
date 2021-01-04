@@ -26,7 +26,6 @@ struct api_function_type_info;
 struct api_record_info;
 struct api_structure_field_info;
 
-
 api(union)
 union api_type_info
 {

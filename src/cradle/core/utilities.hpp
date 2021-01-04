@@ -14,6 +14,8 @@
 #include <boost/optional.hpp>
 #include <boost/stacktrace.hpp>
 
+#define api(...)
+
 namespace cradle {
 
 using std::string;

@@ -1,5 +1,6 @@
 imports:
   - 'cradle/core/diff'
+  - 'cradle/io/http_requests'
   - 'cradle/thinknode/types'
 
 types:
