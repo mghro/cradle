@@ -92,7 +92,7 @@ struct function_application
     std::string account;
     std::string app;
     std::string name;
-    boost::optional<cradle::integer> level;
+    omissible<cradle::integer> level;
     std::vector<cradle::calculation_request> args;
 };
 
@@ -400,7 +400,7 @@ struct thinknode_app_manifest
     // manifest depends
     std::vector<cradle::dynamic> dependencies;
     // a docker container providing function and upgrade implementations
-    boost::optional<cradle::thinknode_provider_info> provider;
+    omissible<cradle::thinknode_provider_info> provider;
     // an array of types
     std::vector<cradle::thinknode_named_type_info> types;
     // an array of functions
@@ -418,7 +418,7 @@ struct thinknode_app_version_info
     // the name of the version
     std::string name;
     // the manifest for the version
-    boost::optional<cradle::thinknode_app_manifest> manifest;
+    omissible<cradle::thinknode_app_manifest> manifest;
     // the user that created the version
     cradle::dynamic created_by;
     // the date and time when the version was created
