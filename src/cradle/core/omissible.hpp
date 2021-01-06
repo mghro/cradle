@@ -52,43 +52,45 @@ deep_sizeof(omissible<T> const& x)
 {
     return sizeof(omissible<T>) + (x ? deep_sizeof(*x) : 0);
 }
-// template<class T>
-// void
-// read_field_from_record(
-//     omissible<T>* field_value,
-//     dynamic_map const& record,
-//     std::string const& field_name)
-// {
-//     // If the field doesn't appear in the record, just set it to none.
-//     dynamic dynamic_field_value;
-//     if (get_field(&dynamic_field_value, record, field_name))
-//     {
-//         try
-//         {
-//             T value;
-//             from_value(&value, dynamic_field_value);
-//             *field_value = value;
-//         }
-//         catch (boost::exception& e)
-//         {
-//             cradle::add_dynamic_path_element(e, field_name);
-//             throw;
-//         }
-//     }
-//     else
-//         *field_value = none;
-// }
-// template<class T>
-// void
-// write_field_to_record(
-//     dynamic_map& record,
-//     string const& field_name,
-//     omissible<T> const& field_value)
-// {
-//     // Only write the field to the record if it has a value.
-//     if (field_value)
-//         write_field_to_record(record, field_name, get(field_value));
-// }
+template<class T>
+void
+read_field_from_record(
+    omissible<T>* field_value,
+    dynamic_map const& record,
+    std::string const& field_name)
+{
+    // If the field doesn't appear in the record, just set it to none.
+    dynamic const* dynamic_field_value;
+    if (get_field(&dynamic_field_value, record, field_name))
+    {
+        try
+        {
+            T value;
+            from_dynamic(&value, *dynamic_field_value);
+            *field_value = value;
+        }
+        catch (boost::exception& e)
+        {
+            cradle::add_dynamic_path_element(e, field_name);
+            throw;
+        }
+    }
+    else
+    {
+        *field_value = none;
+    }
+}
+template<class T>
+void
+write_field_to_record(
+    dynamic_map& record,
+    string const& field_name,
+    omissible<T> const& field_value)
+{
+    // Only write the field to the record if it has a value.
+    if (field_value)
+        write_field_to_record(record, field_name, *field_value);
+}
 
 template<class T>
 void
