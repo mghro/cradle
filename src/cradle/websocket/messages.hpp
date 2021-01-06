@@ -226,23 +226,23 @@ typedef cradle::object_tree_diff iss_diff_response;
 api(union)
 union client_message_content
 {
-    nil_t kill;
-    websocket_registration_message registration;
-    websocket_test_query test;
-    websocket_cache_insert cache_insert;
+    cradle::nil_t kill;
+    cradle::websocket_registration_message registration;
+    cradle::websocket_test_query test;
+    cradle::websocket_cache_insert cache_insert;
     std::string cache_query;
-    iss_object_request iss_object;
-    resolve_iss_object_request resolve_iss_object;
-    iss_object_metadata_request iss_object_metadata;
-    post_iss_object_request post_iss_object;
-    copy_iss_object_request copy_iss_object;
-    post_calculation_request post_calculation;
-    resolve_meta_chain_request resolve_meta_chain;
-    calculation_request_message calculation_request;
-    calculation_diff_request calculation_diff;
-    calculation_search_request calculation_search;
-    iss_diff_request iss_diff;
-    post_calculation_request perform_local_calc;
+    cradle::iss_object_request iss_object;
+    cradle::resolve_iss_object_request resolve_iss_object;
+    cradle::iss_object_metadata_request iss_object_metadata;
+    cradle::post_iss_object_request post_iss_object;
+    cradle::copy_iss_object_request copy_iss_object;
+    cradle::post_calculation_request post_calculation;
+    cradle::resolve_meta_chain_request resolve_meta_chain;
+    cradle::calculation_request_message calculation_request;
+    cradle::calculation_diff_request calculation_diff;
+    cradle::calculation_search_request calculation_search;
+    cradle::iss_diff_request iss_diff;
+    cradle::post_calculation_request perform_local_calc;
 };
 
 api(struct)
@@ -263,7 +263,8 @@ api(union)
 union error_response
 {
     // an HTTP request returned a bad status code
-    http_failure_info bad_status_code std::string unknown;
+    http_failure_info bad_status_code;
+    std::string unknown;
 };
 
 api(union)
@@ -286,6 +287,7 @@ union server_message_content
     cradle::dynamic local_calc_result;
 };
 
+api(struct)
 struct websocket_server_message
 {
     std::string request_id;

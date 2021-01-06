@@ -354,6 +354,18 @@ struct omissible
         assert(valid_);
         return value_;
     }
+    T const*
+    operator->() const
+    {
+        assert(valid_);
+        return &value_;
+    }
+    T*
+    operator->()
+    {
+        assert(valid_);
+        return &value_;
+    }
 
  private:
     T value_;

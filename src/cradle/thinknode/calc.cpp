@@ -27,8 +27,10 @@ calculation_request static sanitize_request(calculation_request const& request)
                     as_function(request).account,
                     as_function(request).app,
                     as_function(request).name,
-                    as_function(request).level ? as_function(request).level
-                                               : some(integer(4)),
+                    some(
+                        as_function(request).level
+                            ? *as_function(request).level
+                            : integer(4)),
                     map(recursive_call, as_function(request).args)));
         case calculation_request_tag::ARRAY:
             return make_calculation_request_with_array(
@@ -128,8 +130,7 @@ get_next_calculation_status(calculation_status current)
                         << enum_value_info(
                                static_cast<int>(as_queued(current))));
             }
-        case calculation_status_tag::CALCULATING:
-        {
+        case calculation_status_tag::CALCULATING: {
             // Wait for progress in increments of 1%.
             // The extra .0001 is just to make sure that we don't get rounded
             // back down.
@@ -140,12 +141,11 @@ get_next_calculation_status(calculation_status current)
             // for the upload.
             return next_progress < 1
                        ? make_calculation_status_with_calculating(
-                             calculation_calculating_status{next_progress})
+                           calculation_calculating_status{next_progress})
                        : make_calculation_status_with_uploading(
-                             calculation_uploading_status());
+                           calculation_uploading_status());
         }
-        case calculation_status_tag::UPLOADING:
-        {
+        case calculation_status_tag::UPLOADING: {
             // Wait for progress in increments of 1%.
             // The extra .0001 is just to make sure that we don't get rounded
             // back down.
@@ -156,7 +156,7 @@ get_next_calculation_status(calculation_status current)
             // for the completed status.
             return next_progress < 1
                        ? make_calculation_status_with_uploading(
-                             calculation_uploading_status{next_progress})
+                           calculation_uploading_status{next_progress})
                        : make_calculation_status_with_completed(nil);
         }
         case calculation_status_tag::COMPLETED:
@@ -283,8 +283,9 @@ long_poll_calculation_status(
                 + "&context=" + context_id,
             {{"Authorization", "Bearer " + session.access_token},
              {"Accept", "application/json"}});
-        status = cradle::from_dynamic<calculation_status>(parse_json_response(
-            connection.perform_request(check_in, reporter, long_poll_request)));
+        status = cradle::from_dynamic<calculation_status>(
+            parse_json_response(connection.perform_request(
+                check_in, reporter, long_poll_request)));
     }
 }
 
@@ -294,9 +295,10 @@ substitute_variables(
     std::map<string, calculation_request> const& substitutions,
     calculation_request const& request)
 {
-    auto recursive_call = [&substitutions](calculation_request const& request) {
-        return substitute_variables(substitutions, request);
-    };
+    auto recursive_call
+        = [&substitutions](calculation_request const& request) {
+              return substitute_variables(substitutions, request);
+          };
     switch (get_tag(request))
     {
         case calculation_request_tag::REFERENCE:
@@ -336,8 +338,7 @@ substitute_variables(
             CRADLE_THROW(
                 internal_check_failed() << internal_error_message_info(
                     "encountered let request during variable substitution"));
-        case calculation_request_tag::VARIABLE:
-        {
+        case calculation_request_tag::VARIABLE: {
             auto substitution = substitutions.find(as_variable(request));
             if (substitution == substitutions.end())
             {
@@ -471,8 +472,8 @@ search_calculation(
     {
         // When calculation results are copied, their inputs aren't guaranteed
         // to be accessible, and we don't that to cause an error when trying to
-        // search inside such calculations. Instead, we simply log a warning and
-        // treat the calculation as if it doesn't contain any matches.
+        // search inside such calculations. Instead, we simply log a warning
+        // and treat the calculation as if it doesn't contain any matches.
         if (get_error_info<http_response_info>(e)->status_code == 404)
         {
             is_matching[calculation_id] = false;
@@ -508,7 +509,8 @@ search_calculation(
             break;
         case calculation_request_tag::FUNCTION:
             is_matching[calculation_id]
-                = as_function(request).name.find(search_string) != string::npos;
+                = as_function(request).name.find(search_string)
+                  != string::npos;
             for (auto const& arg : as_function(request).args)
                 recurse(arg);
             break;
