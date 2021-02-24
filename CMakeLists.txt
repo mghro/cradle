@@ -223,6 +223,8 @@ endif()
 # Add the server.
 add_executable(server src/server.cpp)
 target_link_libraries(server cradle)
+set_target_properties(server PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deploy)
 
 # Add the unit test runner.
 file(GLOB_RECURSE UNIT_TEST_FILES CONFIGURE_DEPENDS "tests/*.cpp")
@@ -245,12 +247,14 @@ add_custom_target(
     # tests with that. (Some of them perform file I/O.)
     COMMAND ${CMAKE_COMMAND} -E remove_directory testing
     COMMAND ${CMAKE_COMMAND} -E make_directory testing
-    COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${FIPS_PROJECT_DEPLOY_DIR} ${FIPS_PROJECT_DEPLOY_DIR}/unit_test_runner
+    COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env
+            CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy
+            ${CMAKE_CURRENT_BINARY_DIR}/unit_test_runner
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     DEPENDS unit_test_runner)
 
 # Add the unit test coverage target.
-if(FIPS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_target(
         unit_test_coverage
         COMMAND lcov --directory . --zerocounters
@@ -264,7 +268,7 @@ endif()
 # Add the integration testing target.
 add_custom_target(
     integration_tests
-    COMMAND ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${FIPS_PROJECT_DEPLOY_DIR} pytest
+    COMMAND ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy pytest
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python
     DEPENDS server)
 
