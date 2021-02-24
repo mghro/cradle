@@ -220,11 +220,16 @@ if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(cradle PUBLIC --coverage)
 endif()
 
+# Set up the deployment directory.
+set(deploy_dir "${CMAKE_CURRENT_BINARY_DIR}/deploy")
+file(MAKE_DIRECTORY ${deploy_dir})
+file(COPY ${CONAN_LIBCURL_ROOT}/cacert.pem DESTINATION ${deploy_dir})
+
 # Add the server.
 add_executable(server src/server.cpp)
 target_link_libraries(server cradle)
-set_target_properties(server PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deploy)
+add_custom_command(TARGET server POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:server> ${deploy_dir})
 
 # Add the unit test runner.
 file(GLOB_RECURSE UNIT_TEST_FILES CONFIGURE_DEPENDS "tests/*.cpp")
@@ -249,7 +254,7 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} -E make_directory testing
     COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env
             CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy
-            ${CMAKE_CURRENT_BINARY_DIR}/unit_test_runner
+            $<TARGET_FILE:unit_test_runner>
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     DEPENDS unit_test_runner)
 
