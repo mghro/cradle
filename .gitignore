@@ -1,5 +1,4 @@
 .cache
-.fips-*
 .vscode
 .gcovr.txt
 .lcov.info

@@ -298,7 +298,7 @@ struct omissible
     {
     }
     omissible(optional<T> const& opt)
-        : valid_(opt ? true : false), value_(opt ? opt.get() : T())
+        : value_(opt ? opt.get() : T()), valid_(opt ? true : false)
     {
     }
     omissible&

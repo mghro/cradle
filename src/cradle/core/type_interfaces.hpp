@@ -9,6 +9,7 @@
 
 #include <cradle/core/api_types.hpp>
 #include <cradle/core/dynamic.hpp>
+#include <cradle/core/type_info.hpp>
 
 // This file provides implementations of the CRADLE Regular interface
 // for all the core CRADLE types.

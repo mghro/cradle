@@ -1,69 +1,81 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(cradle)
 
+# Detect the compiler.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(IS_CLANG true)
+else()
+    set(IS_CLANG false)
+endif()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(IS_GCC true)
+else()
+    set(IS_GCC false)
+endif()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(IS_MSVC true)
+else()
+    set(IS_MSVC false)
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
 
-# Set up fips.
-get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
-include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
-set(FIPS_EXCEPTIONS ON)
-set(FIPS_RTTI ON)
-fips_setup()
-fips_project(cradle)
-
-function(parse_version major minor patch version)
-    string(REGEX REPLACE "^([0-9]*)[.][0-9]*[.][0-9]*-?.*$" "\\1" x ${version})
-    set(${major} ${x} PARENT_SCOPE)
-    string(REGEX REPLACE "^[0-9]*[.]([0-9]*)[.][0-9]*-?.*$" "\\1" x ${version})
-    set(${minor} ${x} PARENT_SCOPE)
-    string(REGEX REPLACE "^[0-9]*[.][0-9]*[.]([0-9]*-?.*$)" "\\1" x ${version})
-    set(${patch} ${x} PARENT_SCOPE)
-endfunction()
-
-parse_version(
-    COMPILER_MAJOR_VERSION COMPILER_MINOR_VERSION COMPILER_PATCH_VERSION
-    ${CMAKE_CXX_COMPILER_VERSION})
-
-set(COMPILER_MAJOR_MINOR_VERSION
-    "${COMPILER_MAJOR_VERSION}.${COMPILER_MINOR_VERSION}")
+include(cmake/version.cmake)
 
 add_subdirectory(preprocessor)
 
-# Run Conan to install external C++ libraries.
-# Conan and fips disagree on various build options, so we need to override
-# some of Conan's defaults.
-set(CONAN_OPTIONS)
-if (FIPS_MSVC)
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CONAN_OPTIONS
-            -s compiler=Visual\ Studio -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s build_type=Debug -s compiler.runtime=MTd)
-    else()
-        set(CONAN_OPTIONS
-            -s compiler=Visual\ Studio -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s build_type=Release -s compiler.runtime=MT)
-    endif()
-elseif(FIPS_GCC)
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CONAN_OPTIONS
-            -s compiler=gcc -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s compiler.libcxx=libstdc++11 -s build_type=Debug -o Boost:fPIC=True)
-    else()
-        set(CONAN_OPTIONS
-            -s compiler=gcc -s compiler.version=${COMPILER_MAJOR_MINOR_VERSION} -s compiler.libcxx=libstdc++11 -s build_type=Release -o Boost:fPIC=True)
-    endif()
+# Download/include CMake/Conan integration.
+if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")
+    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+    file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.15/conan.cmake"
+                  "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake"
+                  TLS_VERIFY ON)
 endif()
-execute_process(
-    COMMAND conan install ${PROJECT_SOURCE_DIR} ${CONAN_OPTIONS} -e CONAN_IMPORT_PATH=${FIPS_PROJECT_DEPLOY_DIR} --build missing
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-    RESULT_VARIABLE CONAN_RESULT)
-if(NOT ${CONAN_RESULT} EQUAL 0)
-    message(FATAL_ERROR "Conan failed.")
-endif()
+include(${CMAKE_CURRENT_BINARY_DIR}/conan.cmake)
 
-# And now set up CMake to use those libraries.
-# Note that Conan seems to insert flags that don't make sense and cause warnings.
-set(ORIGINAL_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-include(${PROJECT_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-set(CMAKE_CXX_FLAGS "${ORIGINAL_CXX_FLAGS}")
+# Invoke Conan.
+conan_add_remote(
+    NAME bincrafters
+    INDEX 1
+    URL https://api.bintray.com/conan/bincrafters/public-conan
+    VERIFY_SSL True)
+conan_cmake_run(
+    REQUIRES
+        boost/1.67.0@conan/stable
+        Catch/1.12.1@bincrafters/stable
+        jsonformoderncpp/3.7.0@vthiery/stable
+        msgpack/3.2.1@bincrafters/stable
+        cotire/1.7.6@smspillaz/cotire
+        libcurl/7.52.1@bincrafters/stable
+        OpenSSL/1.0.2s@conan/stable
+        sqlite3/3.21.0@bincrafters/stable
+        FakeIt/2.0.4@gasuketsu/stable
+        websocketpp/0.7.0@TyRoXx/stable
+        zlib/1.2.11@conan/stable
+        bzip2/1.0.6@conan/stable
+        yaml-cpp/0.6.2@tmadden/stable
+        spdlog/0.16.3@bincrafters/stable
+    BASIC_SETUP
+    BUILD missing
+    OPTIONS
+        boost:without_atomic=True
+        boost:without_chrono=True
+        boost:without_container=True
+        boost:without_context=True
+        boost:without_coroutine=True
+        boost:without_graph=True
+        boost:without_graph_parallel=True
+        boost:without_log=True
+        boost:without_math=True
+        boost:without_mpi=True
+        boost:without_serialization=True
+        boost:without_signals=True
+        boost:without_test=True
+        boost:without_timer=True
+        boost:without_type_erasure=True
+        boost:without_wave=True
+        FakeIt:integration=catch
+        *:shared=False)
 
 # Include cotire.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CONAN_COTIRE_ROOT}/cmake/cotire")
@@ -85,7 +97,7 @@ macro(add_exe_link_options )
 endmacro()
 
 # Enable a high level of compiler warnings and treat them as errors.
-if(FIPS_GCC)
+if(IS_GCC)
     add_compile_options(-Wall -Werror)
     # Disable warnings that are too strict.
     # Warnings about suggested parentheses occur naturally when using Catch.
@@ -94,7 +106,7 @@ if(FIPS_GCC)
     add_compile_options(-Wno-unused-parameter)
     # unused functions
     add_compile_options(-Wno-unused-function)
-elseif(FIPS_MSVC)
+elseif(IS_MSVC)
     # First strip out the old warning level.
     string(REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
     add_compile_options(/W4 /WX)
@@ -112,24 +124,24 @@ elseif(FIPS_MSVC)
 endif()
 
 # Enable "big objects" for Visual C++.
-if(FIPS_MSVC)
+if(IS_MSVC)
     add_compile_options(/bigobj)
 endif()
 
 # Set some other compiler and linker flags to speed up builds.
-if(FIPS_MSVC)
+if(IS_MSVC)
     add_exe_link_options(/Debug:FASTLINK)
 endif()
 
 # Exclude as much of the Windows API as possible to avoid #define pollution
 # and speed up builds. Note that this has to be done via command-line arguments
 # due to the use of precompiled hearders.
-if(FIPS_MSVC)
+if(IS_MSVC)
     add_definitions(/DWIN32_LEAN_AND_MEAN /DVC_EXTRALEAN /DNORASTEROPS /DOEMRESOURCE /DNOATOM /DNOCLIPBOARD /DNOCOLOR /DNOCTRLMGR /DNODRAWTEXT /DNOGDI /DNOKERNEL /DNOMINMAX /DNOSOUND /DNOKANJI /DNOHELP /DNOPROFILER /DNODEFERWINDOWPOS /DNOMCX)
 endif()
 
 # Set build options for instrumenting test coverage.
-if(FIPS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Enabling gcov support")
     add_compile_options(--coverage -fno-inline -fno-inline-small-functions -fno-default-inline -fprofile-arcs -ftest-coverage)
     add_exe_link_options(--coverage)
@@ -148,7 +160,7 @@ set_property(
             ${CONAN_SQLITE3_ROOT})
 
 # Only generate tagged constructors on supported compilers.
-if(FIPS_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0")
+if(IS_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0")
     message(STATUS "Enabling tagged constructors")
     add_definitions("-DCRADLE_USING_TAGGED_CONSTRUCTORS")
     set(GENERATE_TAGGED_CONSTRUCTORS True)
@@ -175,77 +187,55 @@ preprocess_header_files(
     INPUT_FILES ${preprocessed_files})
 
 # Add the main library.
-fips_begin_module(cradle)
-    fips_src(src/cradle)
-    fips_src(src/third-party)
-    # There doesn't seem to be a better way to disable the warnings that are
-    # generated by WebSocket++.
-    if(FIPS_MSVC)
-        set_property(
-            SOURCE src/cradle/websocket/server.cpp
-            APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4996 /wd4127 /wd4267 /wd4244")
-        set_property(
-            SOURCE src/cradle/websocket/client.cpp
-            APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4996 /wd4127 /wd4267 /wd4244")
-    endif()
-    fips_dir(.)
-    # Add rules for preprocessing YAML files.
-    file(
-        GLOB_RECURSE YAML_SOURCE_FILES
-        RELATIVE ${PROJECT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/src/*.yml)
-    foreach(FILE ${YAML_SOURCE_FILES})
-        get_filename_component(FILE_DIRECTORY ${FILE} DIRECTORY)
-        get_filename_component(FILE_NAME_WE ${FILE} NAME_WE)
-        fips_generate(
-            FROM ${PROJECT_SOURCE_DIR}/src/${FILE}
-            TYPE cpp_api_generator
-            OUT_OF_SOURCE
-            SOURCE "generated-fips/${FILE_DIRECTORY}/${FILE_NAME_WE}.cpp"
-            HEADER "generated-fips/${FILE_DIRECTORY}/${FILE_NAME_WE}.hpp"
-            ARGS "{ app_name: cradle, generate_tagged_constructors: ${GENERATE_TAGGED_CONSTRUCTORS} }")
-    endforeach()
-    # Add the rule for generating version info.
-    fips_generate(
-        FROM ${PROJECT_SOURCE_DIR}/fips-generators/version_info_generator.py
-        OUT_OF_SOURCE
-        HEADER "generated/src/cradle/version_info.hpp")
-fips_end_module()
-
-target_sources(cradle PRIVATE ${generated_headers} ${generated_srcs})
-
+file(GLOB_RECURSE srcs CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cradle/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/third-party/*.cpp")
+file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cradle/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/third-party/*.hpp")
+add_library(cradle STATIC ${srcs} ${headers})
+# There doesn't seem to be a better way to disable the warnings that are
+# generated by WebSocket++.
+if(IS_MSVC)
+    set_property(
+        SOURCE src/cradle/websocket/server.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4996 /wd4127 /wd4267 /wd4244")
+    set_property(
+        SOURCE src/cradle/websocket/client.cpp
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4996 /wd4127 /wd4267 /wd4244")
+endif()
+target_sources(cradle PRIVATE ${generated_headers} ${generated_srcs}
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/src/cradle/version_info.hpp")
 target_link_libraries(cradle ${CONAN_LIBS})
 target_link_directories(cradle PUBLIC ${CONAN_LIB_DIRS})
-target_include_directories(cradle PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/generated/src")
-target_include_directories(cradle PUBLIC src)
-target_include_directories(cradle PUBLIC src/third-party)
-target_include_directories(cradle PUBLIC ${PROJECT_BINARY_DIR}/generated-fips)
-# Register Conan's include directories with fips.
-target_include_directories(cradle PUBLIC ${CONAN_INCLUDE_DIRS}
-    "$<$<CONFIG:Release>:${CONAN_INCLUDE_DIRS_RELEASE}>"
-    "$<$<CONFIG:Debug>:${CONAN_INCLUDE_DIRS_DEBUG}>")
-cotire(cradle)
-if(FIPS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+target_compile_definitions(
+    cradle PUBLIC ${CONAN_DEFINES} ${CONAN_COMPILE_DEFINITIONS})
+target_include_directories(cradle PUBLIC
+    ${CONAN_INCLUDE_DIRS}
+    ${CLIPPER_INCLUDE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/src
+    src
+    src/third-party)
+if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(cradle PUBLIC --coverage)
 endif()
 
 # Add the server.
-fips_begin_app(server cmdline)
-    fips_deps(cradle)
-    fips_files(src/server.cpp)
-fips_end_app()
+add_executable(server src/server.cpp)
+target_link_libraries(server cradle)
 
-# Add the test runner.
-fips_begin_app(unit_test_runner cmdline)
-    fips_deps(cradle)
-    fips_src(tests)
-    # Exclude the test runner source file from Cotire because it acts as the
-    # "main" file for Catch and needs to include Catch specially.
-    set_source_files_properties(
-        tests/runner.cpp
-        PROPERTIES
-            COTIRE_EXCLUDED ON)
-fips_end_app()
+# Add the unit test runner.
+file(GLOB_RECURSE UNIT_TEST_FILES CONFIGURE_DEPENDS "tests/*.cpp")
+add_executable(unit_test_runner ${UNIT_TEST_FILES})
+target_link_libraries(unit_test_runner cradle)
+target_include_directories(unit_test_runner
+    PRIVATE ${PROJECT_SOURCE_DIR}/unit_tests)
+# Exclude the test runner source file from Cotire because it acts as the "main"
+# file for Catch and needs to include Catch specially.
+set_source_files_properties(
+    tests/runner.cpp
+    PROPERTIES
+        COTIRE_EXCLUDED ON)
 cotire(unit_test_runner)
 
 # Add the unit testing target.
@@ -283,5 +273,3 @@ add_custom_target(
     all_tests ALL
     DEPENDS unit_tests
     DEPENDS integration_tests)
-
-fips_finish()
