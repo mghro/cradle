@@ -33,6 +33,7 @@ jobs:
         export CC=`which gcc-10`
         export CXX=`which g++-10`
         scripts/set-up-python.sh --python=python3
+        source .venv/bin/activate
         scripts/set-up-conan.sh
         cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}} .
 
@@ -41,7 +42,6 @@ jobs:
         cmake --build build --config ${{matrix.config}}
         --target unit_test_coverage -j4
 
-        source .venv/bin/activate
         python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
 
         cmake --build build --config ${{matrix.config}}
