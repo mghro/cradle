@@ -3,10 +3,10 @@ name: GCC
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 env:
   CTEST_OUTPUT_ON_FAILURE: 1
