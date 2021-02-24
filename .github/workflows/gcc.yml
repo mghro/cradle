@@ -1,0 +1,76 @@
+name: GCC
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+
+jobs:
+
+  gcc-7:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        config: [Debug, Release]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: |
+        export CC=`which gcc-7`
+        export CXX=`which g++-7`
+        scripts/set-up-python.sh --python=python3
+        scripts/set-up-conan.sh
+        cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}} .
+
+    - name: Build & Test
+      run: >
+        cmake --build build --config ${{matrix.config}}
+        --target unit_test_coverage -j4
+
+        source .venv/bin/activate
+        python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
+
+        cmake --build build --config ${{matrix.config}}
+        --target integration_tests -j4
+
+  gcc-10:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        config: [Debug, Release]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install
+      run: |
+        sudo apt install gcc-10
+
+    - name: Configure
+      run: |
+        export CC=`which gcc-10`
+        export CXX=`which g++-10`
+        scripts/set-up-python.sh --python=python3
+        scripts/set-up-conan.sh
+        cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}} .
+
+    - name: Build & Test
+      run: >
+        cmake --build build --config ${{matrix.config}}
+        --target unit_test_coverage -j4
+
+        source .venv/bin/activate
+        python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
+
+        cmake --build build --config ${{matrix.config}}
+        --target integration_tests -j4
