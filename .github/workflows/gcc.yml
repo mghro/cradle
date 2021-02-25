@@ -34,7 +34,7 @@ jobs:
 
     - name: Install
       run: |
-        sudo apt install gcc-10 lcov
+        sudo apt install gcc-10 lcov ocaml-nox
         sudo pip3 install virtualenv
 
     - name: Configure
