@@ -48,10 +48,7 @@ jobs:
 
     - name: Build & Test
       run: >
-        cmake --build build --config ${{matrix.config}}
-        --target unit_test_coverage -j4
-
         python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
 
         cmake --build build --config ${{matrix.config}}
-        --target integration_tests -j4
+        --target all_tests -j4
