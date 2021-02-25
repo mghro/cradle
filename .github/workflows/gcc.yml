@@ -13,7 +13,7 @@ env:
 
 jobs:
 
-  gcc-10:
+  gcc:
     runs-on: ubuntu-20.04
 
     strategy:
@@ -34,13 +34,13 @@ jobs:
 
     - name: Install
       run: |
-        sudo apt install gcc-10 lcov ocaml-nox
+        sudo apt install gcc-9 lcov ocaml-nox
         sudo pip3 install virtualenv
 
     - name: Configure
       run: |
-        export CC=`which gcc-10`
-        export CXX=`which g++-10`
+        export CC=`which gcc-9`
+        export CXX=`which g++-9`
         scripts/set-up-python.sh --python=python3
         source .venv/bin/activate
         scripts/set-up-conan.sh
