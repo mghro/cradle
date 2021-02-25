@@ -10,7 +10,10 @@ import pytest
 
 
 def create_connection_robustly(url):
-    """Attempt to connect to a server, retrying for a brief period if it doesn't initially work."""
+    """
+    Attempt to connect to a server, retrying for a brief period if it doesn't
+    initially work.
+    """
     attempts_left = 100
     while True:
         try:

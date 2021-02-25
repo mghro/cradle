@@ -39,7 +39,8 @@ extract_tag(thinknode_provider_image_info const& image)
 enum class docker_service_type
 {
     WINDOWS,
-    LINUX
+    LINUX,
+    WSL
 };
 
 static http_request
@@ -56,6 +57,7 @@ make_docker_request(
             return make_http_request(
                 method, "http://localhost:2375" + path, headers, body);
         case docker_service_type::LINUX:
+        case docker_service_type::WSL:
             return http_request{
                 method,
                 "http://localhost" + path,
@@ -79,11 +81,23 @@ detect_docker(http_connection& connection)
         auto query = make_docker_request(
             docker_service_type::LINUX,
             http_request_method::GET,
-            "/v1.38/version",
+            "/v1.38/info",
             http_header_list());
         null_check_in check_in;
         null_progress_reporter reporter;
-        connection.perform_request(check_in, reporter, query);
+        auto response = connection.perform_request(check_in, reporter, query);
+
+        // Check which OS the actual Docker server is running on. It's possible
+        // that we are running inside WSL, where the server runs in Windows but
+        // the client runs inside Linux and can still connect in the Linux way.
+        auto info = parse_json_response(response);
+        if (cast<std::string>(
+                get_field(cast<dynamic_map>(info), "KernelVersion"))
+                .find("microsoft")
+            != std::string::npos)
+        {
+            return docker_service_type::WSL;
+        }
 
         return docker_service_type::LINUX;
     }
@@ -96,7 +110,7 @@ detect_docker(http_connection& connection)
     auto query = make_docker_request(
         docker_service_type::WINDOWS,
         http_request_method::GET,
-        "/v1.38/version",
+        "/v1.38/info",
         http_header_list());
     null_check_in check_in;
     null_progress_reporter reporter;
@@ -159,7 +173,8 @@ spawn_provider(
                   "registry-mgh.thinknode.com/" + account + "/" + app + "@"
                       + extract_tag(image)},
                  {"Env",
-                  {service_type == docker_service_type::WINDOWS
+                  {(service_type == docker_service_type::WINDOWS
+                    || service_type == docker_service_type::WSL)
                        ? "THINKNODE_HOST=host.docker.internal"
                        : "THINKNODE_HOST=localhost",
                    "THINKNODE_PORT=41079",
