@@ -25,6 +25,13 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.conan/data
+        key: ${{runner.os}}-gcc-${{matrix.config}}
+
     - name: Install
       run: |
         sudo apt install gcc-10 lcov
@@ -48,10 +55,3 @@ jobs:
 
         cmake --build build --config ${{matrix.config}}
         --target integration_tests -j4
-
-    - name: Cache
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.conan/data
-        key: ${{runner.os}}-gcc-${{matrix.config}}
