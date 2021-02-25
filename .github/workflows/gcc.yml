@@ -27,7 +27,7 @@ jobs:
 
     - name: Install
       run: |
-        sudo apt install gcc-10
+        sudo apt install gcc-10 lcov
         sudo pip3 install virtualenv
 
     - name: Configure
@@ -48,3 +48,10 @@ jobs:
 
         cmake --build build --config ${{matrix.config}}
         --target integration_tests -j4
+
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.conan/data
+        key: ${{runner.os}}-gcc-${{matrix.config}}
