@@ -18,7 +18,7 @@ else()
     set(IS_MSVC false)
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include(cmake/version.cmake)
 
@@ -42,14 +42,14 @@ conan_add_remote(
 conan_cmake_run(
     REQUIRES
         boost/1.67.0@conan/stable
-        Catch/1.12.1@bincrafters/stable
+        catch2/2.13.4
         jsonformoderncpp/3.7.0@vthiery/stable
         msgpack/3.2.1@bincrafters/stable
         cotire/1.7.6@smspillaz/cotire
         libcurl/7.52.1@bincrafters/stable
         OpenSSL/1.0.2s@conan/stable
-        sqlite3/3.21.0@bincrafters/stable
-        FakeIt/2.0.4@gasuketsu/stable
+        sqlite3/3.35.2
+        fakeit/2.0.7
         websocketpp/0.7.0@TyRoXx/stable
         zlib/1.2.11@conan/stable
         bzip2/1.0.6@conan/stable
@@ -74,7 +74,7 @@ conan_cmake_run(
         boost:without_timer=True
         boost:without_type_erasure=True
         boost:without_wave=True
-        FakeIt:integration=catch
+        fakeit:integration=catch
         *:shared=False)
 
 # Include cotire.
@@ -141,6 +141,7 @@ if(IS_MSVC)
 endif()
 
 # Set build options for instrumenting test coverage.
+enable_testing()
 if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Enabling gcov support")
     add_compile_options(--coverage -fno-inline -fno-inline-small-functions -fno-default-inline -fprofile-arcs -ftest-coverage)
@@ -245,40 +246,57 @@ set_source_files_properties(
         COTIRE_EXCLUDED ON)
 cotire(unit_test_runner)
 
+# Retrieve the token info if it exists
+if (DEFINED ENV{CRADLE_THINKNODE_API_TOKEN})
+    set(API_TOKEN $ENV{CRADLE_THINKNODE_API_TOKEN})
+elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.token")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/.token" API_TOKEN)
+else()
+    message(FATAL_ERROR "Couldn't find API token.")
+endif()
+string(REGEX REPLACE "\n" "" API_TOKEN "${API_TOKEN}")
+
 # Add the unit testing target.
 add_custom_target(
-    unit_tests
+    unit_tests_target
     # Create a fresh 'testing' directory within the build dir and run the
     # tests with that. (Some of them perform file I/O.)
     COMMAND ${CMAKE_COMMAND} -E remove_directory testing
     COMMAND ${CMAKE_COMMAND} -E make_directory testing
-    COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env
-            CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy
-            $<TARGET_FILE:unit_test_runner>
+    COMMAND ${CMAKE_COMMAND} -E chdir testing ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy CRADLE_THINKNODE_API_TOKEN=${API_TOKEN} $<TARGET_FILE:unit_test_runner>
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     DEPENDS unit_test_runner)
+add_test(
+    NAME unit_tests
+    COMMAND ${CMAKE_COMMAND}
+        --build ${CMAKE_BINARY_DIR}
+        --target unit_tests_target)
 
 # Add the unit test coverage target.
 if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_target(
-        unit_test_coverage
+        unit_test_coverage_target
         COMMAND lcov --directory . --zerocounters
         COMMAND ${CMAKE_COMMAND} --build . --target unit_tests
         COMMAND lcov --directory . --capture --output-file raw.info
         COMMAND lcov --extract raw.info '${PROJECT_SOURCE_DIR}/src/cradle/*' --output-file filtered.info
         COMMAND ${CMAKE_COMMAND} -E copy filtered.info ${PROJECT_SOURCE_DIR}/.lcov.info
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+    add_test(
+        NAME unit_test_coverage
+        COMMAND ${CMAKE_COMMAND}
+            --build ${CMAKE_BINARY_DIR}
+            --target unit_test_coverage_target)
 endif()
 
 # Add the integration testing target.
 add_custom_target(
-    integration_tests
-    COMMAND ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy pytest
+    integration_tests_target
+    COMMAND ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy CRADLE_THINKNODE_API_TOKEN=${API_TOKEN} pytest
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python
     DEPENDS server)
-
-# Add a target for running all tests. (And include this as a default target.)
-add_custom_target(
-    all_tests ALL
-    DEPENDS unit_tests
-    DEPENDS integration_tests)
+add_test(
+    NAME integration_tests
+    COMMAND ${CMAKE_COMMAND}
+        --build ${CMAKE_BINARY_DIR}
+        --target integration_tests_target)

@@ -4,7 +4,7 @@
 
 #include <boost/format.hpp>
 
-#include <fakeit.hpp>
+#include <catch/fakeit.hpp>
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
@@ -68,12 +68,13 @@ TEST_CASE("ISS object metadata", "[thinknode][iss]")
     session.api_url = "https://mgh.thinknode.io/api/v1.0";
     session.access_token = "xyz";
 
-    auto metadata
-        = get_iss_object_metadata(mock_connection.get(), session, "123", "abc");
+    auto metadata = get_iss_object_metadata(
+        mock_connection.get(), session, "123", "abc");
     REQUIRE(
         metadata
-        == (std::map<string, string>({{"Access-Control-Allow-Origin", "*"},
-                                      {"Cache-Control", "max-age=60"}})));
+        == (std::map<string, string>(
+            {{"Access-Control-Allow-Origin", "*"},
+             {"Cache-Control", "max-age=60"}})));
 }
 
 TEST_CASE("ISS immutable retrieval", "[thinknode][iss]")

@@ -17,8 +17,7 @@ TEST_CASE("value_type streaming", "[core][dynamic]")
     REQUIRE(boost::lexical_cast<string>(value_type::ARRAY) == "array");
     REQUIRE(boost::lexical_cast<string>(value_type::MAP) == "map");
     REQUIRE_THROWS_AS(
-        boost::lexical_cast<string>(value_type(-1)),
-        invalid_enum_value const&);
+        boost::lexical_cast<string>(value_type(-1)), invalid_enum_value);
 }
 
 TEST_CASE("dynamic type checking", "[core][dynamic]")

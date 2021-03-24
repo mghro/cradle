@@ -2,6 +2,8 @@
 
 #include <cradle/core/testing.hpp>
 
+#include <boost/filesystem/operations.hpp>
+
 using namespace cradle;
 
 template<class File>

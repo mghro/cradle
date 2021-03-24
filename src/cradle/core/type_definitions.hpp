@@ -215,7 +215,7 @@ struct dynamic
     // Get the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.
-    any const&
+    std::any const&
     contents() const&
     {
         return value_;
@@ -224,7 +224,7 @@ struct dynamic
     // Get a non-const reference to the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.
-    any&
+    std::any&
     contents() &
     {
         return value_;
@@ -233,7 +233,7 @@ struct dynamic
     // Get an r-value reference to the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.
-    any&&
+    std::any&&
     contents() &&
     {
         return std::move(value_);
@@ -278,7 +278,7 @@ struct dynamic
     swap(dynamic& a, dynamic& b);
 
     value_type type_;
-    any value_;
+    std::any value_;
 };
 
 // omissible<T> is the same as optional<T>, but it obeys thinknode's behavior

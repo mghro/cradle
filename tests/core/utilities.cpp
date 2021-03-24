@@ -20,7 +20,7 @@ TEST_CASE("index bounds checking", "[core][utilities]")
     REQUIRE_NOTHROW(check_index_bounds("my_index", 11, 12));
 
     REQUIRE_THROWS_AS(
-        check_index_bounds("my_index", 12, 12), index_out_of_bounds&);
+        check_index_bounds("my_index", 12, 12), index_out_of_bounds);
 }
 
 TEST_CASE("array size checking", "[core][utilities]")

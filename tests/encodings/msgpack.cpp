@@ -111,7 +111,7 @@ TEST_CASE("custom MessagePack blob ownership", "[encodings][msgpack]")
         msgpack.size);
 
     auto parsed_blob = cast<cradle::blob>(parsed_value);
-    REQUIRE(boost::any_cast<string>(parsed_blob.ownership) == "custom");
+    REQUIRE(std::any_cast<string>(parsed_blob.ownership) == "custom");
 }
 
 TEST_CASE("unsupported MessagePack extension type", "[encodings][msgpack]")

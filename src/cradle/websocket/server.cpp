@@ -1357,8 +1357,7 @@ compute_iss_tree_diff(
             continue;
         }
 
-        relevant_diff.push_back(value_diff_item());
-        swap(item, relevant_diff.back());
+        relevant_diff.push_back(std::move(item));
     }
 
     if (!relevant_diff.empty())
@@ -1828,7 +1827,7 @@ initialize(websocket_server_impl& server, server_config const& config)
 
     server.cache.reset(
         config.disk_cache ? *config.disk_cache
-                          : make_disk_cache_config(none, 0x1'00'00'00'00));
+                          : disk_cache_config(none, 0x1'00'00'00'00));
 
     server.ws.clear_access_channels(websocketpp::log::alevel::all);
     server.ws.init_asio();

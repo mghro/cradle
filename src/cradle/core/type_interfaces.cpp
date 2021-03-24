@@ -240,7 +240,7 @@ generic_make_string_blob(String&& s)
 {
     blob b;
     b.ownership = std::forward<String>(s);
-    string const& owned_string = boost::any_cast<string const&>(b.ownership);
+    string const& owned_string = std::any_cast<string const&>(b.ownership);
     b.data = reinterpret_cast<void const*>(owned_string.c_str());
     b.size = owned_string.length();
     return b;

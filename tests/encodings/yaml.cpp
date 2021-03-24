@@ -17,7 +17,7 @@ static void
 test_one_way_yaml_encoding(
     string const& yaml, dynamic const& expected_value, bool round_trip = true)
 {
-    CAPTURE(yaml)
+    CAPTURE(yaml);
 
     // Parse it and check that it matches.
     auto converted_value = parse_yaml_value(yaml);
@@ -30,7 +30,7 @@ static void
 test_yaml_encoding(
     string const& yaml, dynamic const& expected_value, bool round_trip = true)
 {
-    CAPTURE(yaml)
+    CAPTURE(yaml);
 
     // Parse it and check that it matches.
     auto converted_value = parse_yaml_value(yaml);
@@ -53,7 +53,8 @@ test_yaml_encoding(
 // Test that dynamic value can be translated to the expected diagnostic
 // encoding.
 static void
-test_diagnostic_yaml_encoding(dynamic const& value, string const& expected_yaml)
+test_diagnostic_yaml_encoding(
+    dynamic const& value, string const& expected_yaml)
 {
     auto yaml = value_to_diagnostic_yaml(value);
     REQUIRE(strip_whitespace(yaml) == strip_whitespace(expected_yaml));
@@ -270,7 +271,8 @@ TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
         )");
 
     auto large_blob = blob(ownership_holder(), 0, 16384);
-    test_diagnostic_yaml_encoding(large_blob, "\"<blob - size: 16384 bytes>\"");
+    test_diagnostic_yaml_encoding(
+        large_blob, "\"<blob - size: 16384 bytes>\"");
 
     char unprintable_blob_data[] = "\xf1wxyz";
     auto unprintable_blob = blob(
@@ -310,7 +312,7 @@ TEST_CASE("malformed YAML blob", "[encodings][yaml]")
         REQUIRE(
             strip_whitespace(get_required_error_info<parsed_text_info>(e))
             == strip_whitespace(
-                   R"(
+                R"(
                     {
                         type: base64-encoded-blob
                     }
@@ -352,7 +354,8 @@ test_malformed_yaml(string const& malformed_yaml)
     catch (parsing_error& e)
     {
         REQUIRE(get_required_error_info<expected_format_info>(e) == "YAML");
-        REQUIRE(get_required_error_info<parsed_text_info>(e) == malformed_yaml);
+        REQUIRE(
+            get_required_error_info<parsed_text_info>(e) == malformed_yaml);
         REQUIRE(!get_required_error_info<parsing_error_info>(e).empty());
     }
 }

@@ -3,6 +3,8 @@
 #include <cradle/core/testing.hpp>
 #include <cradle/fs/file_io.hpp>
 
+#include <boost/filesystem/operations.hpp>
+
 using namespace cradle;
 
 static void
@@ -121,7 +123,7 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     REQUIRE(
         get_config_search_path(author, app)
         == std::vector<file_path>(
-               {custom_config_dir / app, system_config_dir_a / app}));
+            {custom_config_dir / app, system_config_dir_a / app}));
 
     // This isn't really implemented, but check that it's doing the correct
     // fallback.
@@ -142,12 +144,14 @@ TEST_CASE("search paths", "[fs][app_dirs]")
     dump_string_to_file(search_dir / "a" / "foo.txt", "foo");
     dump_string_to_file(search_dir / "c" / "foo.txt", "foo");
 
-    auto search_path = std::vector<file_path>({search_dir,
-                                               search_dir / "b",
-                                               search_dir / "d",
-                                               search_dir / "c",
-                                               search_dir / "a"});
+    auto search_path = std::vector<file_path>(
+        {search_dir,
+         search_dir / "b",
+         search_dir / "d",
+         search_dir / "c",
+         search_dir / "a"});
 
     REQUIRE(
-        search_in_path(search_path, "foo.txt") == search_dir / "c" / "foo.txt");
+        search_in_path(search_path, "foo.txt")
+        == search_dir / "c" / "foo.txt");
 }

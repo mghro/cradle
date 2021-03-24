@@ -1,18 +1,21 @@
 #ifndef CRADLE_CORE_UTILITIES_HPP
 #define CRADLE_CORE_UTILITIES_HPP
 
+#include <any>
 #include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include <boost/any.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
 #include <boost/stacktrace.hpp>
+
+// TODO: Remove this?
+#include <boost/optional/optional_io.hpp>
 
 #define api(...)
 
@@ -35,8 +38,6 @@ some(T&& x)
     return optional<std::remove_reference_t<T>>(std::forward<T>(x));
 }
 
-using boost::any;
-
 template<typename T>
 struct array_deleter
 {
@@ -52,7 +53,7 @@ struct array_deleter
 // don't care what way. We only want an object that will provide ownership of
 // the resource until it's destructed. We can achieve this by using an any
 // object to hold the ownership object.
-typedef any ownership_holder;
+typedef std::any ownership_holder;
 
 // Invoke the standard hash function for a value.
 template<class T>

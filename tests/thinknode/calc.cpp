@@ -4,7 +4,7 @@
 
 #include <boost/format.hpp>
 
-#include <fakeit.hpp>
+#include <catch/fakeit.hpp>
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>

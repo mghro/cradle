@@ -6,3 +6,4 @@
 *.pyc
 python/config.yml
 /*build*
+.token

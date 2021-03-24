@@ -55,7 +55,7 @@ let cpp_enum_value_of_union_member u m =
 
 let union_declaration u =
   "struct " ^ u.union_id ^ " " ^ "{ " (* members *) ^ u.union_id
-  ^ "_tag type; " ^ "cradle::any contents_; "
+  ^ "_tag type; " ^ "std::any contents_; "
   (* default constructor *)
   ^ u.union_id
   ^ "() {} "
@@ -325,7 +325,7 @@ let union_accessor_definitions u =
          ^ " const& as_" ^ m.um_id ^ "(" ^ u.union_id ^ " const& x) " ^ "{ "
          ^ "assert(x.type == "
          ^ cpp_enum_value_of_union_member u m
-         ^ "); " ^ "return boost::any_cast<"
+         ^ "); " ^ "return std::any_cast<"
          ^ cpp_code_for_type m.um_type
          ^ " const& >(" ^ "x.contents_); " ^ "} ")
        u.union_members)
@@ -336,7 +336,7 @@ let union_accessor_definitions u =
            ^ "& as_" ^ m.um_id ^ "(" ^ u.union_id ^ "& x) " ^ "{ "
            ^ "assert(x.type == "
            ^ cpp_enum_value_of_union_member u m
-           ^ "); " ^ "return boost::any_cast<"
+           ^ "); " ^ "return std::any_cast<"
            ^ cpp_code_for_type m.um_type
            ^ "&>(" ^ "x.contents_); " ^ "} ")
          u.union_members)

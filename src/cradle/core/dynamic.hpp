@@ -122,7 +122,7 @@ T const&
 cast(dynamic const& v)
 {
     check_type(value_type_of<T>::value, v.type());
-    return boost::any_cast<T const&>(v.contents());
+    return std::any_cast<T const&>(v.contents());
 }
 // Same, but with a non-const reference.
 template<class T>
@@ -130,7 +130,7 @@ T&
 cast(dynamic& v)
 {
     check_type(value_type_of<T>::value, v.type());
-    return boost::any_cast<T&>(v.contents());
+    return std::any_cast<T&>(v.contents());
 }
 // Same, but with move semantics.
 template<class T>
@@ -138,7 +138,7 @@ T&&
 cast(dynamic&& v)
 {
     check_type(value_type_of<T>::value, v.type());
-    return boost::any_cast<T&&>(std::move(v).contents());
+    return std::any_cast<T&&>(std::move(v).contents());
 }
 
 std::ostream&
