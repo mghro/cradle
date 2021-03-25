@@ -1,8 +1,9 @@
-#include <boost/uuid/sha1.hpp>
 #include <cradle/api_index.hpp>
 #include <cradle/core/api_types.hpp>
 #include <cradle/encodings/base64.hpp>
 #include <cradle/encodings/json.hpp>
+
+#include <picosha2.h>
 
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -19,15 +20,8 @@ generate_function_uid(
     api_function_uid_contents uid(name, parameters, revision);
     auto json = value_to_json(to_dynamic(uid));
 
-    boost::uuids::detail::sha1 sha1;
-    sha1.process_bytes(json.c_str(), json.size());
-    unsigned int digest[5];
-    sha1.get_digest(digest);
-
     return base64_encode(
-        reinterpret_cast<uint8_t*>(digest),
-        20,
-        get_mime_base64_character_set());
+        picosha2::hash256_hex_string(json), get_mime_base64_character_set());
 }
 
 void

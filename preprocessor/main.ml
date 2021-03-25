@@ -151,9 +151,11 @@ let main () =
     ^ String.concat "\n\n" (List.map cpp_cleanup_code_for_block decl_blocks)
     ^ String.concat "\n\n"
         (List.map
-           (hpp_string_of_block account_id type_app_id fun_app_id namespace
-              pure_declarations input_file)
-           decl_blocks)
+          (fun block ->
+            (cpp_cleanup_code_for_block block) ^
+            (hpp_string_of_block account_id type_app_id fun_app_id namespace
+                pure_declarations input_file block))
+          decl_blocks)
     ^ "\n"
   in
   output_string hpp_channel hpp_code;

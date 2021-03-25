@@ -1,8 +1,7 @@
 #include <cradle/thinknode/calc.hpp>
 
 #include <cstring>
-
-#include <boost/format.hpp>
+#include <fmt/format.h>
 
 #include <catch/fakeit.hpp>
 
@@ -30,14 +29,14 @@ TEST_CASE("calc status utilities", "[thinknode][tn_calc]")
            "status=calculating&progress=0.01"};
     for (int i = 2; i != 100; ++i)
     {
-        expected_query_order.push_back(str(
-            boost::format("status=calculating&progress=%4.2f") % (i / 100.0)));
+        expected_query_order.push_back(
+            fmt::format("status=calculating&progress={:4.2f}", i / 100.0));
     }
     expected_query_order.push_back("status=uploading&progress=0.00");
     for (int i = 1; i != 100; ++i)
     {
-        expected_query_order.push_back(str(
-            boost::format("status=uploading&progress=%4.2f") % (i / 100.0)));
+        expected_query_order.push_back(
+            fmt::format("status=uploading&progress={:4.2f}", i / 100.0));
     }
     expected_query_order.push_back("status=completed");
     // Go through the entire progression, starting with the waiting status.
@@ -45,6 +44,7 @@ TEST_CASE("calc status utilities", "[thinknode][tn_calc]")
     for (auto query_string : expected_query_order)
     {
         REQUIRE(status);
+        INFO(status);
         REQUIRE(calc_status_as_query_string(*status) == query_string);
         status = get_next_calculation_status(*status);
     }
@@ -53,8 +53,8 @@ TEST_CASE("calc status utilities", "[thinknode][tn_calc]")
 
     // Test the other cases that aren't covered above.
     {
-        auto failed
-            = make_calculation_status_with_failed(calculation_failure_status());
+        auto failed = make_calculation_status_with_failed(
+            calculation_failure_status());
         REQUIRE(get_next_calculation_status(failed) == none);
         REQUIRE(calc_status_as_query_string(failed) == "status=failed");
     }
@@ -68,8 +68,9 @@ TEST_CASE("calc status utilities", "[thinknode][tn_calc]")
         REQUIRE(
             get_next_calculation_status(generating)
             == some(make_calculation_status_with_queued(
-                   calculation_queue_type::READY)));
-        REQUIRE(calc_status_as_query_string(generating) == "status=generating");
+                calculation_queue_type::READY)));
+        REQUIRE(
+            calc_status_as_query_string(generating) == "status=generating");
     }
 }
 
@@ -82,7 +83,8 @@ TEST_CASE("calc status query", "[thinknode][tn_calc]")
                 progress_reporter_interface& reporter,
                 http_request const& request) {
             auto expected_request = make_get_request(
-                "https://mgh.thinknode.io/api/v1.0/calc/abc/status?context=123",
+                "https://mgh.thinknode.io/api/v1.0/calc/abc/"
+                "status?context=123",
                 {{"Authorization", "Bearer xyz"},
                  {"Accept", "application/json"}});
             REQUIRE(request == expected_request);
@@ -141,7 +143,8 @@ TEST_CASE("calc status long polling", "[thinknode][tn_calc]")
         make_get_request(
             "https://mgh.thinknode.io/api/v1.0/calc/abc/status"
             "?status=completed&timeout=120&context=123",
-            {{"Authorization", "Bearer xyz"}, {"Accept", "application/json"}})};
+            {{"Authorization", "Bearer xyz"},
+             {"Accept", "application/json"}})};
 
     std::vector<calculation_status> mock_responses
         = {make_calculation_status_with_calculating(
@@ -174,7 +177,12 @@ TEST_CASE("calc status long polling", "[thinknode][tn_calc]")
 
     null_check_in check_in;
     long_poll_calculation_status(
-        check_in, status_checker, mock_connection.get(), session, "123", "abc");
+        check_in,
+        status_checker,
+        mock_connection.get(),
+        session,
+        "123",
+        "abc");
     REQUIRE(request_counter == expected_requests.size());
     REQUIRE(status_counter == mock_responses.size());
 }
@@ -214,11 +222,11 @@ TEST_CASE("calc variable substitution", "[thinknode][tn_calc]")
                 none,
                 {variable_b, value_calc, variable_a})))
         == make_calculation_request_with_function(make_function_application(
-               "my_account",
-               "my_name",
-               "my_function",
-               none,
-               {b_substitute, value_calc, a_substitute})));
+            "my_account",
+            "my_name",
+            "my_function",
+            none,
+            {b_substitute, value_calc, a_substitute})));
 
     // array
     auto original_array
@@ -245,7 +253,8 @@ TEST_CASE("calc variable substitution", "[thinknode][tn_calc]")
             make_calculation_request_with_value(dynamic(integer(0))),
             item_schema));
     REQUIRE(
-        substitute_variables(substitutions, original_item) == substituted_item);
+        substitute_variables(substitutions, original_item)
+        == substituted_item);
 
     // object
     auto object_schema = make_thinknode_type_info_with_structure_type(
@@ -300,7 +309,7 @@ TEST_CASE("calc variable substitution", "[thinknode][tn_calc]")
             make_calculation_request_with_meta(
                 make_meta_calculation_request(original_array, array_schema)))
         == make_calculation_request_with_meta(
-               make_meta_calculation_request(substituted_array, array_schema)));
+            make_meta_calculation_request(substituted_array, array_schema)));
 }
 
 TEST_CASE("let calculation submission", "[thinknode][tn_calc]")
@@ -397,7 +406,7 @@ TEST_CASE("let calculation submission", "[thinknode][tn_calc]")
     REQUIRE(
         submission_info->reported_subcalcs
         == std::vector<reported_calculation_info>{
-               make_reported_calculation_info("d-id", "my_function")});
+            make_reported_calculation_info("d-id", "my_function")});
     REQUIRE(
         submission_info->other_subcalc_ids
         == (std::vector<string>{"a-id", "b-id", "c-id"}));

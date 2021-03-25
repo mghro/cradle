@@ -1,3 +1,5 @@
+#include <cradle/io/asio.h>
+
 #include <cradle/thinknode/provider.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -5,8 +7,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 
-#include <cradle/thinknode/ipc.hpp>
-#include <cradle/thinknode/messages.hpp>
+#include <cradle/thinknode/ipc.h>
+#include <cradle/thinknode/messages.h>
 
 namespace cradle {
 

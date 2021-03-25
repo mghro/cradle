@@ -8,4 +8,7 @@
 #include <cradle/core/omissible.hpp>
 #include <cradle/core/upgrades.hpp>
 
+// So that IDEs don't get confused by the macro in the original source file.
+#define api(...)
+
 #endif

@@ -1,9 +1,9 @@
 #ifndef CRADLE_WEBSOCKET_MESSAGES_HPP
 #define CRADLE_WEBSOCKET_MESSAGES_HPP
 
-#include "cradle/core/diff.hpp"
-#include "cradle/io/http_requests.hpp"
-#include "cradle/thinknode/types.hpp"
+#include <cradle/core/diff.hpp>
+#include <cradle/io/http_requests.hpp>
+#include <cradle/thinknode/types.hpp>
 
 namespace cradle {
 

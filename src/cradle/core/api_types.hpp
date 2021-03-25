@@ -1,10 +1,10 @@
 #ifndef CRADLE_API_TYPES_HPP
 #define CRADLE_API_TYPES_HPP
 
+#include <cradle/core/flags.hpp>
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/type_definitions.hpp>
 #include <cradle/core/upgrades.hpp>
-#include <cradle/core/utilities.hpp>
 
 namespace cradle {
 

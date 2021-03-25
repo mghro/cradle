@@ -31,11 +31,11 @@ parse_msgpack_response(http_response const& response)
 }
 
 http_response
-make_http_200_response(string const& body)
+make_http_200_response(string body)
 {
     http_response response;
     response.status_code = 200;
-    response.body = make_string_blob(body);
+    response.body = make_string_blob(std::move(body));
     return response;
 }
 
@@ -45,14 +45,13 @@ get_method_name(http_request_method method)
     return boost::to_upper_copy(string(get_value_id(method)));
 };
 
-http_request_system::http_request_system(
-    optional<file_path> const& cacert_path)
+http_request_system::http_request_system(optional<file_path> cacert_path)
 {
     if (curl_global_init(CURL_GLOBAL_ALL))
     {
         CRADLE_THROW(http_request_system_error());
     }
-    set_cacert_path(cacert_path);
+    set_cacert_path(std::move(cacert_path));
 }
 http_request_system::~http_request_system()
 {
@@ -62,17 +61,14 @@ http_request_system::~http_request_system()
 struct http_connection_impl
 {
     CURL* curl;
+    optional<file_path> cacert_path;
 };
 
-http_connection::http_connection(http_request_system& system)
+static void
+reset_curl_connection(http_connection_impl& connection)
 {
-    impl_ = new http_connection_impl;
-
-    CURL* curl = curl_easy_init();
-    if (!curl)
-    {
-        CRADLE_THROW(http_request_system_error());
-    }
+    CURL* curl = connection.curl;
+    curl_easy_reset(curl);
 
     // Allow requests to be redirected.
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -83,6 +79,25 @@ http_connection::http_connection(http_request_system& system)
 
     // Enable SSL verification.
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+    if (connection.cacert_path)
+    {
+        auto path = connection.cacert_path->string();
+        curl_easy_setopt(curl, CURLOPT_CAINFO, path.c_str());
+    }
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+}
+
+http_connection::http_connection(http_request_system& system)
+{
+    impl_ = new http_connection_impl;
+
+    CURL* curl = curl_easy_init();
+    if (!curl)
+    {
+        CRADLE_THROW(http_request_system_error());
+    }
+    impl_->curl = curl;
+
     auto cacert_path = system.get_cacert_path();
     // A default cacert file is only necessary on Windows.
     // On other systems, Curl will automatically use the system's certificate
@@ -97,16 +112,10 @@ http_connection::http_connection(http_request_system& system)
     {
         // Confirm that the file actually exists and can be opened.
         // (Curl will silently ignore it if it can't.)
-        {
-            std::ifstream in;
-            open_file(in, *cacert_path, std::ios::in | std::ios::binary);
-        }
-        auto path = cacert_path->string();
-        curl_easy_setopt(curl, CURLOPT_CAINFO, path.c_str());
+        std::ifstream in;
+        open_file(in, *cacert_path, std::ios::in | std::ios::binary);
     }
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
-
-    impl_->curl = curl;
+    impl_->cacert_path = cacert_path;
 }
 http_connection::~http_connection()
 {
@@ -117,13 +126,9 @@ http_connection::~http_connection()
 
 struct send_transmission_state
 {
-    char const* data;
-    size_t data_length;
-    size_t read_position;
-
-    send_transmission_state() : data(0), data_length(0), read_position(0)
-    {
-    }
+    char const* data = nullptr;
+    size_t data_length = 0;
+    size_t read_position = 0;
 };
 
 static size_t
@@ -147,11 +152,10 @@ typedef std::unique_ptr<char, decltype(&free)> malloc_buffer_ptr;
 struct receive_transmission_state
 {
     malloc_buffer_ptr buffer;
-    size_t buffer_length;
-    size_t write_position;
+    size_t buffer_length = 0;
+    size_t write_position = 0;
 
-    receive_transmission_state()
-        : buffer(nullptr, free), buffer_length(0), write_position(0)
+    receive_transmission_state() : buffer(nullptr, free)
     {
     }
 };
@@ -200,7 +204,7 @@ set_up_send_transmission(
     send_transmission_state& send_state,
     http_request const& request)
 {
-    send_state.data = reinterpret_cast<char const*>(request.body.data);
+    send_state.data = request.body.data;
     send_state.data_length = request.body.size;
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, transmit_request_body);
     curl_easy_setopt(curl, CURLOPT_READDATA, &send_state);
@@ -253,13 +257,12 @@ make_blob(receive_transmission_state&& transmission)
 }
 
 http_request
-redact_request(http_request const& request)
+redact_request(http_request request)
 {
-    auto redacted = request;
-    auto authorization_header = redacted.headers.find("Authorization");
-    if (authorization_header != redacted.headers.end())
+    auto authorization_header = request.headers.find("Authorization");
+    if (authorization_header != request.headers.end())
         authorization_header->second = "[redacted]";
-    return redacted;
+    return request;
 }
 
 http_response
@@ -272,6 +275,7 @@ http_connection::perform_request(
 
     CURL* curl = impl_->curl;
     assert(curl);
+    reset_curl_connection(*impl_);
 
     // Set the headers for the request.
     scoped_curl_slist curl_headers;
@@ -290,10 +294,6 @@ http_connection::perform_request(
         curl_easy_setopt(
             curl, CURLOPT_UNIX_SOCKET_PATH, request.socket->c_str());
     }
-    else
-    {
-        curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, NULL);
-    }
 
     // Set up for receiving the response body.
     receive_transmission_state body_receive_state;
@@ -308,43 +308,31 @@ http_connection::perform_request(
     // Let CURL know what the method is and set up for sending the body if
     // necessary.
     send_transmission_state send_state;
-    if (request.method == http_request_method::PUT)
+    switch (request.method)
     {
-        set_up_send_transmission(curl, send_state, request);
-        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1);
-        curl_off_t size = request.body.size;
-        curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, size);
-    }
-    else
-    {
-        curl_easy_setopt(curl, CURLOPT_UPLOAD, 0);
-    }
-    if (request.method == http_request_method::POST)
-    {
-        set_up_send_transmission(curl, send_state, request);
-        curl_easy_setopt(curl, CURLOPT_POST, 1);
-        curl_off_t size = request.body.size;
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, size);
-    }
-    else
-    {
-        curl_easy_setopt(curl, CURLOPT_POST, 0);
-    }
-    if (request.method == http_request_method::DELETE)
-    {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-    }
-    else
-    {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, 0);
-    }
-    if (request.method == http_request_method::HEAD)
-    {
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
-    }
-    else
-    {
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
+        case http_request_method::PUT:
+            set_up_send_transmission(curl, send_state, request);
+            curl_easy_setopt(curl, CURLOPT_UPLOAD, 1);
+            curl_easy_setopt(
+                curl, CURLOPT_INFILESIZE_LARGE, curl_off_t(request.body.size));
+            break;
+
+        case http_request_method::POST:
+            set_up_send_transmission(curl, send_state, request);
+            curl_easy_setopt(curl, CURLOPT_POST, 1);
+            curl_easy_setopt(
+                curl,
+                CURLOPT_POSTFIELDSIZE_LARGE,
+                curl_off_t(request.body.size));
+            break;
+
+        case http_request_method::DELETE:
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+            break;
+
+        case http_request_method::HEAD:
+            curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+            break;
     }
 
     // Set up progress monitoring.
@@ -399,7 +387,7 @@ http_connection::perform_request(
     response.headers = std::move(response_headers);
     long status_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status_code);
-    response.status_code = boost::numeric_cast<integer>(status_code);
+    response.status_code = boost::numeric_cast<int>(status_code);
 
     // Check the status code.
     if (status_code < 200 || status_code > 299)

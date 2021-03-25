@@ -1,42 +1,21 @@
 #ifndef CRADLE_CORE_UTILITIES_HPP
 #define CRADLE_CORE_UTILITIES_HPP
 
-#include <any>
-#include <functional>
+#include <cradle/core/exception.hpp>
+
 #include <memory>
-#include <string>
 #include <type_traits>
 #include <vector>
 
-#include <boost/exception/all.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/optional.hpp>
-#include <boost/stacktrace.hpp>
 
 // TODO: Remove this?
 #include <boost/optional/optional_io.hpp>
 
-#define api(...)
-
 namespace cradle {
 
-using std::string;
-
 using boost::lexical_cast;
-
-using boost::none;
-using boost::optional;
-
-typedef int64_t integer;
-
-// some(x) creates a boost::optional of the proper type with the value of :x.
-template<class T>
-auto
-some(T&& x)
-{
-    return optional<std::remove_reference_t<T>>(std::forward<T>(x));
-}
 
 template<typename T>
 struct array_deleter
@@ -48,72 +27,10 @@ struct array_deleter
     }
 };
 
-// ownership_holder is meant to express polymorphic ownership of a resource.
-// The idea is that the resource may be owned in many different ways, and we
-// don't care what way. We only want an object that will provide ownership of
-// the resource until it's destructed. We can achieve this by using an any
-// object to hold the ownership object.
-typedef std::any ownership_holder;
-
-// Invoke the standard hash function for a value.
-template<class T>
-size_t
-invoke_hash(T const& x)
-{
-    return boost::hash<T>()(x);
-}
-
 // CRADLE_LAMBDIFY(f) produces a lambda that calls f, which is essentially a
 // version of f that can be passed as an argument and still allows normal
 // overload resolution.
 #define CRADLE_LAMBDIFY(f) [](auto&&... args) { return f(args...); }
-
-// The following macros are simple wrappers around Boost.Exception to codify
-// how that library should be used within CRADLE.
-
-#define CRADLE_DEFINE_EXCEPTION(id)                                           \
-    struct id : virtual boost::exception, virtual std::exception              \
-    {                                                                         \
-        char const*                                                           \
-        what() const noexcept                                                 \
-        {                                                                     \
-            return boost::diagnostic_information_what(*this);                 \
-        }                                                                     \
-    };
-
-#define CRADLE_DEFINE_ERROR_INFO(T, id)                                       \
-    typedef boost::error_info<struct id##_info_tag, T> id##_info;
-
-CRADLE_DEFINE_ERROR_INFO(boost::stacktrace::stacktrace, stacktrace)
-
-#define CRADLE_THROW(x)                                                       \
-    BOOST_THROW_EXCEPTION(                                                    \
-        (x) << stacktrace_info(boost::stacktrace::stacktrace()))
-
-using boost::get_error_info;
-
-// get_required_error_info is just like get_error_info except that it requires
-// the info to be present and returns a const reference to it. If the info is
-// missing, it throws its own exception.
-CRADLE_DEFINE_EXCEPTION(missing_error_info)
-CRADLE_DEFINE_ERROR_INFO(string, error_info_id)
-CRADLE_DEFINE_ERROR_INFO(string, wrapped_exception_diagnostics)
-template<class ErrorInfo, class Exception>
-typename ErrorInfo::error_info::value_type const&
-get_required_error_info(Exception const& e)
-{
-    typename ErrorInfo::error_info::value_type const* info
-        = get_error_info<ErrorInfo>(e);
-    if (!info)
-    {
-        CRADLE_THROW(
-            missing_error_info()
-            << error_info_id_info(typeid(ErrorInfo).name())
-            << wrapped_exception_diagnostics_info(
-                   boost::diagnostic_information(e)));
-    }
-    return *info;
-}
 
 // Check that an index is in bounds.
 // :index must be nonnegative and strictly less than :upper_bound to pass.
@@ -231,110 +148,6 @@ is_tagged_version(repository_info const& info)
 {
     return info.commits_since_tag == 0 && !info.dirty;
 }
-
-// A flag_set is a set of flags, each of which represents a boolean property.
-// It is implemented as a simple unsigned integer, where each bit represents
-// a different property.
-// (The property codes must be defined manually as constants.)
-// The advantage of using this over plain unsigned integers is that this is
-// type-safe and slightly more explicit.
-// A flag_set has a Tag type that identifies the set of properties that go with
-// it. Only properties/sets with the same tag can be combined.
-
-// NO_FLAGS can be implicitly converted to any type of flag_set.
-struct null_flag_set
-{
-};
-static null_flag_set const NO_FLAGS = null_flag_set();
-
-template<class Tag>
-struct flag_set
-{
-    unsigned code;
-    flag_set()
-    {
-    }
-    flag_set(null_flag_set) : code(0)
-    {
-    }
-    explicit flag_set(unsigned code) : code(code)
-    {
-    }
-    // allows use within if statements without other unintended conversions
-    typedef unsigned flag_set::*unspecified_bool_type;
-    operator unspecified_bool_type() const
-    {
-        return code != 0 ? &flag_set::code : 0;
-    }
-};
-
-template<class Tag>
-flag_set<Tag>
-operator|(flag_set<Tag> a, flag_set<Tag> b)
-{
-    return flag_set<Tag>(a.code | b.code);
-}
-template<class Tag>
-flag_set<Tag>&
-operator|=(flag_set<Tag>& a, flag_set<Tag> b)
-{
-    a.code |= b.code;
-    return a;
-}
-template<class Tag>
-flag_set<Tag>
-operator&(flag_set<Tag> a, flag_set<Tag> b)
-{
-    return flag_set<Tag>(a.code & b.code);
-}
-template<class Tag>
-flag_set<Tag>&
-operator&=(flag_set<Tag>& a, flag_set<Tag> b)
-{
-    a.code &= b.code;
-    return a;
-}
-template<class Tag>
-bool
-operator==(flag_set<Tag> a, flag_set<Tag> b)
-{
-    return a.code == b.code;
-}
-template<class Tag>
-bool
-operator!=(flag_set<Tag> a, flag_set<Tag> b)
-{
-    return a.code != b.code;
-}
-template<class Tag>
-bool
-operator<(flag_set<Tag> a, flag_set<Tag> b)
-{
-    return a.code < b.code;
-}
-template<class Tag>
-flag_set<Tag>
-operator~(flag_set<Tag> a)
-{
-    return flag_set<Tag>(~a.code);
-}
-
-template<class Tag>
-size_t
-hash_value(cradle::flag_set<Tag> const& set)
-{
-    return set.code;
-}
-
-#define CRADLE_DEFINE_FLAG_TYPE(type_prefix)                                  \
-    struct type_prefix##_flag_tag                                             \
-    {                                                                         \
-    };                                                                        \
-    typedef cradle::flag_set<type_prefix##_flag_tag> type_prefix##_flag_set;
-
-#define CRADLE_DEFINE_FLAG(type_prefix, code, name)                           \
-    static unsigned const name##_CODE = code;                                 \
-    static cradle::flag_set<type_prefix##_flag_tag> const name(code);
 
 } // namespace cradle
 

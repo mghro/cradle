@@ -34,6 +34,12 @@ array_resembles_map(simdjson::dom::array const& array)
     return true;
 }
 
+static bool
+safe_isdigit(char ch)
+{
+    return std::isdigit(static_cast<unsigned char>(ch));
+}
+
 // Read a JSON value into a CRADLE dynamic.
 static dynamic
 read_json_value(simdjson::dom::element const& json)
@@ -51,15 +57,14 @@ read_json_value(simdjson::dom::element const& json)
             return boost::numeric_cast<integer>(uint64_t(json));
         case simdjson::dom::element_type::DOUBLE:
             return double(json);
-        case simdjson::dom::element_type::STRING:
-        {
+        case simdjson::dom::element_type::STRING: {
             // Times are also encoded as JSON strings, so this checks to see if
-            // the string parses as a time. If so, it just assumes it's actually
-            // a time.
+            // the string parses as a time. If so, it just assumes it's
+            // actually a time.
             auto s = json.get_string().value();
             // First check if it looks anything like a time string.
-            if (s.length() > 16 && isdigit(s[0]) && isdigit(s[1])
-                && isdigit(s[2]) && isdigit(s[3]) && s[4] == '-')
+            if (s.length() > 16 && safe_isdigit(s[0]) && safe_isdigit(s[1])
+                && safe_isdigit(s[2]) && safe_isdigit(s[3]) && s[4] == '-')
             {
                 try
                 {
@@ -78,8 +83,7 @@ read_json_value(simdjson::dom::element const& json)
             }
             return string(s);
         }
-        case simdjson::dom::element_type::ARRAY:
-        {
+        case simdjson::dom::element_type::ARRAY: {
             simdjson::dom::array source = json;
             // If this resembles an encoded map, read it as that.
             if (array_resembles_map(source))
@@ -104,8 +108,7 @@ read_json_value(simdjson::dom::element const& json)
                 return array;
             }
         }
-        case simdjson::dom::element_type::OBJECT:
-        {
+        case simdjson::dom::element_type::OBJECT: {
             // An object is analogous to a map, but blobs and references are
             // also encoded as JSON objects, so we have to check here if it's
             // actually one of those.
@@ -126,7 +129,7 @@ read_json_value(simdjson::dom::element const& json)
                     std::shared_ptr<uint8_t> ptr(
                         new uint8_t[decoded_size], array_deleter<uint8_t>());
                     x.ownership = ptr;
-                    x.data = reinterpret_cast<void const*>(ptr.get());
+                    x.data = reinterpret_cast<char const*>(ptr.get());
                     base64_decode(
                         ptr.get(),
                         &x.size,
@@ -210,21 +213,19 @@ to_nlohmann_json(dynamic const& v)
             return cast<double>(v);
         case value_type::STRING:
             return cast<string>(v);
-        case value_type::BLOB:
-        {
+        case value_type::BLOB: {
             blob const& x = cast<blob>(v);
             nlohmann::json json;
             json["type"] = "base64-encoded-blob";
             json["blob"] = base64_encode(
-                static_cast<uint8_t const*>(x.data),
+                reinterpret_cast<uint8_t const*>(x.data),
                 x.size,
                 get_mime_base64_character_set());
             return json;
         }
         case value_type::DATETIME:
             return to_value_string(cast<boost::posix_time::ptime>(v));
-        case value_type::ARRAY:
-        {
+        case value_type::ARRAY: {
             nlohmann::json json(nlohmann::json::value_t::array);
             for (auto const& i : cast<dynamic_array>(v))
             {
@@ -232,8 +233,7 @@ to_nlohmann_json(dynamic const& v)
             }
             return json;
         }
-        case value_type::MAP:
-        {
+        case value_type::MAP: {
             dynamic_map const& x = cast<dynamic_map>(v);
             // If the map has only key strings, encode it directly as a JSON
             // object.

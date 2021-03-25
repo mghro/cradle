@@ -9,6 +9,8 @@
 
 #include <cradle/core/api_types.hpp>
 #include <cradle/core/dynamic.hpp>
+#include <cradle/core/exception.hpp>
+#include <cradle/core/hash.hpp>
 #include <cradle/core/type_info.hpp>
 
 // This file provides implementations of the CRADLE Regular interface
@@ -314,9 +316,7 @@ hash_value(blob const& x);
 
 // Make a blob that holds the contents of the given string.
 blob
-make_string_blob(string const& s);
-blob
-make_string_blob(string&& s);
+make_string_blob(string s);
 
 // STD::VECTOR
 

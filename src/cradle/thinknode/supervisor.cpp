@@ -1,13 +1,13 @@
-#include <cradle/thinknode/supervisor.hpp>
-
-#include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
+#include <cradle/io/asio.h>
+
+#include <cradle/thinknode/supervisor.hpp>
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
-#include <cradle/thinknode/ipc.hpp>
-#include <cradle/thinknode/messages.hpp>
+#include <cradle/thinknode/ipc.h>
+#include <cradle/thinknode/messages.h>
 
 namespace asio = boost::asio;
 using asio::ip::tcp;

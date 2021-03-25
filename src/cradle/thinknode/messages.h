@@ -4,6 +4,8 @@
 // This file implements the general pattern used within Astroid to transmit
 // messages over TCP.
 
+#include <cradle/io/asio.h>
+
 #include <cstring>
 #include <queue>
 
@@ -12,12 +14,6 @@
 
 #include <cradle/io/endian.hpp>
 #include <cradle/io/raw_memory_io.hpp>
-
-// Boost ASIO complains if we don't define this.
-#ifdef WIN32
-#define _WIN32_WINNT 0x0501 // Windows XP
-#endif
-#include <boost/asio.hpp>
 
 namespace cradle {
 
@@ -85,9 +81,8 @@ read_message(tcp::socket& socket, uint8_t ipc_version)
     if (header.ipc_version != ipc_version)
     {
         CRADLE_THROW(
-            ipc_version_mismatch()
-            << local_ipc_version_info(ipc_version)
-            << remote_ipc_version_info(header.ipc_version));
+            ipc_version_mismatch() << local_ipc_version_info(
+                ipc_version) << remote_ipc_version_info(header.ipc_version));
     }
 
     // Read the body.

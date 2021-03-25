@@ -104,13 +104,13 @@ TEST_CASE("blob type interface", "[core][types]")
 
     INFO("Test blobs of the different sizes.");
     test_regular_value_pair(
-        blob(ownership_holder(), blob_data, 1),
-        blob(ownership_holder(), blob_data, 2));
+        blob{ownership_holder(), blob_data, 1},
+        blob{ownership_holder(), blob_data, 2});
 
     INFO("Test blobs of the same size but with different data.");
     test_regular_value_pair(
-        blob(ownership_holder(), blob_data, 1),
-        blob(ownership_holder(), blob_data + 1, 1));
+        blob{ownership_holder(), blob_data, 1},
+        blob{ownership_holder(), blob_data + 1, 1});
 }
 
 TEST_CASE("optional type interface", "[core][types]")

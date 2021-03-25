@@ -1,7 +1,9 @@
-#include <cradle/websocket/client.hpp>
+#include <cradle/io/asio.h>
 
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
+
+#include <cradle/websocket/client.hpp>
 
 #include <cradle/encodings/msgpack.hpp>
 #include <cradle/websocket/messages.hpp>
@@ -50,7 +52,8 @@ websocket_client::connect(string const& uri)
 
 void
 websocket_client::set_message_handler(
-    std::function<void(websocket_server_message const& message)> const& handler)
+    std::function<void(websocket_server_message const& message)> const&
+        handler)
 {
     impl_->client.set_message_handler(
         [=](websocketpp::connection_hdl hdl, message_ptr message) {

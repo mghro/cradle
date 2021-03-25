@@ -61,7 +61,7 @@ compute_map_diff(
     dynamic_map const& a,
     dynamic_map const& b)
 {
-    // The simplest possible diff is to just treat the whole array as being
+    // The simplest possible diff is to just treat the whole map as being
     // updated.
     value_diff simple_diff;
     simple_diff.push_back(make_update_item(path, dynamic(a), dynamic(b)));
@@ -274,7 +274,8 @@ compute_value_diff(
                 diff, path, cast<dynamic_map>(a), cast<dynamic_map>(b));
         }
         // If a and b are both arrays, do an item-by-item diff.
-        else if (a.type() == value_type::ARRAY && b.type() == value_type::ARRAY)
+        else if (
+            a.type() == value_type::ARRAY && b.type() == value_type::ARRAY)
         {
             compute_array_diff(
                 diff, path, cast<dynamic_array>(a), cast<dynamic_array>(b));
@@ -314,8 +315,7 @@ apply_value_diff_item(
     auto const& path_element = path[path_index];
     switch (path_element.type())
     {
-        case value_type::STRING:
-        {
+        case value_type::STRING: {
             if (initial.type() != value_type::MAP)
                 throw invalid_diff_path();
             dynamic_map map = cast<dynamic_map>(initial);
@@ -344,8 +344,7 @@ apply_value_diff_item(
             }
             return dynamic(map);
         }
-        case value_type::INTEGER:
-        {
+        case value_type::INTEGER: {
             if (initial.type() != value_type::ARRAY)
                 throw invalid_diff_path();
             dynamic_array array = cast<dynamic_array>(initial);

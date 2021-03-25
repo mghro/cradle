@@ -525,6 +525,4 @@ let cpp_code_to_register_union app_id u =
 
 (* Generate the C++ code to clean up the #define namespace for a union. *)
 let cpp_cleanup_code_for_union u =
-  if union_has_registered_enum u then
-    cpp_cleanup_code_for_enum (type_enum_of_union u)
-  else ""
+  cpp_cleanup_code_for_enum (type_enum_of_union u)

@@ -1,6 +1,6 @@
 #include <cradle/thinknode/calc.hpp>
 
-#include <boost/format.hpp>
+#include <fmt/format.h>
 
 #include <cradle/core/logging.hpp>
 #include <cradle/core/monitoring.hpp>
@@ -143,7 +143,7 @@ get_next_calculation_status(calculation_status current)
                        ? make_calculation_status_with_calculating(
                            calculation_calculating_status{next_progress})
                        : make_calculation_status_with_uploading(
-                           calculation_uploading_status());
+                           calculation_uploading_status{0});
         }
         case calculation_status_tag::UPLOADING: {
             // Wait for progress in increments of 1%.
@@ -195,13 +195,13 @@ calc_status_as_query_string(calculation_status status)
                                static_cast<int>(as_queued(status))));
             }
         case calculation_status_tag::CALCULATING:
-            return str(
-                boost::format("status=calculating&progress=%4.2f")
-                % as_calculating(status).progress);
+            return fmt::format(
+                "status=calculating&progress={:4.2f}",
+                as_calculating(status).progress);
         case calculation_status_tag::UPLOADING:
-            return str(
-                boost::format("status=uploading&progress=%4.2f")
-                % as_uploading(status).progress);
+            return fmt::format(
+                "status=uploading&progress={:4.2f}",
+                as_uploading(status).progress);
         case calculation_status_tag::COMPLETED:
             return "status=completed";
         case calculation_status_tag::FAILED:

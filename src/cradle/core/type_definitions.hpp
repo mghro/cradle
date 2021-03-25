@@ -1,43 +1,40 @@
 #ifndef CRADLE_CORE_TYPE_DEFINITIONS_HPP
 #define CRADLE_CORE_TYPE_DEFINITIONS_HPP
 
-#include <cradle/core/utilities.hpp>
+#include <any>
+#include <map>
+#include <string>
 
 #include <boost/core/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-#include <iostream>
+#include <boost/optional.hpp>
 
-#ifdef CRADLE_USING_TAGGED_CONSTRUCTORS
-#include <boost/hana.hpp>
-#endif
+#include <iostream>
 
 namespace cradle {
 
-// The following utilities are used by the generated tagged constructors.
-#ifdef CRADLE_USING_TAGGED_CONSTRUCTORS
-template<class Arg>
-struct is_hana_pair
+using std::string;
+
+using boost::none;
+using boost::optional;
+
+// some(x) creates a boost::optional of the proper type with the value of :x.
+template<class T>
+auto
+some(T&& x)
 {
-    static bool const value = false;
-};
-template<class First, class Second>
-struct is_hana_pair<boost::hana::pair<First, Second>>
-{
-    static bool const value = true;
-};
-template<class... Args>
-struct has_hana_pair
-{
-    static bool const value = false;
-};
-template<class Arg, class... Rest>
-struct has_hana_pair<Arg, Rest...>
-{
-    static bool const value
-        = is_hana_pair<Arg>::value || has_hana_pair<Rest...>::value;
-};
-#endif
+    return optional<std::remove_reference_t<T>>(std::forward<T>(x));
+}
+
+typedef int64_t integer;
+
+// ownership_holder is meant to express polymorphic ownership of a resource.
+// The idea is that the resource may be owned in many different ways, and we
+// don't care what way. We only want an object that will provide ownership of
+// the resource until it's destructed. We can achieve this by using an any
+// object to hold the ownership object.
+typedef std::any ownership_holder;
 
 // nil_t is a unit type. It has only one possible value, :nil.
 struct nil_t
@@ -48,17 +45,8 @@ static nil_t nil;
 struct blob
 {
     ownership_holder ownership;
-    void const* data;
-    std::size_t size;
-
-    blob() : data(0), size(0)
-    {
-    }
-
-    blob(ownership_holder const& ownership, void const* data, std::size_t size)
-        : ownership(ownership), data(data), size(size)
-    {
-    }
+    char const* data = nullptr;
+    std::size_t size = 0;
 };
 
 // type_info_query<T>::get(&info) should set :info to the CRADLE type info for

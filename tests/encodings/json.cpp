@@ -249,7 +249,7 @@ TEST_CASE("basic JSON encoding", "[encodings][json]")
                 "type": "base64-encoded-blob"
             }
         )",
-        blob(ownership_holder(), blob_data, sizeof(blob_data) - 1));
+        blob{ownership_holder(), blob_data, sizeof(blob_data) - 1});
 
     // Try some other things that aren't blobs but look similar.
     test_json_encoding(
@@ -343,7 +343,8 @@ test_malformed_json(string const& malformed_json)
     catch (parsing_error& e)
     {
         REQUIRE(get_required_error_info<expected_format_info>(e) == "JSON");
-        REQUIRE(get_required_error_info<parsed_text_info>(e) == malformed_json);
+        REQUIRE(
+            get_required_error_info<parsed_text_info>(e) == malformed_json);
         REQUIRE(!get_required_error_info<parsing_error_info>(e).empty());
     }
 }

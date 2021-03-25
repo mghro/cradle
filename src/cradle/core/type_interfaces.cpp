@@ -1,8 +1,9 @@
 #include <cradle/core/type_interfaces.hpp>
 
+#include <fmt/format.h>
+
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/format.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <cradle/core/dynamic.hpp>
@@ -44,19 +45,20 @@ from_dynamic(string* x, dynamic const& v)
 
 // INTEGERS
 
-#define CRADLE_DEFINE_INTEGER_INTERFACE(T)                                     \
-    void to_dynamic(dynamic* v, T x)                                           \
-    {                                                                          \
-        *v = boost::numeric_cast<integer>(x);                                  \
-    }                                                                          \
-    void from_dynamic(T* x, dynamic const& v)                                  \
-    {                                                                          \
-        /* Floats can also be acceptable as integers if they convert properly. \
-         */                                                                    \
-        if (v.type() == value_type::FLOAT)                                     \
-            *x = boost::numeric_cast<T>(cast<double>(v));                      \
-        else                                                                   \
-            *x = boost::numeric_cast<T>(cast<integer>(v));                     \
+#define CRADLE_DEFINE_INTEGER_INTERFACE(T)                                    \
+    void to_dynamic(dynamic* v, T x)                                          \
+    {                                                                         \
+        *v = boost::numeric_cast<integer>(x);                                 \
+    }                                                                         \
+    void from_dynamic(T* x, dynamic const& v)                                 \
+    {                                                                         \
+        /* Floats can also be acceptable as integers if they convert          \
+         * properly.                                                          \
+         */                                                                   \
+        if (v.type() == value_type::FLOAT)                                    \
+            *x = boost::numeric_cast<T>(cast<double>(v));                     \
+        else                                                                  \
+            *x = boost::numeric_cast<T>(cast<integer>(v));                    \
     }
 
 CRADLE_DEFINE_INTEGER_INTERFACE(signed char)
@@ -72,18 +74,19 @@ CRADLE_DEFINE_INTEGER_INTERFACE(unsigned long long)
 
 // FLOATS
 
-#define CRADLE_DEFINE_FLOAT_INTERFACE(T)                                       \
-    void to_dynamic(dynamic* v, T x)                                           \
-    {                                                                          \
-        *v = double(x);                                                        \
-    }                                                                          \
-    void from_dynamic(T* x, dynamic const& v)                                  \
-    {                                                                          \
-        /* Integers can also acceptable as floats if they convert properly. */ \
-        if (v.type() == value_type::INTEGER)                                   \
-            *x = boost::numeric_cast<T>(cast<integer>(v));                     \
-        else                                                                   \
-            *x = boost::numeric_cast<T>(cast<double>(v));                      \
+#define CRADLE_DEFINE_FLOAT_INTERFACE(T)                                      \
+    void to_dynamic(dynamic* v, T x)                                          \
+    {                                                                         \
+        *v = double(x);                                                       \
+    }                                                                         \
+    void from_dynamic(T* x, dynamic const& v)                                 \
+    {                                                                         \
+        /* Integers can also acceptable as floats if they convert properly.   \
+         */                                                                   \
+        if (v.type() == value_type::INTEGER)                                  \
+            *x = boost::numeric_cast<T>(cast<integer>(v));                    \
+        else                                                                  \
+            *x = boost::numeric_cast<T>(cast<double>(v));                     \
     }
 
 CRADLE_DEFINE_FLOAT_INTERFACE(double)
@@ -112,7 +115,8 @@ parse_date(std::string const& s)
     {
     }
     CRADLE_THROW(
-        parsing_error() << expected_format_info("date") << parsed_text_info(s));
+        parsing_error() << expected_format_info("date")
+                        << parsed_text_info(s));
 }
 
 string
@@ -159,9 +163,10 @@ to_value_string(ptime const& t)
         std::locale(std::cout.getloc(), new bt::time_facet("%Y-%m-%dT%H:%M")));
     os << t;
     // Add the seconds and timezone manually to match Thinknode.
-    os
-        << (boost::format(":%02d.%03dZ") % t.time_of_day().seconds()
-            % (t.time_of_day().total_milliseconds() % 1000));
+    os << fmt::format(
+        ":{:02d}.{:03d}Z",
+        t.time_of_day().seconds(),
+        t.time_of_day().total_milliseconds() % 1000);
     return os.str();
 }
 
@@ -234,28 +239,19 @@ hash_value(blob const& x)
     return boost::hash_range(bytes, bytes + x.size);
 }
 
-template<class String>
 blob
-generic_make_string_blob(String&& s)
+make_string_blob(string s)
 {
     blob b;
-    b.ownership = std::forward<String>(s);
-    string const& owned_string = std::any_cast<string const&>(b.ownership);
-    b.data = reinterpret_cast<void const*>(owned_string.c_str());
+    // This is a little roundabout, but it seems like the most reasonable way
+    // to ensure that a) the string contents don't move if the blob is moved
+    // and b) the string contents aren't actually copied if they're large.
+    b.ownership = std::make_shared<string>(std::move(s));
+    string const& owned_string
+        = *std::any_cast<std::shared_ptr<string> const&>(b.ownership);
+    b.data = owned_string.c_str();
     b.size = owned_string.length();
     return b;
-}
-
-blob
-make_string_blob(string const& s)
-{
-    return generic_make_string_blob(s);
-}
-
-blob
-make_string_blob(string&& s)
-{
-    return generic_make_string_blob(s);
 }
 
 } // namespace cradle

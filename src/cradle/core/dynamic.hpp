@@ -6,6 +6,7 @@
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
+#include <cradle/core/exception.hpp>
 #include <cradle/core/type_definitions.hpp>
 
 namespace cradle {

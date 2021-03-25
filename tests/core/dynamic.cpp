@@ -73,8 +73,8 @@ TEST_CASE("dynamic type interface", "[core][dynamic]")
 
     char blob_data[] = {'a', 'b'};
     test_regular_value_pair(
-        dynamic(blob(ownership_holder(), blob_data, 1)),
-        dynamic(blob(ownership_holder(), blob_data, 2)));
+        dynamic(blob{ownership_holder(), blob_data, 1}),
+        dynamic(blob{ownership_holder(), blob_data, 2}));
 
     test_regular_value_pair(
         dynamic(boost::posix_time::ptime(
@@ -106,7 +106,7 @@ TEST_CASE("dynamic deep_sizeof", "[core][dynamic]")
         deep_sizeof(dynamic(string("foo")))
         == sizeof(dynamic) + deep_sizeof(string("foo")));
     char blob_data[] = {'a', 'b'};
-    blob blob(ownership_holder(), blob_data, 2);
+    blob blob{ownership_holder(), blob_data, 2};
     REQUIRE(deep_sizeof(dynamic(blob)) == sizeof(dynamic) + deep_sizeof(blob));
     auto time = boost::posix_time::ptime(
         boost::gregorian::date(2017, boost::gregorian::Apr, 26),
@@ -309,7 +309,7 @@ TEST_CASE("dynamic value coercion", "[core][dynamic]")
     REQUIRE_THROWS(coerce_value(string_type, dynamic(false)));
 
     auto blob_type = make_api_type_info_with_blob_type(api_blob_type());
-    auto test_blob = blob(ownership_holder(), "abc", 3);
+    auto test_blob = blob{ownership_holder(), "abc", 3};
     REQUIRE(coerce_value(blob_type, dynamic(test_blob)) == dynamic(test_blob));
     REQUIRE_THROWS(coerce_value(blob_type, dynamic(false)));
 

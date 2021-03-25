@@ -40,6 +40,12 @@ parse_time(std::string const& s)
                         << parsed_text_info(s));
 }
 
+static bool
+safe_isdigit(char ch)
+{
+    return std::isdigit(static_cast<unsigned char>(ch));
+}
+
 // Read a YAML value into a CRADLE dynamic.
 static dynamic
 read_yaml_value(YAML::Node const& yaml)
@@ -49,8 +55,7 @@ read_yaml_value(YAML::Node const& yaml)
         case YAML::NodeType::Null:
         default: // to avoid warnings
             return nil;
-        case YAML::NodeType::Scalar:
-        {
+        case YAML::NodeType::Scalar: {
             // This case captures strings, booleans, integers, and doubles.
             // First, check to see if the value was explicitly quoted.
             if (yaml.Tag() == "!")
@@ -60,8 +65,8 @@ read_yaml_value(YAML::Node const& yaml)
                 // it's actually a time.
                 auto s = yaml.as<string>();
                 // First check if it looks anything like a time string.
-                if (s.length() > 16 && isdigit(s[0]) && isdigit(s[1])
-                    && isdigit(s[2]) && isdigit(s[3]) && s[4] == '-')
+                if (s.length() > 16 && safe_isdigit(s[0]) && safe_isdigit(s[1])
+                    && safe_isdigit(s[2]) && safe_isdigit(s[3]) && s[4] == '-')
                 {
                     try
                     {
@@ -127,8 +132,7 @@ read_yaml_value(YAML::Node const& yaml)
                 return s;
             }
         }
-        case YAML::NodeType::Sequence:
-        {
+        case YAML::NodeType::Sequence: {
             dynamic_array array;
             array.reserve(yaml.size());
             for (auto const& i : yaml)
@@ -137,8 +141,7 @@ read_yaml_value(YAML::Node const& yaml)
             }
             return array;
         }
-        case YAML::NodeType::Map:
-        {
+        case YAML::NodeType::Map: {
             // An object is analogous to a map, but blobs are also encoded as
             // YAML objects, so we have to check here if it's actually one of
             // those.
@@ -156,7 +159,7 @@ read_yaml_value(YAML::Node const& yaml)
                     std::shared_ptr<uint8_t> ptr(
                         new uint8_t[decoded_size], array_deleter<uint8_t>());
                     x.ownership = ptr;
-                    x.data = reinterpret_cast<void const*>(ptr.get());
+                    x.data = reinterpret_cast<char const*>(ptr.get());
                     base64_decode(
                         ptr.get(),
                         &x.size,
@@ -186,7 +189,8 @@ read_yaml_value(YAML::Node const& yaml)
                      i != yaml.end();
                      ++i)
                 {
-                    map[read_yaml_value(i->first)] = read_yaml_value(i->second);
+                    map[read_yaml_value(i->first)]
+                        = read_yaml_value(i->second);
                 }
                 return map;
             }
@@ -230,13 +234,12 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
         case value_type::FLOAT:
             out << cast<double>(v);
             break;
-        case value_type::STRING:
-        {
+        case value_type::STRING: {
             if (read_yaml_value(YAML::Node(cast<string>(v))).type()
                 != value_type::STRING)
             {
-                // This happens to be a string that looks like some other scalar
-                // type, so it should be explicitly quoted.
+                // This happens to be a string that looks like some other
+                // scalar type, so it should be explicitly quoted.
                 out << YAML::DoubleQuoted << cast<string>(v);
             }
             else
@@ -245,13 +248,12 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
             }
             break;
         }
-        case value_type::BLOB:
-        {
+        case value_type::BLOB: {
             blob const& x = cast<blob>(v);
             YAML::Node yaml;
             yaml["type"] = "base64-encoded-blob";
             yaml["blob"] = base64_encode(
-                static_cast<uint8_t const*>(x.data),
+                reinterpret_cast<uint8_t const*>(x.data),
                 x.size,
                 get_mime_base64_character_set());
             out << yaml;
@@ -261,8 +263,7 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
             out << YAML::DoubleQuoted
                 << to_value_string(cast<boost::posix_time::ptime>(v));
             break;
-        case value_type::ARRAY:
-        {
+        case value_type::ARRAY: {
             out << YAML::BeginSeq;
             for (auto const& i : cast<dynamic_array>(v))
             {
@@ -271,8 +272,7 @@ emit_yaml_value(YAML::Emitter& out, dynamic const& v)
             out << YAML::EndSeq;
             break;
         }
-        case value_type::MAP:
-        {
+        case value_type::MAP: {
             dynamic_map const& x = cast<dynamic_map>(v);
             out << YAML::BeginMap;
             for (auto const& i : x)
@@ -329,13 +329,12 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
         case value_type::FLOAT:
             out << cast<double>(v);
             break;
-        case value_type::STRING:
-        {
+        case value_type::STRING: {
             if (read_yaml_value(YAML::Node(cast<string>(v))).type()
                 != value_type::STRING)
             {
-                // This happens to be a string that looks like some other scalar
-                // type, so it should be explicitly quoted.
+                // This happens to be a string that looks like some other
+                // scalar type, so it should be explicitly quoted.
                 out << YAML::DoubleQuoted << cast<string>(v);
             }
             else
@@ -344,15 +343,14 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
             }
             break;
         }
-        case value_type::BLOB:
-        {
+        case value_type::BLOB: {
             blob const& x = cast<blob>(v);
             if (x.size != 0 && is_printable(x))
             {
                 out << YAML::Literal
                     << "<blob>\n"
                            + string(
-                                 reinterpret_cast<char const*>(x.data), x.size);
+                               reinterpret_cast<char const*>(x.data), x.size);
             }
             else
             {
@@ -365,8 +363,7 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
             out << YAML::DoubleQuoted
                 << to_value_string(cast<boost::posix_time::ptime>(v));
             break;
-        case value_type::ARRAY:
-        {
+        case value_type::ARRAY: {
             dynamic_array const& array = cast<dynamic_array>(v);
             if (array.size() < 64)
             {
@@ -384,8 +381,7 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
             }
             break;
         }
-        case value_type::MAP:
-        {
+        case value_type::MAP: {
             dynamic_map const& x = cast<dynamic_map>(v);
             out << YAML::BeginMap;
             for (auto const& i : x)

@@ -41,35 +41,33 @@ conan_add_remote(
     VERIFY_SSL True)
 conan_cmake_run(
     REQUIRES
-        boost/1.67.0@conan/stable
+        boost/1.75.0
         catch2/2.13.4
         jsonformoderncpp/3.7.0@vthiery/stable
         msgpack/3.2.1@bincrafters/stable
         cotire/1.7.6@smspillaz/cotire
-        libcurl/7.52.1@bincrafters/stable
-        OpenSSL/1.0.2s@conan/stable
+        libcurl/7.75.0
+        openssl/1.1.1j
         sqlite3/3.35.2
         fakeit/2.0.7
-        websocketpp/0.7.0@TyRoXx/stable
-        zlib/1.2.11@conan/stable
+        websocketpp/0.8.2
+        zlib/1.2.11
         bzip2/1.0.6@conan/stable
-        yaml-cpp/0.6.2@tmadden/stable
+        yaml-cpp/0.6.3
         spdlog/0.16.3@bincrafters/stable
     BASIC_SETUP
     BUILD missing
     OPTIONS
-        boost:without_atomic=True
-        boost:without_chrono=True
-        boost:without_container=True
         boost:without_context=True
         boost:without_coroutine=True
+        boost:without_fiber=True
         boost:without_graph=True
         boost:without_graph_parallel=True
+        boost:without_iostreams=True
+        boost:without_json=True
         boost:without_log=True
-        boost:without_math=True
         boost:without_mpi=True
         boost:without_serialization=True
-        boost:without_signals=True
         boost:without_test=True
         boost:without_timer=True
         boost:without_type_erasure=True
@@ -224,7 +222,7 @@ endif()
 # Set up the deployment directory.
 set(deploy_dir "${CMAKE_CURRENT_BINARY_DIR}/deploy")
 file(MAKE_DIRECTORY ${deploy_dir})
-file(COPY ${CONAN_LIBCURL_ROOT}/cacert.pem DESTINATION ${deploy_dir})
+file(COPY ${CONAN_LIBCURL_ROOT}/res/cacert.pem DESTINATION ${deploy_dir})
 
 # Add the server.
 add_executable(server src/server.cpp)

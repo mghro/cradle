@@ -43,26 +43,31 @@ struct http_request
 
 // Construct a GET request (in a convenient way).
 inline http_request
-make_get_request(string const& url, http_header_list const& headers)
+make_get_request(string url, http_header_list headers)
 {
     return http_request{
-        http_request_method::GET, url, headers, http_body(), none};
+        http_request_method::GET,
+        std::move(url),
+        std::move(headers),
+        http_body(),
+        none};
 }
 
 // Construct a general HTTP request.
 inline http_request
 make_http_request(
     http_request_method method,
-    string const& url,
-    http_header_list const& headers,
-    http_body const& body)
+    string url,
+    http_header_list headers,
+    http_body body)
 {
-    return http_request{method, url, headers, body, none};
+    return http_request{
+        method, std::move(url), std::move(headers), std::move(body), none};
 }
 
 // Redact an HTTP request.
 http_request
-redact_request(http_request const& request);
+redact_request(http_request request);
 
 api(struct internal)
 struct http_response
@@ -82,7 +87,7 @@ parse_msgpack_response(http_response const& response);
 
 // Make a successful (200) HTTP response with the given body.
 http_response
-make_http_200_response(string const& body);
+make_http_200_response(string body);
 
 // This exception indicates a general failure in the HTTP request
 // system (e.g., a failure to initialize).
@@ -110,7 +115,7 @@ CRADLE_DEFINE_ERROR_INFO(http_response, http_response)
 struct http_request_system : boost::noncopyable
 {
     // See below for details on :cacert_path.
-    http_request_system(optional<file_path> const& cacert_path = none);
+    http_request_system(optional<file_path> cacert_path = none);
     ~http_request_system();
 
     // Get/set the path for the certificate authority file.
@@ -123,9 +128,9 @@ struct http_request_system : boost::noncopyable
         return cacert_path_;
     }
     void
-    set_cacert_path(optional<file_path> const& cacert_path)
+    set_cacert_path(optional<file_path> cacert_path)
     {
-        cacert_path_ = cacert_path;
+        cacert_path_ = std::move(cacert_path);
     }
 
  private:
