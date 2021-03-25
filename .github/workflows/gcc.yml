@@ -52,4 +52,4 @@ jobs:
         python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
 
         cmake --build build --config ${{matrix.config}}
-        --target unit_test_target -j4
+        --target unit_tests_target -j4
