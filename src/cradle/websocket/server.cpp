@@ -1445,8 +1445,7 @@ compute_calc_tree_diff(
             continue;
         }
 
-        relevant_diff.push_back(value_diff_item());
-        swap(item, relevant_diff.back());
+        relevant_diff.push_back(std::move(item));
     }
 
     if (!relevant_diff.empty())
