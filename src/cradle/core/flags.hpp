@@ -1,6 +1,8 @@
 #ifndef CRADLE_CORE_FLAGS_HPP
 #define CRADLE_CORE_FLAGS_HPP
 
+#include <cstddef>
+
 namespace cradle {
 
 // A flag_set is a set of flags, each of which represents a boolean property.

@@ -3,6 +3,7 @@
 
 #include <cradle/core/api_types.hpp>
 #include <cradle/core/dynamic.hpp>
+#include <cradle/core/hash.hpp>
 #include <cradle/core/type_info.hpp>
 #include <cradle/core/utilities.hpp>
 
