@@ -130,6 +130,11 @@ TEST_CASE("POST request", "[io][http]")
     test_method_with_content(http_request_method::POST);
 }
 
+TEST_CASE("PATCH request", "[io][http]")
+{
+    test_method_with_content(http_request_method::PATCH);
+}
+
 TEST_CASE("DELETE request", "[io][http]")
 {
     auto response = perform_simple_request(make_http_request(

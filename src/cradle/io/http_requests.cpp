@@ -317,6 +317,10 @@ http_connection::perform_request(
                 curl, CURLOPT_INFILESIZE_LARGE, curl_off_t(request.body.size));
             break;
 
+        case http_request_method::PATCH:
+            // PATCH uses the same mechanism for sending content as POST but
+            // uses a custom request type.
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
         case http_request_method::POST:
             set_up_send_transmission(curl, send_state, request);
             curl_easy_setopt(curl, CURLOPT_POST, 1);
