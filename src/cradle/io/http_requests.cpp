@@ -333,6 +333,10 @@ http_connection::perform_request(
         case http_request_method::HEAD:
             curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
             break;
+
+        case http_request_method::GET:
+            // This is the default method for Curl.
+            break;
     }
 
     // Set up progress monitoring.
