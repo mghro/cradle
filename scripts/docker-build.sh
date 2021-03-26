@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x -e
-apt update
-apt install lcov ocaml-nox
+apt-get update
+apt-get install -y lcov ocaml-nox
 pip3 install virtualenv
 gcc --version
 scripts/set-up-python.sh --python=python3
