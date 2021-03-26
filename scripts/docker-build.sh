@@ -1,5 +1,6 @@
 #!/bin/bash
 set -x -e
+apt update
 apt install lcov ocaml-nox
 pip3 install virtualenv
 gcc --version
