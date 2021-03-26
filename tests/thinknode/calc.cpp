@@ -3,7 +3,7 @@
 #include <cstring>
 #include <fmt/format.h>
 
-#include <catch/fakeit.hpp>
+#include <fakeit.hpp>
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>

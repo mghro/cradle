@@ -31,7 +31,7 @@ jobs:
       with:
         path: |
           ~/.conan/data
-        key: ${{runner.os}}-gcc-${{matrix.config}}
+        key: ${{runner.os}}-GCC-${{matrix.config}}
 
     - name: Install
       run: |
