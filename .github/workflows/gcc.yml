@@ -35,13 +35,15 @@ jobs:
 
     - name: Install
       run: |
-        sudo apt install gcc-9 lcov ocaml-nox
+        sudo apt install lcov ocaml-nox
         sudo pip3 install virtualenv
 
     - name: Configure
       run: |
         export CC=`which gcc-9`
         export CXX=`which g++-9`
+        $CC --version
+        $CXX --version
         scripts/set-up-python.sh --python=python3
         source .venv/bin/activate
         scripts/set-up-conan.sh
