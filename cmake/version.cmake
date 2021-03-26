@@ -1,7 +1,11 @@
 # Run 'git describe' and capture its output.
 execute_process(COMMAND git describe --tags --dirty --long
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                OUTPUT_VARIABLE git_description)
+                OUTPUT_VARIABLE git_description
+                RESULT_VARIABLE result)
+if(result AND NOT result EQUAL 0)
+    message(FATAL_ERROR "'git describe' failed: ${result}")
+endif()
 # Strip trailing newline.
 string(REPLACE "\n" "" git_description "${git_description}")
 # Split the output into its fragments.
