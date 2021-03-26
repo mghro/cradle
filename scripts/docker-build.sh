@@ -4,4 +4,4 @@ source /scripts/.venv/bin/activate
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j server
+make server
