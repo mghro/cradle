@@ -1,7 +1,8 @@
 #!/bin/bash
 set -x -e
+export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y lcov ocaml-nox
+apt-get install -y lcov ocaml-nox python3-pip cmake
 pip3 install virtualenv
 gcc --version
 scripts/set-up-python.sh --python=python3

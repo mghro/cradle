@@ -12,7 +12,8 @@ string(REPLACE "-" ";" fragments "${git_description}")
 # component, we should still have three fragments in the description.
 list(LENGTH fragments fragment_count)
 if(${fragment_count} LESS 3)
-    message(FATAL_ERROR "unable to parse 'git describe' output")
+    message(FATAL_ERROR
+        "unable to parse 'git describe' output:\n${git_description}")
 endif()
 
 # Now work backwards interpreting the parts...
