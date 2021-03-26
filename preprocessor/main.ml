@@ -42,8 +42,8 @@ let hpp_string_of_declaration account_id type_app_id fun_app_id namespace env d
 
 let hpp_string_of_block account_id type_app_id fun_app_id namespace env
     file_path (line_number, block, decl) =
-  (* "#line " ^ string_of_int line_number ^ " \"" ^ file_path ^ "\"\n"
-     ^ *)
+  "#line " ^ string_of_int line_number ^ " \"" ^ file_path ^ "\"\n"
+  ^
   match decl with
   | Some d ->
       hpp_string_of_declaration account_id type_app_id fun_app_id namespace env
@@ -173,10 +173,9 @@ let main () =
     ^ String.concat ""
         (List.map
            (fun (line, declaration) ->
-             (* "#line " ^ string_of_int line ^ " \"" ^ input_file ^ "\"\n"
-                ^ *)
-             cpp_string_of_declaration account_id type_app_id fun_app_id
-               namespace pure_declarations declaration
+             "#line " ^ string_of_int line ^ " \"" ^ input_file ^ "\"\n"
+             ^ cpp_string_of_declaration account_id type_app_id fun_app_id
+                 namespace pure_declarations declaration
              ^ "\n\n")
            declarations)
     ^ "}\n" ^ "\n" ^ "namespace " ^ namespace ^ " {\n" ^ "using namespace "
