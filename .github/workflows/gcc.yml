@@ -40,10 +40,7 @@ jobs:
 
     - name: Configure
       run: |
-        export CC=`which gcc-9`
-        export CXX=`which g++-9`
-        $CC --version
-        $CXX --version
+        gcc --version
         scripts/set-up-python.sh --python=python3
         source .venv/bin/activate
         scripts/set-up-conan.sh
