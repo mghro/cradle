@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include <cradle/common.hpp>
-#include <cradle/core/type_info.hpp>
+#include <cradle/core/type_info.h>
 #include <cradle/encodings/yaml.hpp>
 
 namespace cradle {
@@ -640,11 +640,11 @@ coerce_value_impl(
                 {
                     try
                     {
-                        dynamic key = key_value.first;
-                        dynamic value = std::move(key_value.second);
-                        recurse(map_type.key_schema, key);
-                        recurse(map_type.value_schema, value);
-                        coerced[key] = value;
+                        dynamic k = key_value.first;
+                        dynamic v = std::move(key_value.second);
+                        recurse(map_type.key_schema, k);
+                        recurse(map_type.value_schema, v);
+                        coerced[k] = v;
                     }
                     catch (boost::exception& e)
                     {

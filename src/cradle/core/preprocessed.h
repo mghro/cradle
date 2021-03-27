@@ -1,9 +1,9 @@
-#ifndef CRADLE_CORE_PREPROCESSED_HPP
-#define CRADLE_CORE_PREPROCESSED_HPP
+#ifndef CRADLE_CORE_PREPROCESSED_H
+#define CRADLE_CORE_PREPROCESSED_H
 
 #include <cradle/core/api_types.hpp>
 #include <cradle/core/dynamic.hpp>
-#include <cradle/core/immutable.hpp>
+#include <cradle/core/immutable.h>
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/omissible.hpp>
 #include <cradle/core/upgrades.hpp>

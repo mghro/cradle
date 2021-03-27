@@ -1,8 +1,17 @@
 #include <cradle/websocket/local_calcs.hpp>
 
-#include <boost/crc.hpp>
-
 #include <picosha2.h>
+
+// Boost.Crc triggers some warnings on MSVC.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4245)
+#pragma warning(disable : 4701)
+#include <boost/crc.hpp>
+#pragma warning(pop)
+#else
+#include <boost/crc.hpp>
+#endif
 
 #include <cradle/core/dynamic.hpp>
 #include <cradle/core/logging.hpp>
@@ -43,6 +52,7 @@ resolve_context_app(
 
 // end of temporary borrowing
 
+// TODO: This is also copied from server.cpp.
 static uint32_t
 compute_crc32(string const& s)
 {

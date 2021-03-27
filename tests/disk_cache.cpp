@@ -1,6 +1,6 @@
 #include <cradle/disk_cache.hpp>
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 
 #include <cradle/core/testing.hpp>
 #include <cradle/encodings/base64.hpp>

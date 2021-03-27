@@ -4,7 +4,16 @@
 #include <boost/format.hpp>
 
 #include <nlohmann/json.hpp>
+
+// Boost.Crc triggers some warnings on MSVC.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4189)
 #include <simdjson.h>
+#pragma warning(pop)
+#else
+#include <simdjson.h>
+#endif
 
 #include <cradle/encodings/base64.hpp>
 
@@ -169,7 +178,7 @@ parse_json_value(char const* json, size_t length)
     static simdjson::dom::parser the_parser;
     static std::mutex the_mutex;
 
-    std::lock_guard<std::mutex> guard(the_mutex);
+    std::scoped_lock<std::mutex> guard(the_mutex);
 
     simdjson::dom::element doc;
     try

@@ -1,5 +1,7 @@
-#include <boost/thread/thread.hpp>
 #include <cradle/io/asio.h>
+
+#include <chrono>
+#include <thread>
 
 #include <cradle/thinknode/supervisor.hpp>
 
@@ -227,7 +229,7 @@ supervise_thinknode_calculation(
     dynamic result;
 
     // Dispatch a thread to process messages.
-    boost::thread message_thread{[&]() {
+    std::thread message_thread{[&]() {
         std::cout << "----------------------------------------\n";
         std::cout << "accepting...\n";
         a.accept(socket);
@@ -270,7 +272,7 @@ supervise_thinknode_calculation(
     }};
 
     // TODO: Synchronize for real.
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     auto provider
         = spawn_provider(service_type, connection, account, app, image);

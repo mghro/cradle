@@ -8,6 +8,7 @@
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4245)
+#pragma warning(disable : 4701)
 #include <boost/crc.hpp>
 #pragma warning(pop)
 #else
@@ -104,7 +105,7 @@ void
 enqueue_job(synchronized_job_queue<Job>& queue, Job&& job)
 {
     {
-        std::lock_guard<std::mutex> lock(queue.mutex);
+        std::scoped_lock<std::mutex> lock(queue.mutex);
         queue.jobs.push(std::forward<Job>(job));
     }
     queue.cv.notify_one();
@@ -144,21 +145,21 @@ add_client(
     connection_hdl hdl,
     client_connection const& client = client_connection())
 {
-    std::lock_guard<std::mutex> lock(list.mutex);
+    std::scoped_lock<std::mutex> lock(list.mutex);
     list.connections[hdl] = client;
 }
 
 static void
 remove_client(client_connection_list& list, connection_hdl hdl)
 {
-    std::lock_guard<std::mutex> lock(list.mutex);
+    std::scoped_lock<std::mutex> lock(list.mutex);
     list.connections.erase(hdl);
 }
 
 static client_connection
 get_client(client_connection_list& list, connection_hdl hdl)
 {
-    std::lock_guard<std::mutex> lock(list.mutex);
+    std::scoped_lock<std::mutex> lock(list.mutex);
     return list.connections.at(hdl);
 }
 
@@ -166,7 +167,7 @@ template<class Fn>
 void
 access_client(client_connection_list& list, connection_hdl hdl, Fn const& fn)
 {
-    std::lock_guard<std::mutex> lock(list.mutex);
+    std::scoped_lock<std::mutex> lock(list.mutex);
     fn(list.connections.at(hdl));
 }
 
@@ -174,7 +175,7 @@ template<class Fn>
 void
 for_each_client(client_connection_list& list, Fn const& fn)
 {
-    std::lock_guard<std::mutex> lock(list.mutex);
+    std::scoped_lock<std::mutex> lock(list.mutex);
     for (auto& client : list.connections)
     {
         fn(client.first, client.second);

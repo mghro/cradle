@@ -29,8 +29,8 @@ read_message_body(
             for (uint16_t i = 0; i != n_args; ++i)
             {
                 auto arg_length = read_int<uint64_t>(reader);
-                request.args[i]
-                    = parse_msgpack_value(ownership, buffer.ptr, arg_length);
+                request.args[i] = parse_msgpack_value(
+                    ownership, buffer.data(), arg_length);
                 buffer.advance(arg_length);
             }
             *message = make_thinknode_supervisor_message_with_function(
@@ -69,8 +69,8 @@ read_message_body(
             break;
         }
         case calc_message_code::PONG: {
-            auto code = read_string(reader, 32);
-            *message = make_thinknode_provider_message_with_pong(code);
+            auto ping_code = read_string(reader, 32);
+            *message = make_thinknode_provider_message_with_pong(ping_code);
             break;
         }
         case calc_message_code::PROGRESS: {
@@ -86,7 +86,7 @@ read_message_body(
             // it wants to reference data directly from it.
             ownership_holder ownership(body);
             *message = make_thinknode_provider_message_with_result(
-                parse_msgpack_value(ownership, buffer.ptr, buffer.size));
+                parse_msgpack_value(ownership, buffer.data(), buffer.size()));
             break;
         }
         case calc_message_code::FAILURE: {
@@ -147,13 +147,20 @@ get_message_code(thinknode_provider_message const& message)
 // a buffer that will simply count the number of bytes that passes through it
 struct counting_buffer
 {
-    size_t size = 0;
+    size_t
+    size() const
+    {
+        return size_;
+    }
 
     void
     write(char const* data, size_t size)
     {
-        this->size += size;
+        this->size_ += size;
     }
+
+ private:
+    size_t size_ = 0;
 };
 
 size_t
@@ -162,7 +169,7 @@ measure_msgpack_size(dynamic const& value)
     counting_buffer buffer;
     msgpack::packer<counting_buffer> packer(buffer);
     write_msgpack_value(packer, value);
-    return buffer.size;
+    return buffer.size();
 }
 
 template<class Buffer>
@@ -220,7 +227,7 @@ serialize_message(Buffer& buffer, thinknode_provider_message const& message)
         }
         case thinknode_provider_message_tag::PROGRESS: {
             auto const& progress = as_progress(message);
-            write_float(writer, progress.value);
+            write_float(writer, float(progress.value));
             write_string<uint16_t>(writer, progress.message);
             break;
         }
@@ -248,7 +255,7 @@ get_message_body_size(thinknode_supervisor_message const& message)
 {
     counting_buffer buffer;
     serialize_message(buffer, message);
-    return buffer.size;
+    return buffer.size();
 }
 
 size_t
@@ -256,7 +263,7 @@ get_message_body_size(thinknode_provider_message const& message)
 {
     counting_buffer buffer;
     serialize_message(buffer, message);
-    return buffer.size;
+    return buffer.size();
 }
 
 // a buffer that will stream anything it receives over a Boost Asio socket

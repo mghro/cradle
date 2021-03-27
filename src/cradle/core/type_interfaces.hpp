@@ -11,7 +11,7 @@
 #include <cradle/core/dynamic.hpp>
 #include <cradle/core/exception.hpp>
 #include <cradle/core/hash.hpp>
-#include <cradle/core/type_info.hpp>
+#include <cradle/core/type_info.h>
 
 // This file provides implementations of the CRADLE Regular interface
 // for all the core CRADLE types.

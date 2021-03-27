@@ -1,9 +1,9 @@
 #include <cradle/fs/app_dirs.hpp>
 
+#include <filesystem>
+
 #include <cradle/core/testing.hpp>
 #include <cradle/fs/file_io.hpp>
-
-#include <boost/filesystem/operations.hpp>
 
 using namespace cradle;
 
@@ -35,7 +35,7 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     auto app = string("cradle_xdg_test_case_app");
 
     // Keep everything we're doing local to the test directory.
-    auto cwd = boost::filesystem::current_path();
+    auto cwd = std::filesystem::current_path();
     auto home_dir = cwd / "xdg_home";
     reset_directory(home_dir);
 
@@ -135,7 +135,7 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
 
 TEST_CASE("search paths", "[fs][app_dirs]")
 {
-    auto cwd = boost::filesystem::current_path();
+    auto cwd = std::filesystem::current_path();
     auto search_dir = cwd / "search_paths";
     reset_directory(search_dir);
     create_directory(search_dir / "a");

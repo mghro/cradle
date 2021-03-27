@@ -1,10 +1,10 @@
 #include <cradle/disk_cache.hpp>
 
+#include <filesystem>
+#include <mutex>
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include <sqlite3.h>
 
@@ -45,7 +45,7 @@ struct disk_cache_impl
     boost::posix_time::ptime latest_activity;
 
     // protects all access to the cache
-    boost::mutex mutex;
+    std::mutex mutex;
 };
 
 // SQLITE UTILITIES
@@ -431,9 +431,9 @@ optional<disk_cache_entry> static look_up(
             exists = true;
         });
 
-    return (exists && (!only_if_valid || valid))
-               ? some(make_disk_cache_entry(key, id, in_db, value, size, crc32))
-               : none;
+    return (exists && (!only_if_valid || valid)) ? some(
+               make_disk_cache_entry(key, id, in_db, value, size, crc32))
+                                                 : none;
 }
 
 // OTHER UTILITIES
@@ -513,8 +513,8 @@ record_cache_growth(disk_cache_impl& cache, size_t size)
 {
     cache.bytes_inserted_since_last_sweep += size;
     // Allow the cache to write out roughly 1% of its capacity between size
-    // checks. (So it could exceed its limit slightly, but only temporarily, and
-    // not by much.)
+    // checks. (So it could exceed its limit slightly, but only temporarily,
+    // and not by much.)
     if (cache.bytes_inserted_since_last_sweep > cache.size_limit / 0x80)
         enforce_cache_size_limit(cache);
 }
@@ -612,9 +612,8 @@ initialize(disk_cache_impl& cache, disk_cache_config const& config)
         // database, so shut everything down, clear out the directory, and try
         // again.
         shut_down(cache);
-        for (boost::filesystem::directory_iterator end, i(cache.dir); i != end;
-             ++i)
-            remove_all(i->path());
+        for (auto& p : std::filesystem::directory_iterator("cache.dir"))
+            remove_all(p.path());
         open_and_check_db(cache);
     }
 
@@ -626,7 +625,8 @@ initialize(disk_cache_impl& cache, disk_cache_config const& config)
     // Initialize our prepared statements.
     cache.record_usage_statement = prepare_statement(
         cache,
-        "update entries set last_accessed=strftime('%Y-%m-%d %H:%M:%f', 'now') "
+        "update entries set last_accessed=strftime('%Y-%m-%d %H:%M:%f', "
+        "'now') "
         "where id=?1;");
     cache.update_entry_value_statement = prepare_statement(
         cache,
@@ -693,7 +693,7 @@ disk_cache::~disk_cache()
 {
     {
         auto& cache = *this->impl_;
-        boost::lock_guard<boost::mutex> lock(cache.mutex);
+        std::scoped_lock<std::mutex> lock(cache.mutex);
         shut_down(*this->impl_);
     }
     delete this->impl_;
@@ -703,7 +703,7 @@ void
 disk_cache::reset(disk_cache_config const& config)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     shut_down(cache);
     initialize(cache, config);
 }
@@ -719,7 +719,7 @@ bool
 disk_cache::is_initialized()
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
 
     return cache.db != nullptr;
 }
@@ -728,14 +728,14 @@ disk_cache_info
 disk_cache::get_summary_info()
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     // Note that these are actually inconsistent since the size includes
     // invalid entries, while the entry count does not, but I think that's
     // reasonable behavior and in any case not a big deal.
     disk_cache_info info;
-    info.directory = cache.dir.string<string>();
+    info.directory = cache.dir.string();
     info.entry_count = get_cache_entry_count(cache);
     info.total_size = get_cache_size(cache);
     return info;
@@ -745,7 +745,7 @@ std::vector<disk_cache_entry>
 disk_cache::get_entry_list()
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     return cradle::get_entry_list(cache);
@@ -755,7 +755,7 @@ void
 disk_cache::remove_entry(int64_t id)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     cradle::remove_entry(cache, id);
@@ -765,7 +765,7 @@ void
 disk_cache::clear()
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     for (auto const& entry : get_lru_entries(cache))
@@ -784,7 +784,7 @@ optional<disk_cache_entry>
 disk_cache::find(string const& key)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     record_activity(cache);
@@ -796,7 +796,7 @@ void
 disk_cache::insert(string const& key, string const& value)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     record_activity(cache);
@@ -824,7 +824,7 @@ int64_t
 disk_cache::initiate_insert(string const& key)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     record_activity(cache);
@@ -855,7 +855,7 @@ void
 disk_cache::finish_insert(int64_t id, uint32_t crc32)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     record_activity(cache);
@@ -874,7 +874,7 @@ file_path
 disk_cache::get_path_for_id(int64_t id)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     return cradle::get_path_for_id(cache, id);
@@ -884,7 +884,7 @@ void
 disk_cache::record_usage(int64_t id)
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     cache.usage_record_buffer.push_back(id);
@@ -894,7 +894,7 @@ void
 disk_cache::write_usage_records()
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     cradle::write_usage_records(cache);
@@ -904,7 +904,7 @@ void
 disk_cache::do_idle_processing()
 {
     auto& cache = *this->impl_;
-    boost::lock_guard<boost::mutex> lock(cache.mutex);
+    std::scoped_lock<std::mutex> lock(cache.mutex);
     check_initialization(cache);
 
     if (!cache.usage_record_buffer.empty()
