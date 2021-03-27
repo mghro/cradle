@@ -1,6 +1,7 @@
 #include <cradle/thinknode/iam.hpp>
 
-#include <fakeit.hpp>
+#include <fakeit.h>
+
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>

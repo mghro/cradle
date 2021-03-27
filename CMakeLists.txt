@@ -43,16 +43,15 @@ conan_cmake_run(
     REQUIRES
         boost/1.75.0
         catch2/2.13.4
-        jsonformoderncpp/3.7.0@vthiery/stable
+        nlohmann_json/3.9.1
         msgpack/3.3.0
-        cotire/1.7.6@smspillaz/cotire
         libcurl/7.75.0
         openssl/1.1.1j
         sqlite3/3.35.2
         fakeit/2.0.7
         websocketpp/0.8.2
         zlib/1.2.11
-        bzip2/1.0.6@conan/stable
+        bzip2/1.0.8
         yaml-cpp/0.6.3
         spdlog/1.8.2
         simdjson/0.9.1
@@ -82,10 +81,6 @@ conan_cmake_run(
         boost:without_wave=True
         fakeit:integration=catch
         *:shared=False)
-
-# Include cotire.
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CONAN_COTIRE_ROOT}/cmake/cotire")
-include(cotire)
 
 # Add the given linker options on anything that gets linked.
 macro(add_link_options )
@@ -156,18 +151,6 @@ if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_exe_link_options(--coverage)
 endif()
 
-# Exclude from precompiled headers any local headers or overly specific libraries.
-set_property(
-    DIRECTORY
-    PROPERTY
-        COTIRE_PREFIX_HEADER_IGNORE_PATH
-            ${PROJECT_SOURCE_DIR}/src
-            ${CONAN_MSGPACK_ROOT}
-            ${CONAN_CATCH_ROOT}
-            ${CONAN_JSON_ROOT}
-            ${CONAN_WEBSOCKETPP_ROOT}
-            ${CONAN_SQLITE3_ROOT})
-
 # Only generate tagged constructors on supported compilers.
 if(IS_GCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0")
     message(STATUS "Enabling tagged constructors")
@@ -237,14 +220,13 @@ file(GLOB_RECURSE UNIT_TEST_FILES CONFIGURE_DEPENDS "tests/*.cpp")
 add_executable(unit_test_runner ${UNIT_TEST_FILES})
 target_link_libraries(unit_test_runner cradle)
 target_include_directories(unit_test_runner
-    PRIVATE ${PROJECT_SOURCE_DIR}/unit_tests)
-# Exclude the test runner source file from Cotire because it acts as the "main"
-# file for Catch and needs to include Catch specially.
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/unit_tests)
+# Don't use precompiled headers for the test runner since it needs to include
+# Catch specially.
 set_source_files_properties(
     tests/runner.cpp
     PROPERTIES
-        COTIRE_EXCLUDED ON)
-cotire(unit_test_runner)
+        SKIP_PRECOMPILE_HEADERS ON)
 
 # Retrieve the token info if it exists
 if (DEFINED ENV{CRADLE_THINKNODE_API_TOKEN})
@@ -280,8 +262,8 @@ if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
         COMMAND lcov --directory . --zerocounters
         COMMAND ${CMAKE_COMMAND} --build . --target unit_tests
         COMMAND lcov --directory . --capture --output-file raw.info
-        COMMAND lcov --extract raw.info '${PROJECT_SOURCE_DIR}/src/cradle/*' --output-file filtered.info
-        COMMAND ${CMAKE_COMMAND} -E copy filtered.info ${PROJECT_SOURCE_DIR}/.lcov.info
+        COMMAND lcov --extract raw.info '${CMAKE_CURRENT_SOURCE_DIR}/src/cradle/*' --output-file filtered.info
+        COMMAND ${CMAKE_COMMAND} -E copy filtered.info ${CMAKE_CURRENT_SOURCE_DIR}/.lcov.info
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
     add_test(
         NAME unit_test_coverage
@@ -294,7 +276,7 @@ endif()
 add_custom_target(
     integration_tests_target
     COMMAND ${CMAKE_COMMAND} -E env CRADLE_DEPLOY_DIR=${CMAKE_CURRENT_BINARY_DIR}/deploy CRADLE_THINKNODE_API_TOKEN=${API_TOKEN} pytest
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python
     DEPENDS server)
 add_test(
     NAME integration_tests
