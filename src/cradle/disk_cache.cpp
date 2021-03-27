@@ -593,7 +593,7 @@ open_and_check_db(disk_cache_impl& cache)
 static void
 initialize(disk_cache_impl& cache, disk_cache_config const& config)
 {
-    cache.dir = config.directory ? *config.directory
+    cache.dir = config.directory ? file_path(*config.directory)
                                  : get_shared_cache_dir(none, "cradle");
     // Create the directory if it doesn't exist.
     if (!exists(cache.dir))
