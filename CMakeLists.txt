@@ -44,7 +44,7 @@ conan_cmake_run(
         boost/1.75.0
         catch2/2.13.4
         jsonformoderncpp/3.7.0@vthiery/stable
-        msgpack/3.2.1@bincrafters/stable
+        msgpack/3.3.0
         cotire/1.7.6@smspillaz/cotire
         libcurl/7.75.0
         openssl/1.1.1j
