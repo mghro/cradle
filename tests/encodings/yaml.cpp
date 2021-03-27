@@ -290,6 +290,18 @@ TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
               small blob
             0.125: xyz
         )");
+
+    auto small_array = to_dynamic(std::vector<int>{1, 2, 3});
+    test_diagnostic_yaml_encoding(small_array, "- 1\n- 2\n- 3\n");
+
+    auto large_array = to_dynamic(std::vector<int>(100, 0));
+    test_diagnostic_yaml_encoding(large_array, "\"<array - size: 100>\"");
+
+    std::map<std::string, int> large_map;
+    for (int i = 0; i != 100; ++i)
+        large_map[std::to_string(i)] = i;
+    test_diagnostic_yaml_encoding(
+        to_dynamic(large_map), "\"<map - size: 100>\"");
 }
 
 TEST_CASE("malformed YAML blob", "[encodings][yaml]")

@@ -383,13 +383,20 @@ emit_diagnostic_yaml_value(YAML::Emitter& out, dynamic const& v)
         }
         case value_type::MAP: {
             dynamic_map const& x = cast<dynamic_map>(v);
-            out << YAML::BeginMap;
-            for (auto const& i : x)
+            if (x.size() < 64)
             {
-                emit_diagnostic_yaml_value(out << YAML::Key, i.first);
-                emit_diagnostic_yaml_value(out << YAML::Value, i.second);
+                out << YAML::BeginMap;
+                for (auto const& i : x)
+                {
+                    emit_diagnostic_yaml_value(out << YAML::Key, i.first);
+                    emit_diagnostic_yaml_value(out << YAML::Value, i.second);
+                }
+                out << YAML::EndMap;
             }
-            out << YAML::EndMap;
+            else
+            {
+                out << "<map - size: " + lexical_cast<string>(x.size()) + ">";
+            }
             break;
         }
     }
