@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <cradle/core/monitoring.hpp>

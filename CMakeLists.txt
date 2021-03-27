@@ -54,7 +54,7 @@ conan_cmake_run(
         zlib/1.2.11
         bzip2/1.0.6@conan/stable
         yaml-cpp/0.6.3
-        spdlog/0.16.3@bincrafters/stable
+        spdlog/1.8.2
         simdjson/0.9.1
     BASIC_SETUP
     BUILD missing
