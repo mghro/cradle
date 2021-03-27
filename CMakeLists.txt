@@ -128,10 +128,8 @@ endif()
 if(IS_MSVC)
     # Enable "big objects" for Visual C++.
     add_compile_options(/bigobj)
-
     # Set some other compiler and linker flags to speed up builds.
     add_exe_link_options(/Debug:FASTLINK)
-
     # Use absolute paths for error messages.
     add_compile_options(/FC)
 endif()
