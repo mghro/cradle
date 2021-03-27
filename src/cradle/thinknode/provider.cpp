@@ -1,12 +1,12 @@
+#include <cradle/io/asio.h>
+
 #include <cradle/thinknode/provider.hpp>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <chrono>
+#include <thread>
 
-#include <cradle/thinknode/ipc.hpp>
-#include <cradle/thinknode/messages.hpp>
+#include <cradle/thinknode/ipc.h>
+#include <cradle/thinknode/messages.h>
 
 namespace cradle {
 
@@ -59,9 +59,9 @@ has_incoming_message(calc_provider& provider)
 struct internal_message_queue
 {
     std::queue<thinknode_provider_message> messages;
-    boost::mutex mutex;
+    std::mutex mutex;
     // for signaling when new messages arrive in the queue
-    boost::condition_variable cv;
+    std::condition_variable cv;
 };
 
 // Post a message to an internal_message_queue.
@@ -69,7 +69,7 @@ static void
 post_message(
     internal_message_queue& queue, thinknode_provider_message&& message)
 {
-    boost::mutex::scoped_lock lock(queue.mutex);
+    std::scoped_lock<std::mutex> lock(queue.mutex);
     queue.messages.emplace(message);
     queue.cv.notify_one();
 }
@@ -149,7 +149,7 @@ dispatch_and_monitor_calculation(
     internal_message_queue queue;
 
     // Dispatch a thread to perform the calculation.
-    boost::thread thread{[&]() { perform_calculation(queue, app, request); }};
+    std::thread thread{[&]() { perform_calculation(queue, app, request); }};
 
     // Monitor for messages from the calculation thread or the supervisor.
     // Note that it's difficult to have this thread wait on messages from both
@@ -161,14 +161,15 @@ dispatch_and_monitor_calculation(
     {
         // Forward along messages that come from the calculation thread.
         {
-            boost::mutex::scoped_lock lock(queue.mutex);
+            std::unique_lock<std::mutex> lock(queue.mutex);
             // First transmit any messages that got queued while we were in
             // other parts of the loop.
             // (We may have missed the signal for these.)
             if (transmit_queued_messages(provider.socket, queue))
                 break;
             // Now spend some time waiting for more messages to arrive.
-            if (queue.cv.timed_wait(lock, boost::posix_time::seconds(1)))
+            if (queue.cv.wait_for(lock, std::chrono::seconds(1))
+                == std::cv_status::no_timeout)
             {
                 if (transmit_queued_messages(provider.socket, queue))
                     break;

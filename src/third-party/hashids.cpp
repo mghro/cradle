@@ -5,7 +5,9 @@
  *  hashidsxx may be freely distributed under the MIT license.
  */
 
+#ifdef _MSC_VER
 #pragma warning(push, 0)
+#endif
 
 #include "hashids.h"
 
@@ -67,7 +69,8 @@ Hashids::Hashids(
     };
 
     _alphabet = _reorder(_alphabet, _salt);
-    int num_guards = (int) std::ceil((float) _alphabet.length() / RATIO_GUARDS);
+    int num_guards
+        = (int) std::ceil((float) _alphabet.length() / RATIO_GUARDS);
 
     if (_alphabet.length() < 3)
     {
@@ -218,8 +221,8 @@ Hashids::_ensure_length(
     {
         alphabet = _reorder_norewrite(alphabet, alphabet);
 
-        output
-            = alphabet.substr(split_at) + output + alphabet.substr(0, split_at);
+        output = alphabet.substr(split_at) + output
+                 + alphabet.substr(0, split_at);
 
         int excess = output.size() - _min_length;
         if (excess > 0)

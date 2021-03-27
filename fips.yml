@@ -1,5 +1,0 @@
-# fips project yml file
----
-exports:
-  modules:
-    cradle: .

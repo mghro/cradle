@@ -1,7 +1,8 @@
 #include <cradle/fs/app_dirs.hpp>
 
+#include <filesystem>
+
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #ifdef _WIN32
 
@@ -130,9 +131,10 @@ get_app_dir(
     if (SHGetFolderPath(NULL, csidl_folder, NULL, 0, path) != S_OK)
     {
         CRADLE_THROW(
-            system_call_failed() << failed_system_call_info("SHGetFolderPath"));
+            system_call_failed()
+            << failed_system_call_info("SHGetFolderPath"));
     }
-    file_path app_data_dir(path, boost::filesystem::native);
+    file_path app_data_dir(path, std::filesystem::path::native_format);
     file_path app_dir;
     if (author_name)
     {
@@ -151,7 +153,8 @@ get_app_dir(
 }
 
 file_path
-get_user_config_dir(optional<string> const& author_name, string const& app_name)
+get_user_config_dir(
+    optional<string> const& author_name, string const& app_name)
 {
     auto user_app_dir
         = get_app_dir(CSIDL_LOCAL_APPDATA, author_name, app_name, true);
@@ -223,7 +226,8 @@ get_user_home_dir()
 static file_path
 get_user_config_home()
 {
-    auto xdg_config_home = get_optional_environment_variable("XDG_CONFIG_HOME");
+    auto xdg_config_home
+        = get_optional_environment_variable("XDG_CONFIG_HOME");
     if (xdg_config_home)
     {
         file_path dir = *xdg_config_home;
@@ -253,7 +257,8 @@ get_config_search_path(optional<string> const&, string const& app_name)
         search_path.push_back(user_config_dir);
 
     // Get the list of XDG base config dirs.
-    auto xdg_config_dirs = get_optional_environment_variable("XDG_CONFIG_DIRS");
+    auto xdg_config_dirs
+        = get_optional_environment_variable("XDG_CONFIG_DIRS");
     if (!xdg_config_dirs)
         xdg_config_dirs = "/etc/xdg";
     std::vector<string> dirs;
@@ -326,7 +331,8 @@ get_shared_cache_dir(
 #endif
 
 optional<file_path>
-search_in_path(std::vector<file_path> const& search_path, file_path const& item)
+search_in_path(
+    std::vector<file_path> const& search_path, file_path const& item)
 {
     for (auto const& dir : search_path)
     {

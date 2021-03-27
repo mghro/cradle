@@ -1,4 +1,6 @@
-#include <cradle/thinknode/ipc.hpp>
+#include <cradle/io/asio.h>
+
+#include <cradle/thinknode/ipc.h>
 
 #include <cradle/encodings/msgpack_internals.hpp>
 #include <cradle/io/raw_memory_io.hpp>
@@ -16,20 +18,19 @@ read_message_body(
     raw_memory_reader<raw_input_buffer> reader(buffer);
     switch (static_cast<calc_message_code>(code))
     {
-        case calc_message_code::FUNCTION:
-        {
+        case calc_message_code::FUNCTION: {
             thinknode_supervisor_calculation_request request;
             request.name = read_string<uint8_t>(reader);
             auto n_args = read_int<uint16_t>(reader);
             request.args.resize(n_args);
-            // Allow the arguments to claim ownership of the buffer in case they
-            // want to reference data directly from it.
+            // Allow the arguments to claim ownership of the buffer in case
+            // they want to reference data directly from it.
             ownership_holder ownership(body);
             for (uint16_t i = 0; i != n_args; ++i)
             {
                 auto arg_length = read_int<uint64_t>(reader);
-                request.args[i]
-                    = parse_msgpack_value(ownership, buffer.ptr, arg_length);
+                request.args[i] = parse_msgpack_value(
+                    ownership, buffer.data(), arg_length);
                 buffer.advance(arg_length);
             }
             *message = make_thinknode_supervisor_message_with_function(
@@ -59,8 +60,7 @@ read_message_body(
     raw_memory_reader<raw_input_buffer> reader(buffer);
     switch (static_cast<calc_message_code>(code))
     {
-        case calc_message_code::REGISTER:
-        {
+        case calc_message_code::REGISTER: {
             thinknode_provider_registration registration;
             registration.protocol = read_int<uint16_t>(reader);
             registration.pid = read_string(reader, 32);
@@ -68,14 +68,12 @@ read_message_body(
                 std::move(registration));
             break;
         }
-        case calc_message_code::PONG:
-        {
-            auto code = read_string(reader, 32);
-            *message = make_thinknode_provider_message_with_pong(code);
+        case calc_message_code::PONG: {
+            auto ping_code = read_string(reader, 32);
+            *message = make_thinknode_provider_message_with_pong(ping_code);
             break;
         }
-        case calc_message_code::PROGRESS:
-        {
+        case calc_message_code::PROGRESS: {
             thinknode_provider_progress_update progress;
             progress.value = read_float(reader);
             progress.message = read_string<uint16_t>(reader);
@@ -83,17 +81,15 @@ read_message_body(
                 std::move(progress));
             break;
         }
-        case calc_message_code::RESULT:
-        {
+        case calc_message_code::RESULT: {
             // Allow the dynamic value to claim ownership of the buffer in case
             // it wants to reference data directly from it.
             ownership_holder ownership(body);
             *message = make_thinknode_provider_message_with_result(
-                parse_msgpack_value(ownership, buffer.ptr, buffer.size));
+                parse_msgpack_value(ownership, buffer.data(), buffer.size()));
             break;
         }
-        case calc_message_code::FAILURE:
-        {
+        case calc_message_code::FAILURE: {
             thinknode_provider_failure failure;
             failure.code = read_string<uint8_t>(reader);
             failure.message = read_string<uint16_t>(reader);
@@ -151,13 +147,20 @@ get_message_code(thinknode_provider_message const& message)
 // a buffer that will simply count the number of bytes that passes through it
 struct counting_buffer
 {
-    size_t size = 0;
+    size_t
+    size() const
+    {
+        return size_;
+    }
 
     void
     write(char const* data, size_t size)
     {
-        this->size += size;
+        this->size_ += size;
     }
+
+ private:
+    size_t size_ = 0;
 };
 
 size_t
@@ -166,7 +169,7 @@ measure_msgpack_size(dynamic const& value)
     counting_buffer buffer;
     msgpack::packer<counting_buffer> packer(buffer);
     write_msgpack_value(packer, value);
-    return buffer.size;
+    return buffer.size();
 }
 
 template<class Buffer>
@@ -176,8 +179,7 @@ serialize_message(Buffer& buffer, thinknode_supervisor_message const& message)
     raw_memory_writer<Buffer> writer(buffer);
     switch (get_tag(message))
     {
-        case thinknode_supervisor_message_tag::FUNCTION:
-        {
+        case thinknode_supervisor_message_tag::FUNCTION: {
             auto const& request = as_function(message);
             write_string<uint8_t>(writer, request.name);
             uint16_t n_args
@@ -194,8 +196,7 @@ serialize_message(Buffer& buffer, thinknode_supervisor_message const& message)
             }
             break;
         }
-        case thinknode_supervisor_message_tag::PING:
-        {
+        case thinknode_supervisor_message_tag::PING: {
             auto code = as_ping(message);
             write_string_contents(writer, code);
             break;
@@ -215,32 +216,27 @@ serialize_message(Buffer& buffer, thinknode_provider_message const& message)
     raw_memory_writer<Buffer> writer(buffer);
     switch (get_tag(message))
     {
-        case thinknode_provider_message_tag::REGISTRATION:
-        {
+        case thinknode_provider_message_tag::REGISTRATION: {
             write_int(writer, uint16_t(0));
             write_string_contents(writer, as_registration(message).pid);
             break;
         }
-        case thinknode_provider_message_tag::PONG:
-        {
+        case thinknode_provider_message_tag::PONG: {
             write_string_contents(writer, as_pong(message));
             break;
         }
-        case thinknode_provider_message_tag::PROGRESS:
-        {
+        case thinknode_provider_message_tag::PROGRESS: {
             auto const& progress = as_progress(message);
-            write_float(writer, progress.value);
+            write_float(writer, float(progress.value));
             write_string<uint16_t>(writer, progress.message);
             break;
         }
-        case thinknode_provider_message_tag::RESULT:
-        {
+        case thinknode_provider_message_tag::RESULT: {
             msgpack::packer<Buffer> packer(buffer);
             write_msgpack_value(packer, as_result(message));
             break;
         }
-        case thinknode_provider_message_tag::FAILURE:
-        {
+        case thinknode_provider_message_tag::FAILURE: {
             auto const& failure = as_failure(message);
             write_string<uint8_t>(writer, failure.code);
             write_string<uint16_t>(writer, failure.message);
@@ -259,7 +255,7 @@ get_message_body_size(thinknode_supervisor_message const& message)
 {
     counting_buffer buffer;
     serialize_message(buffer, message);
-    return buffer.size;
+    return buffer.size();
 }
 
 size_t
@@ -267,7 +263,7 @@ get_message_body_size(thinknode_provider_message const& message)
 {
     counting_buffer buffer;
     serialize_message(buffer, message);
-    return buffer.size;
+    return buffer.size();
 }
 
 // a buffer that will stream anything it receives over a Boost Asio socket

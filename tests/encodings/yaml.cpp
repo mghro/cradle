@@ -17,7 +17,7 @@ static void
 test_one_way_yaml_encoding(
     string const& yaml, dynamic const& expected_value, bool round_trip = true)
 {
-    CAPTURE(yaml)
+    CAPTURE(yaml);
 
     // Parse it and check that it matches.
     auto converted_value = parse_yaml_value(yaml);
@@ -30,7 +30,7 @@ static void
 test_yaml_encoding(
     string const& yaml, dynamic const& expected_value, bool round_trip = true)
 {
-    CAPTURE(yaml)
+    CAPTURE(yaml);
 
     // Parse it and check that it matches.
     auto converted_value = parse_yaml_value(yaml);
@@ -53,7 +53,8 @@ test_yaml_encoding(
 // Test that dynamic value can be translated to the expected diagnostic
 // encoding.
 static void
-test_diagnostic_yaml_encoding(dynamic const& value, string const& expected_yaml)
+test_diagnostic_yaml_encoding(
+    dynamic const& value, string const& expected_yaml)
 {
     auto yaml = value_to_diagnostic_yaml(value);
     REQUIRE(strip_whitespace(yaml) == strip_whitespace(expected_yaml));
@@ -144,9 +145,9 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
     test_yaml_encoding(
         R"(
             false: 4.125
-            0.1: xyz
+            0.125: xyz
         )",
-        dynamic_map({{false, 4.125}, {0.1, "xyz"}}));
+        dynamic_map({{false, 4.125}, {0.125, "xyz"}}));
 
     // Try some ptimes.
     test_yaml_encoding(
@@ -235,7 +236,7 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
             type: base64-encoded-blob
             blob: c29tZSBibG9iIGRhdGE=
         )",
-        blob(ownership_holder(), blob_data, sizeof(blob_data) - 1));
+        blob{ownership_holder(), blob_data, sizeof(blob_data) - 1});
 
     // Try some other things that aren't blobs but look similar.
     test_yaml_encoding(
@@ -255,13 +256,13 @@ TEST_CASE("basic YAML encoding", "[encodings][yaml]")
 TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
 {
     char empty_blob_data[] = "";
-    auto empty_blob = blob(
-        ownership_holder(), empty_blob_data, sizeof(empty_blob_data) - 1);
+    auto empty_blob = blob{
+        ownership_holder(), empty_blob_data, sizeof(empty_blob_data) - 1};
     test_diagnostic_yaml_encoding(empty_blob, "\"<blob - size: 0 bytes>\"");
 
     char small_blob_data[] = "small blob";
-    auto small_blob = blob(
-        ownership_holder(), small_blob_data, sizeof(small_blob_data) - 1);
+    auto small_blob = blob{
+        ownership_holder(), small_blob_data, sizeof(small_blob_data) - 1};
     test_diagnostic_yaml_encoding(
         small_blob,
         R"( |
@@ -269,24 +270,25 @@ TEST_CASE("diagnostic YAML encoding", "[encodings][yaml]")
             small blob
         )");
 
-    auto large_blob = blob(ownership_holder(), 0, 16384);
-    test_diagnostic_yaml_encoding(large_blob, "\"<blob - size: 16384 bytes>\"");
+    auto large_blob = blob{ownership_holder(), 0, 16384};
+    test_diagnostic_yaml_encoding(
+        large_blob, "\"<blob - size: 16384 bytes>\"");
 
     char unprintable_blob_data[] = "\xf1wxyz";
-    auto unprintable_blob = blob(
+    auto unprintable_blob = blob{
         ownership_holder(),
         unprintable_blob_data,
-        sizeof(unprintable_blob_data) - 1);
+        sizeof(unprintable_blob_data) - 1};
     test_diagnostic_yaml_encoding(
         unprintable_blob, "\"<blob - size: 5 bytes>\"");
 
     test_diagnostic_yaml_encoding(
-        dynamic_map({{false, small_blob}, {0.1, "xyz"}}),
+        dynamic_map({{false, small_blob}, {0.125, "xyz"}}),
         R"(
             false: |
               <blob>
               small blob
-            0.1: xyz
+            0.125: xyz
         )");
 }
 
@@ -310,7 +312,7 @@ TEST_CASE("malformed YAML blob", "[encodings][yaml]")
         REQUIRE(
             strip_whitespace(get_required_error_info<parsed_text_info>(e))
             == strip_whitespace(
-                   R"(
+                R"(
                     {
                         type: base64-encoded-blob
                     }
@@ -352,7 +354,8 @@ test_malformed_yaml(string const& malformed_yaml)
     catch (parsing_error& e)
     {
         REQUIRE(get_required_error_info<expected_format_info>(e) == "YAML");
-        REQUIRE(get_required_error_info<parsed_text_info>(e) == malformed_yaml);
+        REQUIRE(
+            get_required_error_info<parsed_text_info>(e) == malformed_yaml);
         REQUIRE(!get_required_error_info<parsing_error_info>(e).empty());
     }
 }

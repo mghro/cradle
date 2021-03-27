@@ -3,17 +3,19 @@
 
 #include <cradle/common.hpp>
 
-// Although Boost already supplies an endian #define, it's considered an
-// undocumented detail at this point, so for future compatibility, it's safer
-// to use this one, which could be redirected if necessary.
-
-#include <boost/detail/endian.hpp>
-
-#ifdef BOOST_BIG_ENDIAN
-#define CRADLE_BIG_ENDIAN
-#endif
-#ifdef BOOST_LITTLE_ENDIAN
+// Detect architecture endianness and set either CRADLE_BIG_ENDIAN or
+// CRADLE_LITTLE_ENDIAN.
+#ifdef _WIN32
 #define CRADLE_LITTLE_ENDIAN
+#else
+#include <endian.h>
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define CRADLE_BIG_ENDIAN
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#define CRADLE_LITTLE_ENDIAN
+#else
+#error "unknown architecture: endianness detection failed"
+#endif
 #endif
 
 namespace cradle {

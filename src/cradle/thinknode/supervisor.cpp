@@ -1,13 +1,15 @@
-#include <cradle/thinknode/supervisor.hpp>
+#include <cradle/io/asio.h>
 
-#include <boost/asio.hpp>
-#include <boost/thread/thread.hpp>
+#include <chrono>
+#include <thread>
+
+#include <cradle/thinknode/supervisor.hpp>
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/io/http_requests.hpp>
-#include <cradle/thinknode/ipc.hpp>
-#include <cradle/thinknode/messages.hpp>
+#include <cradle/thinknode/ipc.h>
+#include <cradle/thinknode/messages.h>
 
 namespace asio = boost::asio;
 using asio::ip::tcp;
@@ -39,7 +41,8 @@ extract_tag(thinknode_provider_image_info const& image)
 enum class docker_service_type
 {
     WINDOWS,
-    LINUX
+    LINUX,
+    WSL
 };
 
 static http_request
@@ -56,12 +59,13 @@ make_docker_request(
             return make_http_request(
                 method, "http://localhost:2375" + path, headers, body);
         case docker_service_type::LINUX:
-            return make_http_request(
+        case docker_service_type::WSL:
+            return http_request{
                 method,
                 "http://localhost" + path,
                 headers,
                 body,
-                some(string("/var/run/docker.sock")));
+                some(string("/var/run/docker.sock"))};
         default:
             CRADLE_THROW(
                 invalid_enum_value()
@@ -79,11 +83,23 @@ detect_docker(http_connection& connection)
         auto query = make_docker_request(
             docker_service_type::LINUX,
             http_request_method::GET,
-            "/v1.38/version",
+            "/v1.38/info",
             http_header_list());
         null_check_in check_in;
         null_progress_reporter reporter;
-        connection.perform_request(check_in, reporter, query);
+        auto response = connection.perform_request(check_in, reporter, query);
+
+        // Check which OS the actual Docker server is running on. It's possible
+        // that we are running inside WSL, where the server runs in Windows but
+        // the client runs inside Linux and can still connect in the Linux way.
+        auto info = parse_json_response(response);
+        if (cast<std::string>(
+                get_field(cast<dynamic_map>(info), "KernelVersion"))
+                .find("microsoft")
+            != std::string::npos)
+        {
+            return docker_service_type::WSL;
+        }
 
         return docker_service_type::LINUX;
     }
@@ -96,7 +112,7 @@ detect_docker(http_connection& connection)
     auto query = make_docker_request(
         docker_service_type::WINDOWS,
         http_request_method::GET,
-        "/v1.38/version",
+        "/v1.38/info",
         http_header_list());
     null_check_in check_in;
     null_progress_reporter reporter;
@@ -154,18 +170,20 @@ spawn_provider(
               "Im5wdGM0cHYyIiwKICAic2VydmVyYWRkcmVzcyI6ICJodHRwczovL3JlZ2lz"
               "dHJ5"
               "LW1naC50aGlua25vZGUuY29tIgp9"}},
-            value_to_json_blob(
-                dynamic({{"Image",
-                          "registry-mgh.thinknode.com/" + account + "/" + app
-                              + "@" + extract_tag(image)},
-                         {"Env",
-                          {service_type == docker_service_type::WINDOWS
-                               ? "THINKNODE_HOST=host.docker.internal"
-                               : "THINKNODE_HOST=localhost",
-                           "THINKNODE_PORT=41079",
-                           "THINKNODE_PID=the_pid_which_must_be_length_32_"}},
-                         {"HostConfig", {{"NetworkMode", "host"}}}})));
-        auto response = connection.perform_request(check_in, reporter, request);
+            value_to_json_blob(dynamic(
+                {{"Image",
+                  "registry-mgh.thinknode.com/" + account + "/" + app + "@"
+                      + extract_tag(image)},
+                 {"Env",
+                  {(service_type == docker_service_type::WINDOWS
+                    || service_type == docker_service_type::WSL)
+                       ? "THINKNODE_HOST=host.docker.internal"
+                       : "THINKNODE_HOST=localhost",
+                   "THINKNODE_PORT=41079",
+                   "THINKNODE_PID=the_pid_which_must_be_length_32_"}},
+                 {"HostConfig", {{"NetworkMode", "host"}}}})));
+        auto response
+            = connection.perform_request(check_in, reporter, request);
         id = cast<string>(
             get_field(cast<dynamic_map>(parse_json_response(response)), "Id"));
     }
@@ -211,7 +229,7 @@ supervise_thinknode_calculation(
     dynamic result;
 
     // Dispatch a thread to process messages.
-    boost::thread message_thread{[&]() {
+    std::thread message_thread{[&]() {
         std::cout << "----------------------------------------\n";
         std::cout << "accepting...\n";
         a.accept(socket);
@@ -220,8 +238,8 @@ supervise_thinknode_calculation(
         // Process messages from the supervisor.
         while (1)
         {
-            auto message
-                = read_message<thinknode_provider_message>(socket, ipc_version);
+            auto message = read_message<thinknode_provider_message>(
+                socket, ipc_version);
             switch (get_tag(message))
             {
                 case thinknode_provider_message_tag::REGISTRATION:
@@ -254,7 +272,7 @@ supervise_thinknode_calculation(
     }};
 
     // TODO: Synchronize for real.
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     auto provider
         = spawn_provider(service_type, connection, account, app, image);

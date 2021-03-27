@@ -145,17 +145,23 @@ TEST_CASE("map diffs", "[core][diff]")
         dynamic{{"foo", 0.}, {"bar", 1.}},
         dynamic{{"foo", 0.}},
         {make_value_diff_item(
-            {dynamic("bar")}, value_diff_op::DELETE, some(dynamic(1.)), none)});
+            {dynamic("bar")},
+            value_diff_op::DELETE,
+            some(dynamic(1.)),
+            none)});
 
     test_diff(
         dynamic{{"foo", 0.}},
         dynamic{{"foo", 0.}, {"bar", 1.}},
         {make_value_diff_item(
-            {dynamic("bar")}, value_diff_op::INSERT, none, some(dynamic(1.)))});
+            {dynamic("bar")},
+            value_diff_op::INSERT,
+            none,
+            some(dynamic(1.)))});
 
     test_diff(
-        dynamic{{"foo", 0.}, {"bar", 1.}},
-        dynamic{{"foo", 3.}, {"baz", 0.}},
+        dynamic{{"abc", 1.}, {"foo", 0.}, {"bar", 1.}},
+        dynamic{{"abc", 1.}, {"foo", 3.}, {"baz", 0.}},
         {make_value_diff_item(
              {dynamic("bar")}, value_diff_op::DELETE, dynamic(1.), none),
          make_value_diff_item(

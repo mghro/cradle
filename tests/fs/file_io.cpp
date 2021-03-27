@@ -1,5 +1,7 @@
 #include <cradle/fs/file_io.hpp>
 
+#include <filesystem>
+
 #include <cradle/core/testing.hpp>
 
 using namespace cradle;

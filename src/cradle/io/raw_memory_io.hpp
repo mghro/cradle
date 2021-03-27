@@ -17,21 +17,33 @@ CRADLE_DEFINE_EXCEPTION(corrupt_data)
 
 struct raw_input_buffer
 {
-    raw_input_buffer(uint8_t const* ptr, size_t size) : ptr(ptr), size(size)
+    raw_input_buffer(uint8_t const* ptr, size_t size) : ptr_(ptr), size_(size)
     {
     }
 
-    uint8_t const* ptr;
-    size_t size;
+    uint8_t const* ptr_;
+    size_t size_;
+
+    uint8_t const*
+    data() const
+    {
+        return ptr_;
+    }
+
+    size_t
+    size() const
+    {
+        return size_;
+    }
 
     void
     read(void* dst, size_t size);
 
     void
-    advance(size_t size)
+    advance(size_t distance)
     {
-        this->ptr += size;
-        this->size -= size;
+        this->ptr_ += distance;
+        this->size_ -= distance;
     }
 };
 

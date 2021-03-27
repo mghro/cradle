@@ -1,6 +1,6 @@
 #include <cradle/thinknode/apm.hpp>
 
-#include <fakeit.hpp>
+#include <fakeit.h>
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
@@ -18,7 +18,8 @@ TEST_CASE("app version info", "[thinknode][apm]")
                 progress_reporter_interface& reporter,
                 http_request const& request) {
             auto expected_request = make_get_request(
-                "https://mgh.thinknode.io/api/v1.0/apm/apps/acme/pets/versions/"
+                "https://mgh.thinknode.io/api/v1.0/apm/apps/acme/pets/"
+                "versions/"
                 "2.0.0?include_manifest=true",
                 {{"Authorization", "Bearer xyz"},
                  {"Accept", "application/json"}});

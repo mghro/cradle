@@ -1,42 +1,40 @@
 #ifndef CRADLE_CORE_TYPE_DEFINITIONS_HPP
 #define CRADLE_CORE_TYPE_DEFINITIONS_HPP
 
-#include <cradle/core/utilities.hpp>
+#include <any>
+#include <map>
+#include <string>
 
+#include <boost/core/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+
+#include <boost/optional.hpp>
 
 #include <iostream>
 
-#ifdef CRADLE_USING_TAGGED_CONSTRUCTORS
-#include <boost/hana.hpp>
-#endif
-
 namespace cradle {
 
-// The following utilities are used by the generated tagged constructors.
-#ifdef CRADLE_USING_TAGGED_CONSTRUCTORS
-template<class Arg>
-struct is_hana_pair
+using std::string;
+
+using boost::none;
+using boost::optional;
+
+// some(x) creates a boost::optional of the proper type with the value of :x.
+template<class T>
+auto
+some(T&& x)
 {
-    static bool const value = false;
-};
-template<class First, class Second>
-struct is_hana_pair<boost::hana::pair<First, Second>>
-{
-    static bool const value = true;
-};
-template<class... Args>
-struct has_hana_pair
-{
-    static bool const value = false;
-};
-template<class Arg, class... Rest>
-struct has_hana_pair<Arg, Rest...>
-{
-    static bool const value
-        = is_hana_pair<Arg>::value || has_hana_pair<Rest...>::value;
-};
-#endif
+    return optional<std::remove_reference_t<T>>(std::forward<T>(x));
+}
+
+typedef int64_t integer;
+
+// ownership_holder is meant to express polymorphic ownership of a resource.
+// The idea is that the resource may be owned in many different ways, and we
+// don't care what way. We only want an object that will provide ownership of
+// the resource until it's destructed. We can achieve this by using an any
+// object to hold the ownership object.
+typedef std::any ownership_holder;
 
 // nil_t is a unit type. It has only one possible value, :nil.
 struct nil_t
@@ -47,27 +45,55 @@ static nil_t nil;
 struct blob
 {
     ownership_holder ownership;
-    void const* data;
-    std::size_t size;
-
-    blob() : data(0), size(0)
-    {
-    }
-
-    blob(ownership_holder const& ownership, void const* data, std::size_t size)
-        : ownership(ownership), data(data), size(size)
-    {
-    }
+    char const* data = nullptr;
+    std::size_t size = 0;
 };
 
-// type_info_query<T>::get(&info) should fill info with the CRADLE type info for
-// the type T. All CRADLE regular types must provide a specialization of this.
+// type_info_query<T>::get(&info) should set :info to the CRADLE type info for
+// the type T from the perspective of someone *using* T. This might not be the
+// full definition of T (e.g., for named types, it's just the name).
+//
+// All CRADLE regular types must provide a specialization of this.
+//
 template<class T>
 struct type_info_query
 {
 };
 
 struct api_type_info;
+
+// definitive_type_info_query<T>::get(&info) should set *info to the definitive
+// CRADLE type info for the type T. This is always the full definition of the
+// type, even for named types.
+//
+// The default implementation of this simply forwards to the regular query.
+//
+template<class T>
+struct definitive_type_info_query : type_info_query<T>
+{
+};
+
+// enum_type_info_query<T>::get(&info) should set :info to the enum type info
+// for the type T.
+//
+// All CRADLE enum types must provide a specialization of this.
+//
+template<class T>
+struct enum_type_info_query
+{
+};
+
+struct api_enum_info;
+
+// structure_field_type_info_adder<T>::add(&fields), where T is a structure
+// type, adds the CRADLE type info for the fields of T to the map :fields.
+//
+// This should be implemented by all CRADLE structure types.
+//
+template<class T>
+struct structure_field_type_info_adder
+{
+};
 
 struct dynamic;
 
@@ -177,7 +203,7 @@ struct dynamic
     // Get the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.
-    any const&
+    std::any const&
     contents() const&
     {
         return value_;
@@ -186,7 +212,7 @@ struct dynamic
     // Get a non-const reference to the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.
-    any&
+    std::any&
     contents() &
     {
         return value_;
@@ -195,7 +221,7 @@ struct dynamic
     // Get an r-value reference to the contents.
     // This should be used with caution.
     // cast<T>(dynamic) provides a safer interface to this.
-    any&&
+    std::any&&
     contents() &&
     {
         return std::move(value_);
@@ -240,7 +266,122 @@ struct dynamic
     swap(dynamic& a, dynamic& b);
 
     value_type type_;
-    any value_;
+    std::any value_;
+};
+
+// omissible<T> is the same as optional<T>, but it obeys thinknode's behavior
+// foe omissible fields. (It should only be used as a field in a structure.)
+// optional<T> stores an optional value of type T (or no value).
+template<class T>
+struct omissible
+{
+    typedef T value_type;
+    omissible() : valid_(false)
+    {
+    }
+    omissible(T const& value) : value_(value), valid_(true)
+    {
+    }
+    omissible(boost::none_t) : valid_(false)
+    {
+    }
+    omissible(optional<T> const& opt)
+        : value_(opt ? opt.get() : T()), valid_(opt ? true : false)
+    {
+    }
+    omissible&
+    operator=(T const& value)
+    {
+        value_ = value;
+        valid_ = true;
+        return *this;
+    }
+    omissible& operator=(boost::none_t)
+    {
+        valid_ = false;
+        return *this;
+    }
+    omissible&
+    operator=(optional<T> const& opt)
+    {
+        valid_ = opt ? true : false;
+        value_ = opt ? opt.get() : T();
+        return *this;
+    }
+    // allows use within if statements without other unintended conversions
+    typedef bool omissible::*unspecified_bool_type;
+    operator unspecified_bool_type() const
+    {
+        return valid_ ? &omissible::valid_ : 0;
+    }
+    operator optional<T>() const
+    {
+        return valid_ ? optional<T>(value_) : optional<T>();
+    }
+    T const&
+    get() const
+    {
+        assert(valid_);
+        return value_;
+    }
+    T&
+    get()
+    {
+        assert(valid_);
+        return value_;
+    }
+    T const&
+    operator*() const
+    {
+        assert(valid_);
+        return value_;
+    }
+    T&
+    operator*()
+    {
+        assert(valid_);
+        return value_;
+    }
+    T const*
+    operator->() const
+    {
+        assert(valid_);
+        return &value_;
+    }
+    T*
+    operator->()
+    {
+        assert(valid_);
+        return &value_;
+    }
+
+ private:
+    T value_;
+    bool valid_;
+};
+
+// IMMUTABLES
+
+struct untyped_immutable_value : boost::noncopyable
+{
+    virtual ~untyped_immutable_value()
+    {
+    }
+    virtual api_type_info
+    type_info() const = 0;
+    virtual size_t
+    deep_size() const = 0;
+    virtual size_t
+    hash() const = 0;
+    virtual dynamic
+    as_dynamic() const = 0;
+    virtual bool
+    equals(untyped_immutable_value const* other) const = 0;
+};
+
+struct untyped_immutable
+{
+    std::shared_ptr<untyped_immutable_value> ptr;
 };
 
 } // namespace cradle

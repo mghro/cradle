@@ -2,7 +2,7 @@
 #define CRADLE_CORE_TESTING_HPP
 
 #define CATCH_CONFIG_CPP11_NO_NULLPTR
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <cradle/core/dynamic.hpp>
 #include <cradle/core/regular.hpp>

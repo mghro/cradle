@@ -1,6 +1,7 @@
 #include <cradle/thinknode/iam.hpp>
 
-#include <fakeit.hpp>
+#include <fakeit.h>
+
 
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
@@ -58,22 +59,23 @@ TEST_CASE("context contents retrieval", "[thinknode][iam]")
     session.api_url = "https://mgh.thinknode.io/api/v1.0";
     session.access_token = "xyz";
 
-    auto contents = get_context_contents(mock_connection.get(), session, "123");
+    auto contents
+        = get_context_contents(mock_connection.get(), session, "123");
     REQUIRE(
         contents
         == make_thinknode_context_contents(
-               "hacks",
-               {make_thinknode_context_app_info(
-                    "outatime",
-                    "grays",
-                    make_thinknode_app_source_info_with_version("1.0.0")),
-                make_thinknode_context_app_info(
-                    "chaom",
-                    "landsraad",
-                    make_thinknode_app_source_info_with_branch("master")),
-                make_thinknode_context_app_info(
-                    "wayne_enterprises",
-                    "cellsonar",
-                    make_thinknode_app_source_info_with_commit(
-                        "a7e1d608d6ce0c25dc6aa597492a6f09"))}));
+            "hacks",
+            {make_thinknode_context_app_info(
+                 "outatime",
+                 "grays",
+                 make_thinknode_app_source_info_with_version("1.0.0")),
+             make_thinknode_context_app_info(
+                 "chaom",
+                 "landsraad",
+                 make_thinknode_app_source_info_with_branch("master")),
+             make_thinknode_context_app_info(
+                 "wayne_enterprises",
+                 "cellsonar",
+                 make_thinknode_app_source_info_with_commit(
+                     "a7e1d608d6ce0c25dc6aa597492a6f09"))}));
 }

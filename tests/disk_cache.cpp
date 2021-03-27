@@ -1,6 +1,6 @@
 #include <cradle/disk_cache.hpp>
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 
 #include <cradle/core/testing.hpp>
 #include <cradle/encodings/base64.hpp>
@@ -196,6 +196,7 @@ TEST_CASE("LRU removal", "[disk_cache]")
     // in the cache while other low-numbered entries eventually get evicted.
     for (int i = 2; i != 30; ++i)
     {
+        INFO(i)
         REQUIRE(test_item_access(cache, 0));
         REQUIRE(test_item_access(cache, 1));
         REQUIRE(!test_item_access(cache, i));

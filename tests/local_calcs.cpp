@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include <cradle/core/testing.hpp>
+
 #include <cradle/encodings/base64.hpp>
 #include <cradle/websocket/messages.hpp>
 
@@ -11,7 +13,7 @@ using namespace cradle;
 
 TEST_CASE("local calcs", "[local_calcs][ws]")
 {
-    disk_cache cache(make_disk_cache_config(none, 0x1'00'00'00'00));
+    disk_cache cache(disk_cache_config(none, 0x1'00'00'00'00));
 
     http_request_system http_system;
     http_system.set_cacert_path(some(find_testing_cacert_file()));
@@ -46,18 +48,19 @@ TEST_CASE("local calcs", "[local_calcs][ws]")
     REQUIRE(
         eval(make_calculation_request_with_reference(
             "5abd360900c0b14726b4ba1e6e5cdc12"))
-        == dynamic({{"demographics",
-                     {
-                         {"birthdate", {{"some", "1800-01-01"}}},
-                         {"sex", {{"some", "o"}}},
-                     }},
-                    {"medical_record_number", "017-08-01"},
-                    {"name",
-                     {{"family_name", "Astroid"},
-                      {"given_name", "v2"},
-                      {"middle_name", ""},
-                      {"prefix", ""},
-                      {"suffix", ""}}}}));
+        == dynamic(
+            {{"demographics",
+              {
+                  {"birthdate", {{"some", "1800-01-01"}}},
+                  {"sex", {{"some", "o"}}},
+              }},
+             {"medical_record_number", "017-08-01"},
+             {"name",
+              {{"family_name", "Astroid"},
+               {"given_name", "v2"},
+               {"middle_name", ""},
+               {"prefix", ""},
+               {"suffix", ""}}}}));
 
     // function
     REQUIRE(
@@ -72,12 +75,13 @@ TEST_CASE("local calcs", "[local_calcs][ws]")
 
     // array
     REQUIRE(
-        eval(make_calculation_request_with_array(make_calculation_array_request(
-            {make_calculation_request_with_value(dynamic(integer(2))),
-             make_calculation_request_with_value(dynamic(integer(0))),
-             make_calculation_request_with_value(dynamic(integer(3)))},
-            make_thinknode_type_info_with_integer_type(
-                make_thinknode_integer_type()))))
+        eval(
+            make_calculation_request_with_array(make_calculation_array_request(
+                {make_calculation_request_with_value(dynamic(integer(2))),
+                 make_calculation_request_with_value(dynamic(integer(0))),
+                 make_calculation_request_with_value(dynamic(integer(3)))},
+                make_thinknode_type_info_with_integer_type(
+                    make_thinknode_integer_type()))))
         == dynamic({integer(2), integer(0), integer(3)}));
 
     // item
@@ -120,18 +124,17 @@ TEST_CASE("local calcs", "[local_calcs][ws]")
                               some(false),
                               make_thinknode_type_info_with_integer_type(
                                   make_thinknode_integer_type()))}})))))
-        == dynamic({{"two", integer(2)},
-                    {"oh", integer(0)},
-                    {"three", integer(3)}}));
+        == dynamic(
+            {{"two", integer(2)}, {"oh", integer(0)}, {"three", integer(3)}}));
 
     // property
     REQUIRE(
         eval(make_calculation_request_with_property(
             make_calculation_property_request(
-                make_calculation_request_with_value(
-                    dynamic({{"two", integer(2)},
-                             {"oh", integer(0)},
-                             {"three", integer(3)}})),
+                make_calculation_request_with_value(dynamic(
+                    {{"two", integer(2)},
+                     {"oh", integer(0)},
+                     {"three", integer(3)}})),
                 make_calculation_request_with_value(dynamic("oh")),
                 make_thinknode_type_info_with_integer_type(
                     make_thinknode_integer_type()))))

@@ -2,7 +2,19 @@
 
 #include <picosha2.h>
 
+// Boost.Crc triggers some warnings on MSVC.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4245)
+#pragma warning(disable : 4701)
+#include <boost/crc.hpp>
+#pragma warning(pop)
+#else
+#include <boost/crc.hpp>
+#endif
+
 #include <cradle/core/dynamic.hpp>
+#include <cradle/core/logging.hpp>
 #include <cradle/encodings/msgpack.hpp>
 #include <cradle/fs/file_io.hpp>
 #include <cradle/thinknode/supervisor.hpp>
@@ -40,6 +52,7 @@ resolve_context_app(
 
 // end of temporary borrowing
 
+// TODO: This is also copied from server.cpp.
 static uint32_t
 compute_crc32(string const& s)
 {
@@ -60,14 +73,15 @@ perform_local_function_calc(
     std::vector<dynamic> const& args)
 {
     // Try the disk cache.
-    auto cache_key = picosha2::hash256_hex_string(
-        value_to_msgpack_string(dynamic({"local_function_calc",
-                                         session.api_url,
-                                         context_id,
-                                         account,
-                                         app,
-                                         name,
-                                         args})));
+    auto cache_key
+        = picosha2::hash256_hex_string(value_to_msgpack_string(dynamic(
+            {"local_function_calc",
+             session.api_url,
+             context_id,
+             account,
+             app,
+             name,
+             args})));
     try
     {
         auto entry = cache.find(cache_key);
@@ -170,9 +184,9 @@ perform_local_calc(
             return coercive_call(
                 as_item(request).schema,
                 cast<dynamic_array>(recursive_call(as_item(request).array))
-                    .at(cast<integer>(recursive_call(as_item(request).index))));
-        case calculation_request_tag::OBJECT:
-        {
+                    .at(cast<integer>(
+                        recursive_call(as_item(request).index))));
+        case calculation_request_tag::OBJECT: {
             dynamic_map object;
             for (auto const& item : as_object(request).properties)
                 object[dynamic(item.first)] = recursive_call(item.second);
@@ -184,8 +198,7 @@ perform_local_calc(
                 cast<dynamic_map>(recursive_call(as_property(request).object))
                     .at(cast<string>(
                         recursive_call(as_property(request).field))));
-        case calculation_request_tag::LET:
-        {
+        case calculation_request_tag::LET: {
             std::map<string, dynamic> extended_environment = environment;
             for (auto const& v : as_let(request).variables)
                 extended_environment[v.first] = recursive_call(v.second);

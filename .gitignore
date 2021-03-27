@@ -1,8 +1,9 @@
 .cache
-.fips-*
 .vscode
 .gcovr.txt
 .lcov.info
 .venv
 *.pyc
 python/config.yml
+/*build*
+.token

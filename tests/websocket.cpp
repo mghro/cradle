@@ -3,6 +3,8 @@
 
 #include <thread>
 
+#include <cradle/core/testing.hpp>
+
 #include <cradle/encodings/base64.hpp>
 #include <cradle/websocket/messages.hpp>
 
@@ -26,8 +28,7 @@ TEST_CASE("websocket client/server", "[ws]")
             [&](websocket_server_message const& message) {
                 switch (get_tag(message.content))
                 {
-                    case server_message_content_tag::CACHE_RESPONSE:
-                    {
+                    case server_message_content_tag::CACHE_RESPONSE: {
                         REQUIRE(message.request_id == "id0");
                         auto response = as_cache_response(message.content);
                         REQUIRE(response.key == "test_key");
@@ -38,12 +39,12 @@ TEST_CASE("websocket client/server", "[ws]")
                                 websocket_test_query{"Hello, Patches!"})));
                         break;
                     }
-                    case server_message_content_tag::TEST:
-                    {
+                    case server_message_content_tag::TEST: {
                         REQUIRE(message.request_id == "id1");
                         test_response = as_test(message.content);
                         client.send(make_websocket_client_message(
-                            "id2", make_client_message_content_with_kill(nil)));
+                            "id2",
+                            make_client_message_content_with_kill(nil)));
                         client.close();
                         break;
                     }

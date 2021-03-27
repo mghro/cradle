@@ -7,9 +7,9 @@ namespace cradle {
 void
 raw_input_buffer::read(void* dst, size_t size)
 {
-    if (size > this->size)
+    if (size > this->size_)
         throw corrupt_data();
-    std::memcpy(dst, this->ptr, size);
+    std::memcpy(dst, this->ptr_, size);
     this->advance(size);
 }
 

@@ -1,5 +1,7 @@
 #include <cradle/fs/app_dirs.hpp>
 
+#include <filesystem>
+
 #include <cradle/core/testing.hpp>
 #include <cradle/fs/file_io.hpp>
 
@@ -33,7 +35,7 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     auto app = string("cradle_xdg_test_case_app");
 
     // Keep everything we're doing local to the test directory.
-    auto cwd = boost::filesystem::current_path();
+    auto cwd = std::filesystem::current_path();
     auto home_dir = cwd / "xdg_home";
     reset_directory(home_dir);
 
@@ -121,7 +123,7 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
     REQUIRE(
         get_config_search_path(author, app)
         == std::vector<file_path>(
-               {custom_config_dir / app, system_config_dir_a / app}));
+            {custom_config_dir / app, system_config_dir_a / app}));
 
     // This isn't really implemented, but check that it's doing the correct
     // fallback.
@@ -133,7 +135,7 @@ TEST_CASE("XDG app directories", "[fs][app_dirs]")
 
 TEST_CASE("search paths", "[fs][app_dirs]")
 {
-    auto cwd = boost::filesystem::current_path();
+    auto cwd = std::filesystem::current_path();
     auto search_dir = cwd / "search_paths";
     reset_directory(search_dir);
     create_directory(search_dir / "a");
@@ -142,12 +144,14 @@ TEST_CASE("search paths", "[fs][app_dirs]")
     dump_string_to_file(search_dir / "a" / "foo.txt", "foo");
     dump_string_to_file(search_dir / "c" / "foo.txt", "foo");
 
-    auto search_path = std::vector<file_path>({search_dir,
-                                               search_dir / "b",
-                                               search_dir / "d",
-                                               search_dir / "c",
-                                               search_dir / "a"});
+    auto search_path = std::vector<file_path>(
+        {search_dir,
+         search_dir / "b",
+         search_dir / "d",
+         search_dir / "c",
+         search_dir / "a"});
 
     REQUIRE(
-        search_in_path(search_path, "foo.txt") == search_dir / "c" / "foo.txt");
+        search_in_path(search_path, "foo.txt")
+        == search_dir / "c" / "foo.txt");
 }
