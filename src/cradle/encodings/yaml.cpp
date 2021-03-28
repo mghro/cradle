@@ -290,6 +290,8 @@ string
 value_to_yaml(dynamic const& v)
 {
     YAML::Emitter out;
+    out << YAML::FloatPrecision(5);
+    out << YAML::DoublePrecision(12);
     emit_yaml_value(out, v);
     return out.c_str();
 }
@@ -406,6 +408,8 @@ string
 value_to_diagnostic_yaml(dynamic const& v)
 {
     YAML::Emitter out;
+    out << YAML::FloatPrecision(5);
+    out << YAML::DoublePrecision(12);
     emit_diagnostic_yaml_value(out, v);
     return out.c_str();
 }
