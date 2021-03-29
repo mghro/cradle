@@ -43,7 +43,6 @@ jobs:
         gcc --version
         scripts/set-up-python.sh --python=python3
         source .venv/bin/activate
-        scripts/set-up-conan.sh
         cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}} .
 
     - name: Build & Test
