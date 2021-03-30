@@ -1,7 +1,7 @@
 #ifndef CRADLE_DISK_CACHE_HPP
 #define CRADLE_DISK_CACHE_HPP
 
-#include <cradle/cache_types.hpp>
+#include <cradle/common.hpp>
 #include <cradle/fs/types.hpp>
 
 #include <vector>
@@ -21,6 +21,50 @@ namespace cradle {
 
 // A cache is internally protected by a mutex, so it can be used concurrently
 // from multiple threads.
+
+api(struct)
+struct disk_cache_config
+{
+    optional<std::string> directory;
+    integer size_limit;
+};
+
+api(struct)
+struct disk_cache_info
+{
+    // the directory where the cache is stored
+    std::string directory;
+
+    // the number of entries currently stored in the cache
+    integer entry_count;
+
+    // the total size (in bytes)
+    integer total_size;
+};
+
+api(struct)
+struct disk_cache_entry
+{
+    // the key for the entry
+    std::string key;
+
+    // the internal numeric ID of the entry within the cache
+    integer id;
+
+    // true iff the entry is stored directly in the database
+    bool in_db;
+
+    // the value associated with the entry - This may be omitted, depending
+    // on how the entry is stored in the cache and how this info was
+    // queried.
+    omissible<std::string> value;
+
+    // the size of the entry (in bytes)
+    integer size;
+
+    // a 32-bit CRC of the contents of the entry
+    uint32_t crc32;
+};
 
 // This exception indicates a failure in the operation of the disk cache.
 CRADLE_DEFINE_EXCEPTION(disk_cache_failure)
@@ -134,8 +178,8 @@ struct disk_cache_interface
         = 0;
 
     // Another approach is to call this function periodically.
-    // It checks to see how long it's been since the cache was last used, and if
-    // the cache appears idle, it automatically writes the usage records.
+    // It checks to see how long it's been since the cache was last used, and
+    // if the cache appears idle, it automatically writes the usage records.
     virtual void
     do_idle_processing()
         = 0;

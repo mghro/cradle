@@ -1,7 +1,7 @@
 #ifndef CRADLE_WEBSOCKET_LOCAL_CALCS_HPP
 #define CRADLE_WEBSOCKET_LOCAL_CALCS_HPP
 
-#include <cradle/disk_cache.hpp>
+#include <cradle/caching/disk_cache.hpp>
 #include <cradle/io/http_requests.hpp>
 #include <cradle/thinknode/types.hpp>
 

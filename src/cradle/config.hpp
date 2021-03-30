@@ -1,7 +1,7 @@
 #ifndef CRADLE_CONFIG_HPP
 #define CRADLE_CONFIG_HPP
 
-#include <cradle/cache_types.hpp>
+#include <cradle/caching/disk_cache.hpp>
 
 namespace cradle {
 

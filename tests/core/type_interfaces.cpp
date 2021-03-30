@@ -4,7 +4,7 @@
 
 #include <cradle/core/testing.hpp>
 
-#include <cradle/cache_types.hpp>
+#include <cradle/caching/disk_cache.hpp>
 
 using namespace cradle;
 

@@ -30,7 +30,7 @@
 
 #include <cradle/core/diff.hpp>
 #include <cradle/core/logging.hpp>
-#include <cradle/disk_cache.hpp>
+#include <cradle/caching/disk_cache.hpp>
 #include <cradle/encodings/base64.hpp>
 #include <cradle/encodings/json.hpp>
 #include <cradle/encodings/msgpack.hpp>
