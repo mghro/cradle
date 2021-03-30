@@ -1,5 +1,5 @@
-#ifndef CRADLE_DISK_CACHE_HPP
-#define CRADLE_DISK_CACHE_HPP
+#ifndef CRADLE_CACHING_DISK_CACHE_HPP
+#define CRADLE_CACHING_DISK_CACHE_HPP
 
 #include <cradle/common.hpp>
 #include <cradle/fs/types.hpp>
