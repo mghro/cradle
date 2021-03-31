@@ -276,10 +276,9 @@ struct immutable_cache_ptr
         refresh_typed();
     }
 
-    immutable_cache_ptr(
-        immutable_cache& cache, id_interface const& key, function_view<void()>)
+    immutable_cache_ptr(immutable_cache& cache, id_interface const& key)
     {
-        reset(system, key);
+        reset(cache, key);
     }
 
     void
@@ -292,7 +291,7 @@ struct immutable_cache_ptr
     void
     reset(immutable_cache& cache, id_interface const& key)
     {
-        untyped_.reset(system, key);
+        untyped_.reset(cache, key);
         refresh_typed();
     }
 
@@ -372,7 +371,7 @@ struct immutable_cache_ptr
     void
     refresh_typed()
     {
-        if (this->state() == background_data_state::READY)
+        if (this->state() == immutable_cache_data_state::READY)
             cast_immutable_value(&data_, untyped_.data().ptr.get());
         else
             data_ = nullptr;
