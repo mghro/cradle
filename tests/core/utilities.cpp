@@ -81,3 +81,21 @@ TEST_CASE("environment variables", "[core][utilities]")
     REQUIRE(get_environment_variable(var_name) == new_value);
     REQUIRE(get_optional_environment_variable(var_name) == some(new_value));
 }
+
+int
+invoke_function_views(function_view<int(bool)> a, function_view<int(int)> b)
+{
+    return a(true) + b(12);
+}
+
+TEST_CASE("function_view", "[core][utilities]")
+{
+    REQUIRE(
+        invoke_function_views(
+            [](bool x) { return x ? 1 : 2; }, [](int x) { return x / 2; })
+        == 7);
+    REQUIRE(
+        invoke_function_views(
+            [](bool x) { return x ? 3 : 0; }, [](int x) { return x * 2; })
+        == 27);
+}

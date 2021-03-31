@@ -149,6 +149,36 @@ is_tagged_version(repository_info const& info)
     return info.commits_since_tag == 0 && !info.dirty;
 }
 
+// function_view is the non-owning equivalent of std::function.
+template<class Signature>
+class function_view;
+template<class Return, class... Args>
+class function_view<Return(Args...)>
+{
+ private:
+    using signature_type = Return(void*, Args...);
+
+    void* _ptr;
+    Return (*_erased_fn)(void*, Args...);
+
+ public:
+    template<typename T>
+    function_view(T&& x) noexcept : _ptr{(void*) std::addressof(x)}
+    {
+        _erased_fn = [](void* ptr, Args... xs) -> Return {
+            return (*reinterpret_cast<std::add_pointer_t<T>>(ptr))(
+                std::forward<Args>(xs)...);
+        };
+    }
+
+    decltype(auto)
+    operator()(Args... xs) const
+        noexcept(noexcept(_erased_fn(_ptr, std::forward<Args>(xs)...)))
+    {
+        return _erased_fn(_ptr, std::forward<Args>(xs)...);
+    }
+};
+
 } // namespace cradle
 
 #endif
