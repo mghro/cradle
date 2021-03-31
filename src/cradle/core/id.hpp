@@ -128,7 +128,7 @@ struct captured_id
     captured_id(captured_id const& other)
     {
         if (other.is_initialized())
-            this->capture(other.get());
+            this->capture(*other);
     }
     captured_id(captured_id&& other) noexcept
     {
@@ -138,7 +138,7 @@ struct captured_id
     operator=(captured_id const& other)
     {
         if (other.is_initialized())
-            this->capture(other.get());
+            this->capture(*other);
         else
             this->clear();
         return *this;
@@ -165,7 +165,7 @@ struct captured_id
         return id_ ? true : false;
     }
     id_interface const&
-    get() const
+    operator*() const
     {
         return *id_;
     }
