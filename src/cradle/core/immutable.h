@@ -79,6 +79,13 @@ is_initialized(immutable<T> const& x)
 }
 
 template<class T>
+T const&
+operator*(immutable<T> const& x)
+{
+    return x.ptr->value;
+}
+
+template<class T>
 void
 reset(immutable<T>& x)
 {
@@ -106,7 +113,7 @@ template<class T>
 size_t
 hash_value(immutable<T> const& x)
 {
-    return is_initialized(x) ? cradle::invoke_hash(get(x)) : 0;
+    return is_initialized(x) ? cradle::invoke_hash(*x) : 0;
 }
 
 template<class T>
@@ -115,13 +122,6 @@ swap_in(immutable<T>& x, T& value)
 {
     x.ptr.reset(new immutable_value<T>);
     swap(x.ptr->value, value);
-}
-
-template<class T>
-T const&
-get(immutable<T> const& x)
-{
-    return x.ptr->value;
 }
 
 template<class T>
@@ -149,7 +149,7 @@ operator==(immutable<T> const& a, immutable<T> const& b)
 {
     // First test if the two immutables are actually pointing to the same
     // thing, which avoids having to do a deep comparison for this case.
-    return a.ptr == b.ptr || (a.ptr ? (b.ptr && get(a) == get(b)) : !b.ptr);
+    return a.ptr == b.ptr || (a.ptr ? (b.ptr && *a == *b) : !b.ptr);
 }
 template<class T>
 bool
@@ -161,7 +161,7 @@ template<class T>
 bool
 operator<(immutable<T> const& a, immutable<T> const& b)
 {
-    return b.ptr && (a.ptr ? get(a) < get(b) : true);
+    return b.ptr && (a.ptr ? *a < *b : true);
 }
 
 template<class T>
@@ -178,7 +178,7 @@ to_dynamic(cradle::dynamic* v, immutable<T> const& x)
 {
     using cradle::to_dynamic;
     if (x.ptr)
-        to_dynamic(v, get(x));
+        to_dynamic(v, *x);
     else
         to_dynamic(v, T());
 }
@@ -188,7 +188,7 @@ std::ostream&
 operator<<(std::ostream& s, immutable<T> const& x)
 {
     if (x.ptr)
-        s << get(x);
+        s << *x;
     else
         s << T();
     return s;
@@ -223,7 +223,7 @@ template<class T>
 void
 from_immutable(T* value, untyped_immutable const& untyped)
 {
-    *value = get(cast_immutable<T>(untyped));
+    *value = *cast_immutable<T>(untyped);
 }
 
 // This is a lower level form of cast that works directly on the value
