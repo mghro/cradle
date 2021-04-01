@@ -5,7 +5,6 @@
 
 #include <fakeit.h>
 
-
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
 #include <cradle/encodings/json.hpp>
@@ -44,8 +43,6 @@ TEST_CASE("calc status utilities", "[thinknode][tn_calc]")
     auto status = some(make_calculation_status_with_waiting(nil));
     for (auto query_string : expected_query_order)
     {
-        REQUIRE(status);
-        INFO(status);
         REQUIRE(calc_status_as_query_string(*status) == query_string);
         status = get_next_calculation_status(*status);
     }

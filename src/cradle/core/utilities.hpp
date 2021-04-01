@@ -10,9 +10,6 @@
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 
-// TODO: Remove this?
-#include <boost/optional/optional_io.hpp>
-
 namespace cradle {
 
 using boost::lexical_cast;

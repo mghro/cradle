@@ -2,24 +2,23 @@
 #define CRADLE_CORE_TYPE_DEFINITIONS_HPP
 
 #include <any>
+#include <iostream>
 #include <map>
+#include <optional>
 #include <string>
 
 #include <boost/core/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-#include <boost/optional.hpp>
-
-#include <iostream>
-
 namespace cradle {
 
 using std::string;
 
-using boost::none;
-using boost::optional;
+using std::optional;
+typedef std::nullopt_t none_t;
+inline constexpr std::nullopt_t none(std::nullopt);
 
-// some(x) creates a boost::optional of the proper type with the value of :x.
+// some(x) creates an optional of the proper type with the value of :x.
 template<class T>
 auto
 some(T&& x)
@@ -282,11 +281,11 @@ struct omissible
     omissible(T const& value) : value_(value), valid_(true)
     {
     }
-    omissible(boost::none_t) : valid_(false)
+    omissible(none_t) : valid_(false)
     {
     }
     omissible(optional<T> const& opt)
-        : value_(opt ? opt.get() : T()), valid_(opt ? true : false)
+        : value_(opt ? *opt : T()), valid_(opt ? true : false)
     {
     }
     omissible&
@@ -296,7 +295,7 @@ struct omissible
         valid_ = true;
         return *this;
     }
-    omissible& operator=(boost::none_t)
+    omissible& operator=(none_t)
     {
         valid_ = false;
         return *this;
