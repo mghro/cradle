@@ -11,6 +11,7 @@
 #include <cradle/core/dynamic.hpp>
 #include <cradle/core/exception.hpp>
 #include <cradle/core/hash.hpp>
+#include <cradle/core/type_definitions.hpp>
 #include <cradle/core/type_info.h>
 
 // This file provides implementations of the CRADLE Regular interface
@@ -590,16 +591,5 @@ from_dynamic(optional<T>* x, cradle::dynamic const& v)
 }
 
 } // namespace cradle
-
-namespace boost {
-
-template<class T>
-size_t
-hash_value(optional<T> const& x)
-{
-    return x ? cradle::invoke_hash(x.get()) : 0;
-}
-
-} // namespace boost
 
 #endif

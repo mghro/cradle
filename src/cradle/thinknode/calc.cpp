@@ -407,7 +407,7 @@ submit_let_calculation_request(
 
             // We got a calculation ID, so record the new substitution.
             substitutions[var.first]
-                = make_calculation_request_with_reference(get(calculation_id));
+                = make_calculation_request_with_reference(*calculation_id);
 
             // If this is a reported variable, record it.
             auto const& reported = augmented_request.reported_variables;
@@ -416,7 +416,7 @@ submit_let_calculation_request(
             {
                 result.reported_subcalcs.push_back(
                     make_reported_calculation_info(
-                        get(calculation_id),
+                        *calculation_id,
                         // We assume that all reported calculations are
                         // function calls.
                         is_function(var.second)
@@ -426,7 +426,7 @@ submit_let_calculation_request(
             // Otherwise, just record its ID.
             else
             {
-                result.other_subcalc_ids.push_back(get(calculation_id));
+                result.other_subcalc_ids.push_back(*calculation_id);
             }
         }
 
@@ -444,7 +444,7 @@ submit_let_calculation_request(
     if (!main_calc_id)
         return none;
 
-    result.main_calc_id = get(main_calc_id);
+    result.main_calc_id = *main_calc_id;
 
     return result;
 }

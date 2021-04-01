@@ -1,7 +1,5 @@
 #include <cradle/core/type_interfaces.hpp>
 
-#include <boost/optional/optional_io.hpp>
-
 #include <cradle/core/testing.hpp>
 
 #include <cradle/caching/disk_cache.hpp>

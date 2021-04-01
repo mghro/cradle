@@ -213,11 +213,11 @@ compute_array_diff(
         auto insertion = detect_insertion(a, b);
         if (insertion)
         {
-            for (size_t i = 0; i != get(insertion).count; ++i)
+            for (size_t i = 0; i != insertion->count; ++i)
             {
                 compressed_diff.push_back(make_insert_item(
-                    extend_path(path, to_dynamic(get(insertion).index + i)),
-                    b[get(insertion).index + i]));
+                    extend_path(path, to_dynamic(insertion->index + i)),
+                    b[insertion->index + i]));
             }
         }
     }
@@ -227,11 +227,11 @@ compute_array_diff(
         auto removal = detect_insertion(b, a);
         if (removal)
         {
-            for (size_t i = get(removal).count; i != 0; --i)
+            for (size_t i = removal->count; i != 0; --i)
             {
                 compressed_diff.push_back(make_delete_item(
-                    extend_path(path, to_dynamic(get(removal).index + i - 1)),
-                    a[get(removal).index + i - 1]));
+                    extend_path(path, to_dynamic(removal->index + i - 1)),
+                    a[removal->index + i - 1]));
             }
         }
     }
@@ -394,7 +394,7 @@ apply_value_diff(dynamic const& v, value_diff const& diff)
     for (auto const& item : diff)
     {
         patched = apply_value_diff_item(
-            patched, item.path, 0, item.op, item.b ? get(item.b) : dynamic());
+            patched, item.path, 0, item.op, item.b ? *item.b : dynamic());
     }
     return patched;
 }

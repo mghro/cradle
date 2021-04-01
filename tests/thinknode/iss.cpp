@@ -126,7 +126,7 @@ TEST_CASE("URL type string", "[thinknode][iss]")
     session.access_token = "xyz";
 
     thinknode_named_type_reference named_info;
-    named_info.account = "my_account";
+    named_info.account = string("my_account");
     named_info.app = "my_app";
     named_info.name = "my_type";
     auto named_type = make_thinknode_type_info_with_named_type(named_info);
