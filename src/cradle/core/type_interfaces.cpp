@@ -38,7 +38,7 @@ from_dynamic(string* x, dynamic const& v)
     // Strings are also used to encode datetimes in JSON, so it's possible we
     // might misinterpret a string as a datetime.
     if (v.type() == value_type::DATETIME)
-        *x = to_value_string(cast<ptime>(v));
+        *x = to_value_string(cast<datetime>(v));
     else
         *x = cast<string>(v);
 }
@@ -141,10 +141,10 @@ from_dynamic(date* x, dynamic const& v)
     *x = parse_date(cast<string>(v));
 }
 
-// PTIME
+// DATETIME
 
 string
-to_string(ptime const& t)
+to_string(datetime const& t)
 {
     namespace bt = boost::posix_time;
     std::ostringstream os;
@@ -155,7 +155,7 @@ to_string(ptime const& t)
 }
 
 string
-to_value_string(ptime const& t)
+to_value_string(datetime const& t)
 {
     namespace bt = boost::posix_time;
     std::ostringstream os;
@@ -170,18 +170,18 @@ to_value_string(ptime const& t)
     return os.str();
 }
 
-ptime
-parse_ptime(std::string const& s)
+datetime
+parse_datetime(std::string const& s)
 {
     namespace bt = boost::posix_time;
     std::istringstream is(s);
     is.imbue(std::locale(
         std::cout.getloc(), new bt::time_input_facet("%Y-%m-%dT%H:%M:%s")));
-    ptime t;
+    datetime t;
     is >> t;
     char z;
     is.get(z);
-    if (t != ptime() && z == 'Z'
+    if (t != datetime() && z == 'Z'
         && is.peek() == std::istringstream::traits_type::eof())
     {
         return t;
@@ -192,13 +192,13 @@ parse_ptime(std::string const& s)
 }
 
 void
-to_dynamic(dynamic* v, ptime const& x)
+to_dynamic(dynamic* v, datetime const& x)
 {
     *v = x;
 }
 
 void
-from_dynamic(ptime* x, dynamic const& v)
+from_dynamic(datetime* x, dynamic const& v)
 {
     *x = cast<ptime>(v);
 }

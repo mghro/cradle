@@ -62,7 +62,7 @@ struct value_type_of<blob>
     static value_type const value = value_type::BLOB;
 };
 template<>
-struct value_type_of<boost::posix_time::ptime>
+struct value_type_of<datetime>
 {
     static value_type const value = value_type::DATETIME;
 };
@@ -236,7 +236,7 @@ apply_to_dynamic(Fn&& fn, dynamic const& v)
         case value_type::BLOB:
             return fn(cast<blob>(v));
         case value_type::DATETIME:
-            return fn(cast<boost::posix_time::ptime>(v));
+            return fn(cast<datetime>(v));
         case value_type::ARRAY:
             return fn(cast<dynamic_array>(v));
         case value_type::MAP:
@@ -267,9 +267,7 @@ apply_to_dynamic_pair(Fn&& fn, dynamic const& a, dynamic const& b)
         case value_type::BLOB:
             return fn(cast<blob>(a), cast<blob>(b));
         case value_type::DATETIME:
-            return fn(
-                cast<boost::posix_time::ptime>(a),
-                cast<boost::posix_time::ptime>(b));
+            return fn(cast<datetime>(a), cast<datetime>(b));
         case value_type::ARRAY:
             return fn(cast<dynamic_array>(a), cast<dynamic_array>(b));
         case value_type::MAP:

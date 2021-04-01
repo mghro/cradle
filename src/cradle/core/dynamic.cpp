@@ -130,13 +130,13 @@ dynamic::set(blob&& v)
     value_ = std::move(v);
 }
 void
-dynamic::set(boost::posix_time::ptime const& v)
+dynamic::set(datetime const& v)
 {
     type_ = value_type::DATETIME;
     value_ = v;
 }
 void
-dynamic::set(boost::posix_time::ptime&& v)
+dynamic::set(datetime&& v)
 {
     type_ = value_type::DATETIME;
     value_ = std::move(v);
@@ -356,7 +356,7 @@ value_requires_coercion(
             {
                 try
                 {
-                    parse_ptime(cast<string>(value));
+                    parse_datetime(cast<string>(value));
                     return true;
                 }
                 catch (...)
@@ -564,7 +564,7 @@ coerce_value_impl(
             {
                 try
                 {
-                    value = dynamic(parse_ptime(cast<string>(value)));
+                    value = dynamic(parse_datetime(cast<string>(value)));
                     break;
                 }
                 catch (...)

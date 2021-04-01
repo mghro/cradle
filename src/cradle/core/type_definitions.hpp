@@ -2,13 +2,13 @@
 #define CRADLE_CORE_TYPE_DEFINITIONS_HPP
 
 #include <any>
+#include <chrono>
 #include <iostream>
 #include <map>
 #include <optional>
 #include <string>
 
 #include <boost/core/noncopyable.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 namespace cradle {
 
@@ -31,7 +31,7 @@ typedef int64_t integer;
 // ownership_holder is meant to express polymorphic ownership of a resource.
 // The idea is that the resource may be owned in many different ways, and we
 // don't care what way. We only want an object that will provide ownership of
-// the resource until it's destructed. We can achieve this by using an any
+// the resource until it's destructed. We can achieve this by using a std::any
 // object to hold the ownership object.
 typedef std::any ownership_holder;
 
@@ -47,6 +47,8 @@ struct blob
     char const* data = nullptr;
     std::size_t size = 0;
 };
+
+typedef std::chrono::time_point<std::chrono::system_clock> datetime;
 
 // type_info_query<T>::get(&info) should set :info to the CRADLE type info for
 // the type T from the perspective of someone *using* T. This might not be the
@@ -104,7 +106,7 @@ enum class value_type
     FLOAT, // double
     STRING, // string
     BLOB, // blob - binary blob
-    DATETIME, // boost::posix_time::ptime
+    DATETIME, // datetime
     ARRAY, // dynamic_array - array of dynamic values
     MAP, // dynamic_map - collection of named dynamic values
 };
@@ -162,11 +164,11 @@ struct dynamic
     {
         set(std::move(v));
     }
-    dynamic(boost::posix_time::ptime const& v)
+    dynamic(datetime const& v)
     {
         set(v);
     }
-    dynamic(boost::posix_time::ptime&& v)
+    dynamic(datetime&& v)
     {
         set(std::move(v));
     }
@@ -249,9 +251,9 @@ struct dynamic
     void
     set(blob&& v);
     void
-    set(boost::posix_time::ptime const& v);
+    set(datetime const& v);
     void
-    set(boost::posix_time::ptime&& v);
+    set(datetime&& v);
     void
     set(dynamic_array const& v);
     void

@@ -218,31 +218,29 @@ hash_value(date const& x)
 
 namespace cradle {
 
-// PTIME
+// DATETIME
 
-using boost::posix_time::ptime;
-
-// Get the preferred user-readable string representation of a ptime.
+// Get the preferred user-readable string representation of a datetime.
 string
-to_string(ptime const& t);
+to_string(datetime const& t);
 
-// Get the preferred representation for encoding a ptime as a string.
+// Get the preferred representation for encoding a datetime as a string.
 // (This preserves milliseconds.)
 string
-to_value_string(ptime const& t);
+to_value_string(datetime const& t);
 
-// Parse a ptime from a value string.
-ptime
-parse_ptime(std::string const& s);
-
-void
-to_dynamic(dynamic* v, ptime const& x);
+// Parse a datetime from a value string.
+datetime
+parse_datetime(std::string const& s);
 
 void
-from_dynamic(ptime* x, dynamic const& v);
+to_dynamic(dynamic* v, datetime const& x);
+
+void
+from_dynamic(datetime* x, dynamic const& v);
 
 template<>
-struct type_info_query<ptime>
+struct type_info_query<datetime>
 {
     static void
     get(api_type_info* info)
@@ -251,26 +249,10 @@ struct type_info_query<ptime>
     }
 };
 
-inline size_t deep_sizeof(ptime)
+inline size_t deep_sizeof(datetime)
 {
-    return sizeof(ptime);
+    return sizeof(datetime);
 }
-
-} // namespace cradle
-
-namespace boost {
-namespace posix_time {
-
-inline size_t
-hash_value(ptime const& x)
-{
-    return cradle::invoke_hash(cradle::to_string(x));
-}
-
-} // namespace posix_time
-} // namespace boost
-
-namespace cradle {
 
 // BLOB
 
