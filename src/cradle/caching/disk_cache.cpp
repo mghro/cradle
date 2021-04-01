@@ -1,10 +1,10 @@
 #include <cradle/caching/disk_cache.hpp>
 
+#include <chrono>
 #include <filesystem>
 #include <mutex>
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <sqlite3.h>
 
@@ -42,7 +42,7 @@ struct disk_cache_impl
     // list of IDs that whose usage needs to be recorded
     std::vector<int64_t> usage_record_buffer;
 
-    boost::posix_time::ptime latest_activity;
+    std::chrono::time_point<std::chrono::system_clock> latest_activity;
 
     // protects all access to the cache
     std::mutex mutex;
@@ -490,7 +490,7 @@ enforce_cache_size_limit(disk_cache_impl& cache)
 static void
 record_activity(disk_cache_impl& cache)
 {
-    cache.latest_activity = boost::posix_time::microsec_clock::local_time();
+    cache.latest_activity = std::chrono::system_clock::now();
 }
 
 static void
@@ -908,10 +908,8 @@ disk_cache::do_idle_processing()
     check_initialization(cache);
 
     if (!cache.usage_record_buffer.empty()
-        && (boost::posix_time::microsec_clock::local_time()
-            - cache.latest_activity)
-                   .total_milliseconds()
-               > 1000)
+        && std::chrono::system_clock::now() - cache.latest_activity
+               > std::chrono::seconds(1))
     {
         cradle::write_usage_records(cache);
     }
