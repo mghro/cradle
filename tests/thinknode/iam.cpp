@@ -2,7 +2,6 @@
 
 #include <fakeit.h>
 
-
 #include <cradle/core/monitoring.hpp>
 #include <cradle/core/testing.hpp>
 #include <cradle/io/http_requests.hpp>
@@ -40,7 +39,7 @@ TEST_CASE("context contents retrieval", "[thinknode][iam]")
                                     "account": "chaom",
                                     "app": "landsraad",
                                     "source": {
-                                        "branch": "master"
+                                        "branch": "main"
                                 }
                                 },
                                 {
@@ -72,7 +71,7 @@ TEST_CASE("context contents retrieval", "[thinknode][iam]")
              make_thinknode_context_app_info(
                  "chaom",
                  "landsraad",
-                 make_thinknode_app_source_info_with_branch("master")),
+                 make_thinknode_app_source_info_with_branch("main")),
              make_thinknode_context_app_info(
                  "wayne_enterprises",
                  "cellsonar",
