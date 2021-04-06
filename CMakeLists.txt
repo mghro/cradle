@@ -101,8 +101,6 @@ endmacro()
 if(IS_GCC)
     add_compile_options(-Wall -Werror)
     # Disable warnings that are too strict.
-    # Warnings about suggested parentheses occur naturally when using Catch.
-    add_compile_options(-Wno-parentheses)
     # unused function parameters
     add_compile_options(-Wno-unused-parameter)
     # unused functions
