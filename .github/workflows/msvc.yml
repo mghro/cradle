@@ -36,7 +36,7 @@ jobs:
     - name: Install OCaml
       uses: msys2/setup-msys2@v2
       with:
-        install: ocaml
+        install: mingw-w64-i686-ocaml
 
     - name: Install Conan
       run: |
