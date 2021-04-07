@@ -30,7 +30,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: |
-          ~/.conan/data
+          C:/.conan/data
         key: ${{runner.os}}-MSVC-${{matrix.config}}
 
     - name: Install
