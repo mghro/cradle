@@ -1,9 +1,10 @@
-#include <cradle/encodings/msgpack.hpp>
+#include <cradle/encodings/msgpack.h>
 
 #include <cstring>
 
-#include <cradle/core/testing.h>
-#include <cradle/encodings/json.hpp>
+#include <cradle/encodings/json.h>
+#include <cradle/utilities/testing.h>
+#include <cradle/utilities/text.h>
 
 using namespace cradle;
 

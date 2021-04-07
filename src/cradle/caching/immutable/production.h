@@ -1,9 +1,9 @@
 #ifndef CRADLE_CACHING_IMMUTABLE_PRODUCTION_H
 #define CRADLE_CACHING_IMMUTABLE_PRODUCTION_H
 
-#include <cradle/common.hpp>
-#include <cradle/core/encoded_progress.h>
-#include <cradle/core/id.hpp>
+#include <cradle/core.h>
+#include <cradle/background/encoded_progress.h>
+#include <cradle/core/id.h>
 
 namespace cradle {
 

@@ -1,4 +1,7 @@
-#include <cradle/thinknode/utilities.hpp>
+#include <cradle/thinknode/utilities.h>
+
+#include <cradle/utilities/errors.h>
+#include <cradle/utilities/functional.h>
 
 namespace cradle {
 

@@ -1,4 +1,4 @@
-#include <cradle/encodings/yaml.hpp>
+#include <cradle/encodings/yaml.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/format.hpp>
@@ -13,7 +13,9 @@
 #include <yaml-cpp/yaml.h>
 #endif
 
-#include <cradle/encodings/base64.hpp>
+#include <cradle/encodings/base64.h>
+#include <cradle/utilities/arrays.h>
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 

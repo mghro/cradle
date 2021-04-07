@@ -1,10 +1,10 @@
-#include <cradle/websocket/server.hpp>
+#include <cradle/websocket/server.h>
 
 #include <boost/program_options.hpp>
 
-#include <cradle/encodings/json.hpp>
-#include <cradle/fs/app_dirs.hpp>
-#include <cradle/fs/file_io.hpp>
+#include <cradle/encodings/json.h>
+#include <cradle/fs/app_dirs.h>
+#include <cradle/fs/file_io.h>
 #include <cradle/version_info.hpp>
 
 using namespace cradle;

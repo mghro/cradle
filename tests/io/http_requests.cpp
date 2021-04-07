@@ -5,10 +5,12 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <cradle/core/monitoring.hpp>
-#include <cradle/core/testing.h>
-#include <cradle/core/utilities.hpp>
-#include <cradle/encodings/json.hpp>
+#include <cradle/utilities/testing.h>
+
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/json.h>
+#include <cradle/utilities/environment.h>
+#include <cradle/utilities/errors.h>
 
 #include "http_requests.hpp"
 

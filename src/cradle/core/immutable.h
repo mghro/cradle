@@ -2,10 +2,9 @@
 #define CRADLE_CORE_IMMUTABLE_HPP
 
 #include <cradle/core/api_types.hpp>
-#include <cradle/core/dynamic.hpp>
-#include <cradle/core/hash.hpp>
+#include <cradle/core/dynamic.h>
+#include <cradle/core/hash.h>
 #include <cradle/core/type_info.h>
-#include <cradle/core/utilities.hpp>
 
 namespace cradle {
 

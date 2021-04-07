@@ -1,6 +1,6 @@
-#include <cradle/thinknode/apm.hpp>
+#include <cradle/thinknode/apm.h>
 
-#include <cradle/core/monitoring.hpp>
+#include <cradle/core/monitoring.h>
 #include <cradle/io/http_requests.hpp>
 
 namespace cradle {

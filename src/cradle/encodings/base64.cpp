@@ -1,8 +1,10 @@
-#include <cradle/encodings/base64.hpp>
+#include <cradle/encodings/base64.h>
 
 #include <boost/scoped_array.hpp>
 #include <iomanip>
 #include <sstream>
+
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 
@@ -112,9 +114,8 @@ base64_decode(
         if (c0 > 63 || src == src_end)
         {
             CRADLE_THROW(
-                parsing_error()
-                << expected_format_info("base64")
-                << parsed_text_info(string(src_begin, src_end)));
+                parsing_error() << expected_format_info(
+                    "base64") << parsed_text_info(string(src_begin, src_end)));
         }
 
         uint8_t c1 = reverse_mapping[uint8_t(*src)];
@@ -122,9 +123,8 @@ base64_decode(
         if (c1 > 63)
         {
             CRADLE_THROW(
-                parsing_error()
-                << expected_format_info("base64")
-                << parsed_text_info(string(src_begin, src_end)));
+                parsing_error() << expected_format_info(
+                    "base64") << parsed_text_info(string(src_begin, src_end)));
         }
 
         *dst++ = (c0 << 2) | (c1 >> 4);
@@ -137,9 +137,8 @@ base64_decode(
         if (c2 > 63)
         {
             CRADLE_THROW(
-                parsing_error()
-                << expected_format_info("base64")
-                << parsed_text_info(string(src_begin, src_end)));
+                parsing_error() << expected_format_info(
+                    "base64") << parsed_text_info(string(src_begin, src_end)));
         }
 
         *dst++ = ((c1 & 0xf) << 4) | (c2 >> 2);
@@ -152,9 +151,8 @@ base64_decode(
         if (c3 > 63)
         {
             CRADLE_THROW(
-                parsing_error()
-                << expected_format_info("base64")
-                << parsed_text_info(string(src_begin, src_end)));
+                parsing_error() << expected_format_info(
+                    "base64") << parsed_text_info(string(src_begin, src_end)));
         }
 
         *dst++ = ((c2 & 0x3) << 6) | c3;

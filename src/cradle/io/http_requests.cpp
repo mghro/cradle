@@ -7,11 +7,12 @@
 
 #include <curl/curl.h>
 
-#include <cradle/core/logging.hpp>
-#include <cradle/core/monitoring.hpp>
-#include <cradle/encodings/json.hpp>
-#include <cradle/encodings/msgpack.hpp>
-#include <cradle/fs/file_io.hpp>
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/json.h>
+#include <cradle/encodings/msgpack.h>
+#include <cradle/fs/file_io.h>
+#include <cradle/utilities/errors.h>
+#include <cradle/utilities/logging.h>
 
 namespace cradle {
 

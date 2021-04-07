@@ -1,7 +1,7 @@
 #ifndef CRADLE_THINKNODE_TYPES_HPP
 #define CRADLE_THINKNODE_TYPES_HPP
 
-#include <cradle/common.hpp>
+#include <cradle/core.h>
 
 namespace cradle {
 

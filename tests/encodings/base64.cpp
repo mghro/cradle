@@ -1,8 +1,9 @@
-#include <cradle/encodings/base64.hpp>
+#include <cradle/encodings/base64.h>
 
 #include <boost/scoped_array.hpp>
 
-#include <cradle/core/testing.h>
+#include <cradle/utilities/testing.h>
+#include <cradle/utilities/text.h>
 
 using namespace cradle;
 
@@ -47,7 +48,8 @@ TEST_CASE("MIME base64 encoding", "[encodings][base64]")
 {
     test_base64_encoding(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-        "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZW"
+        "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZ"
+        "W"
         "xpdC4=",
         get_mime_base64_character_set());
 
@@ -55,9 +57,11 @@ TEST_CASE("MIME base64 encoding", "[encodings][base64]")
         "Proin sollicitudin cursus bibendum. Aliquam tempus eu mauris in "
         "varius. "
         "Quisque vulputate porttitor nisl, non scelerisque erat eleifend sed.",
-        "UHJvaW4gc29sbGljaXR1ZGluIGN1cnN1cyBiaWJlbmR1bS4gQWxpcXVhbSB0ZW1wdXMgZX"
+        "UHJvaW4gc29sbGljaXR1ZGluIGN1cnN1cyBiaWJlbmR1bS4gQWxpcXVhbSB0ZW1wdXMgZ"
+        "X"
         "UgbWF1cmlz"
-        "IGluIHZhcml1cy4gUXVpc3F1ZSB2dWxwdXRhdGUgcG9ydHRpdG9yIG5pc2wsIG5vbiBzY2"
+        "IGluIHZhcml1cy4gUXVpc3F1ZSB2dWxwdXRhdGUgcG9ydHRpdG9yIG5pc2wsIG5vbiBzY"
+        "2"
         "VsZXJp"
         "c3F1ZSBlcmF0IGVsZWlmZW5kIHNlZC4=",
         get_mime_base64_character_set());
@@ -93,7 +97,8 @@ TEST_CASE("missing base64 padding", "[encodings][base64]")
 
     REQUIRE(
         base64_decode(
-            "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2Npbm"
+            "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2Npb"
+            "m"
             "cgZWxpdC4",
             get_mime_base64_character_set())
         == string("Lorem ipsum dolor sit amet, consectetur adipiscing elit."));
@@ -106,7 +111,8 @@ test_malformed_base64(
     string const& malformed_base64, base64_character_set const& character_set)
 {
     INFO(
-        "Testing that the base64 decoder gracefully handles malformed base64.");
+        "Testing that the base64 decoder gracefully handles malformed "
+        "base64.");
 
     CAPTURE(malformed_base64);
 

@@ -1,10 +1,11 @@
-#include <cradle/websocket/local_calcs.hpp>
+#include <cradle/websocket/local_calcs.h>
 
 #include <thread>
 
-#include <cradle/core/testing.h>
+#include <cradle/utilities/testing.h>
 
-#include <cradle/encodings/base64.hpp>
+#include <cradle/encodings/base64.h>
+#include <cradle/utilities/environment.h>
 #include <cradle/websocket/messages.hpp>
 
 #include "io/http_requests.hpp"

@@ -1,23 +1,24 @@
-#include <cradle/core/dynamic.hpp>
+#include <cradle/core/dynamic.h>
 
-#include <cradle/common.hpp>
-#include <cradle/core/testing.h>
+#include <cradle/core.h>
+#include <cradle/utilities/testing.h>
+#include <cradle/utilities/text.h>
 
 using namespace cradle;
 
 TEST_CASE("value_type streaming", "[core][dynamic]")
 {
-    REQUIRE(boost::lexical_cast<string>(value_type::NIL) == "nil");
-    REQUIRE(boost::lexical_cast<string>(value_type::BOOLEAN) == "boolean");
-    REQUIRE(boost::lexical_cast<string>(value_type::INTEGER) == "integer");
-    REQUIRE(boost::lexical_cast<string>(value_type::FLOAT) == "float");
-    REQUIRE(boost::lexical_cast<string>(value_type::STRING) == "string");
-    REQUIRE(boost::lexical_cast<string>(value_type::BLOB) == "blob");
-    REQUIRE(boost::lexical_cast<string>(value_type::DATETIME) == "datetime");
-    REQUIRE(boost::lexical_cast<string>(value_type::ARRAY) == "array");
-    REQUIRE(boost::lexical_cast<string>(value_type::MAP) == "map");
+    REQUIRE(lexical_cast<string>(value_type::NIL) == "nil");
+    REQUIRE(lexical_cast<string>(value_type::BOOLEAN) == "boolean");
+    REQUIRE(lexical_cast<string>(value_type::INTEGER) == "integer");
+    REQUIRE(lexical_cast<string>(value_type::FLOAT) == "float");
+    REQUIRE(lexical_cast<string>(value_type::STRING) == "string");
+    REQUIRE(lexical_cast<string>(value_type::BLOB) == "blob");
+    REQUIRE(lexical_cast<string>(value_type::DATETIME) == "datetime");
+    REQUIRE(lexical_cast<string>(value_type::ARRAY) == "array");
+    REQUIRE(lexical_cast<string>(value_type::MAP) == "map");
     REQUIRE_THROWS_AS(
-        boost::lexical_cast<string>(value_type(-1)), invalid_enum_value);
+        lexical_cast<string>(value_type(-1)), invalid_enum_value);
 }
 
 TEST_CASE("dynamic type checking", "[core][dynamic]")

@@ -3,9 +3,9 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
-#include <cradle/websocket/client.hpp>
-
-#include <cradle/encodings/msgpack.hpp>
+#include <cradle/encodings/msgpack.h>
+#include <cradle/utilities/errors.h>
+#include <cradle/websocket/client.h>
 #include <cradle/websocket/messages.hpp>
 
 namespace cradle {

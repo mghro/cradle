@@ -1,14 +1,14 @@
-#include <cradle/thinknode/calc.hpp>
+#include <cradle/thinknode/calc.h>
 
 #include <cstring>
 #include <fmt/format.h>
 
 #include <fakeit.h>
 
-#include <cradle/core/monitoring.hpp>
-#include <cradle/core/testing.h>
-#include <cradle/encodings/json.hpp>
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/json.h>
 #include <cradle/io/http_requests.hpp>
+#include <cradle/utilities/testing.h>
 
 using namespace cradle;
 using namespace fakeit;

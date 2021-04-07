@@ -1,5 +1,5 @@
-#ifndef CRADLE_THINKNODE_MESSAGES_HPP
-#define CRADLE_THINKNODE_MESSAGES_HPP
+#ifndef CRADLE_THINKNODE_MESSAGES_H
+#define CRADLE_THINKNODE_MESSAGES_H
 
 // This file implements the general pattern used within Astroid to transmit
 // messages over TCP.
@@ -12,8 +12,8 @@
 #include <boost/shared_array.hpp>
 #include <boost/static_assert.hpp>
 
-#include <cradle/io/endian.hpp>
-#include <cradle/io/raw_memory_io.hpp>
+#include <cradle/io/endian.h>
+#include <cradle/io/raw_memory_io.h>
 
 namespace cradle {
 

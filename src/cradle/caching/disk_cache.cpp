@@ -10,7 +10,9 @@
 
 #include <hashids.h>
 
-#include <cradle/fs/app_dirs.hpp>
+#include <cradle/fs/app_dirs.h>
+#include <cradle/utilities/errors.h>
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 

@@ -1,4 +1,4 @@
-#include <cradle/core/type_interfaces.hpp>
+#include <cradle/core/type_interfaces.h>
 
 #include <fmt/format.h>
 
@@ -6,7 +6,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 
-#include <cradle/core/dynamic.hpp>
+#include <cradle/core/dynamic.h>
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 

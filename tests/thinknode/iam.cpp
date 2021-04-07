@@ -1,10 +1,10 @@
-#include <cradle/thinknode/iam.hpp>
+#include <cradle/thinknode/iam.h>
 
 #include <fakeit.h>
 
-#include <cradle/core/monitoring.hpp>
-#include <cradle/core/testing.h>
+#include <cradle/core/monitoring.h>
 #include <cradle/io/http_requests.hpp>
+#include <cradle/utilities/testing.h>
 
 using namespace cradle;
 using namespace fakeit;

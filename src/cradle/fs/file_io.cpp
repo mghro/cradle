@@ -1,4 +1,6 @@
-#include <cradle/fs/file_io.hpp>
+#include <cradle/fs/file_io.h>
+
+#include <cradle/utilities/errors.h>
 
 namespace cradle {
 
@@ -57,7 +59,8 @@ void
 dump_string_to_file(file_path const& path, string const& contents)
 {
     std::ofstream output;
-    open_file(output, path, std::ios::out | std::ios::trunc | std::ios::binary);
+    open_file(
+        output, path, std::ios::out | std::ios::trunc | std::ios::binary);
     output << contents;
 }
 

@@ -1,4 +1,4 @@
-#include <cradle/thinknode/iss.hpp>
+#include <cradle/thinknode/iss.h>
 
 #include <cstring>
 
@@ -6,10 +6,10 @@
 
 #include <fakeit.h>
 
-#include <cradle/core/monitoring.hpp>
-#include <cradle/core/testing.h>
-#include <cradle/encodings/msgpack.hpp>
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/msgpack.h>
 #include <cradle/io/http_requests.hpp>
+#include <cradle/utilities/testing.h>
 
 using namespace cradle;
 using namespace fakeit;

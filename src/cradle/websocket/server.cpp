@@ -1,6 +1,6 @@
 #include <cradle/io/asio.h>
 
-#include <cradle/websocket/server.hpp>
+#include <cradle/websocket/server.h>
 
 #include <thread>
 
@@ -28,22 +28,25 @@
 #include <spdlog/sinks/ansicolor_sink.h>
 #endif
 
-#include <cradle/core/diff.hpp>
-#include <cradle/core/logging.hpp>
 #include <cradle/caching/disk_cache.hpp>
-#include <cradle/encodings/base64.hpp>
-#include <cradle/encodings/json.hpp>
-#include <cradle/encodings/msgpack.hpp>
-#include <cradle/encodings/yaml.hpp>
-#include <cradle/fs/app_dirs.hpp>
-#include <cradle/fs/file_io.hpp>
+#include <cradle/encodings/base64.h>
+#include <cradle/encodings/json.h>
+#include <cradle/encodings/msgpack.h>
+#include <cradle/encodings/yaml.h>
+#include <cradle/fs/app_dirs.h>
+#include <cradle/fs/file_io.h>
 #include <cradle/io/http_requests.hpp>
-#include <cradle/thinknode/apm.hpp>
-#include <cradle/thinknode/calc.hpp>
-#include <cradle/thinknode/iam.hpp>
-#include <cradle/thinknode/iss.hpp>
-#include <cradle/thinknode/utilities.hpp>
-#include <cradle/websocket/local_calcs.hpp>
+#include <cradle/thinknode/apm.h>
+#include <cradle/thinknode/calc.h>
+#include <cradle/thinknode/iam.h>
+#include <cradle/thinknode/iss.h>
+#include <cradle/thinknode/utilities.h>
+#include <cradle/utilities/diff.hpp>
+#include <cradle/utilities/errors.h>
+#include <cradle/utilities/functional.h>
+#include <cradle/utilities/logging.h>
+#include <cradle/utilities/text.h>
+#include <cradle/websocket/local_calcs.h>
 #include <cradle/websocket/messages.hpp>
 
 // Include this again because some #defines snuck in to overwrite some of our

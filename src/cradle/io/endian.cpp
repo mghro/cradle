@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <cradle/io/endian.hpp>
+#include <cradle/io/endian.h>
 
 namespace cradle {
 

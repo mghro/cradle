@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <cradle/core/api_types.hpp>
-#include <cradle/core/utilities.hpp>
 
 namespace cradle {
 

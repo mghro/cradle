@@ -1,4 +1,4 @@
-#include <cradle/core/id.hpp>
+#include <cradle/core/id.h>
 
 #include <map>
 #include <unordered_map>
@@ -6,7 +6,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <cradle/core/testing.h>
+#include <cradle/utilities/testing.h>
 
 using namespace cradle;
 

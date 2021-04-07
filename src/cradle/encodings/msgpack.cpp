@@ -1,6 +1,7 @@
-#include <cradle/encodings/msgpack.hpp>
+#include <cradle/encodings/msgpack.h>
 
-#include <cradle/encodings/msgpack_internals.hpp>
+#include <cradle/encodings/msgpack_internals.h>
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 
@@ -67,21 +68,27 @@ read_msgpack_value(
                             t = *reinterpret_cast<int8_t const*>(data);
                             break;
                         case 2: {
-                            uint16_t native_data = boost::endian::big_to_native(
-                                *reinterpret_cast<uint16_t const*>(data));
-                            t = *reinterpret_cast<int16_t const*>(&native_data);
+                            uint16_t native_data
+                                = boost::endian::big_to_native(
+                                    *reinterpret_cast<uint16_t const*>(data));
+                            t = *reinterpret_cast<int16_t const*>(
+                                &native_data);
                             break;
                         }
                         case 4: {
-                            uint32_t native_data = boost::endian::big_to_native(
-                                *reinterpret_cast<uint32_t const*>(data));
-                            t = *reinterpret_cast<int32_t const*>(&native_data);
+                            uint32_t native_data
+                                = boost::endian::big_to_native(
+                                    *reinterpret_cast<uint32_t const*>(data));
+                            t = *reinterpret_cast<int32_t const*>(
+                                &native_data);
                             break;
                         }
                         case 8: {
-                            uint64_t native_data = boost::endian::big_to_native(
-                                *reinterpret_cast<uint64_t const*>(data));
-                            t = *reinterpret_cast<int64_t const*>(&native_data);
+                            uint64_t native_data
+                                = boost::endian::big_to_native(
+                                    *reinterpret_cast<uint64_t const*>(data));
+                            t = *reinterpret_cast<int64_t const*>(
+                                &native_data);
                             break;
                         }
                     }

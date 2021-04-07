@@ -1,8 +1,10 @@
-#include <cradle/fs/app_dirs.hpp>
+#include <cradle/fs/app_dirs.h>
 
 #include <filesystem>
 
 #include <boost/algorithm/string.hpp>
+
+#include <cradle/utilities/errors.h>
 
 #ifdef _WIN32
 

@@ -1,12 +1,13 @@
 #include <cradle/io/asio.h>
 
-#include <cradle/thinknode/provider.hpp>
+#include <cradle/thinknode/provider.h>
 
 #include <chrono>
 #include <thread>
 
 #include <cradle/thinknode/ipc.h>
 #include <cradle/thinknode/messages.h>
+#include <cradle/utilities/errors.h>
 
 namespace cradle {
 

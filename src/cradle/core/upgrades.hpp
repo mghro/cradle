@@ -1,7 +1,7 @@
 #ifndef CRADLE_CORE_UPGRADES_HPP
 #define CRADLE_CORE_UPGRADES_HPP
 
-#include <cradle/core/type_definitions.hpp>
+#include <cradle/core/type_definitions.h>
 
 namespace cradle {
 

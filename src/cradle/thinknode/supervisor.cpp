@@ -3,10 +3,10 @@
 #include <chrono>
 #include <thread>
 
-#include <cradle/thinknode/supervisor.hpp>
+#include <cradle/thinknode/supervisor.h>
 
-#include <cradle/core/monitoring.hpp>
-#include <cradle/encodings/json.hpp>
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/json.h>
 #include <cradle/io/http_requests.hpp>
 #include <cradle/thinknode/ipc.h>
 #include <cradle/thinknode/messages.h>

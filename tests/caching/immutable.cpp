@@ -1,6 +1,6 @@
 #include <cradle/caching/immutable.h>
 
-#include <cradle/core/testing.h>
+#include <cradle/utilities/testing.h>
 
 using namespace cradle;
 

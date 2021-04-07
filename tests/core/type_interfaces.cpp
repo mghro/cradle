@@ -1,8 +1,9 @@
-#include <cradle/core/type_interfaces.hpp>
+#include <cradle/core/type_interfaces.h>
 
-#include <cradle/core/testing.h>
+#include <cradle/utilities/testing.h>
 
 #include <cradle/caching/disk_cache.hpp>
+#include <cradle/utilities/text.h>
 
 using namespace cradle;
 

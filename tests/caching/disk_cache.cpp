@@ -2,9 +2,10 @@
 
 #include <filesystem>
 
-#include <cradle/core/testing.h>
-#include <cradle/encodings/base64.hpp>
-#include <cradle/fs/file_io.hpp>
+#include <cradle/encodings/base64.h>
+#include <cradle/fs/file_io.h>
+#include <cradle/utilities/testing.h>
+#include <cradle/utilities/text.h>
 
 #include <sqlite3.h>
 

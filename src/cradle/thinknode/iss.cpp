@@ -1,12 +1,13 @@
-#include <cradle/thinknode/iss.hpp>
+#include <cradle/thinknode/iss.h>
 
 #include <boost/tokenizer.hpp>
 
-#include <cradle/core/monitoring.hpp>
-#include <cradle/encodings/msgpack.hpp>
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/msgpack.h>
 #include <cradle/io/http_requests.hpp>
-#include <cradle/thinknode/calc.hpp>
-#include <cradle/thinknode/utilities.hpp>
+#include <cradle/thinknode/calc.h>
+#include <cradle/thinknode/utilities.h>
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 
@@ -29,15 +30,13 @@ resolve_iss_object_to_immutable(
     auto response = connection.perform_request(check_in, reporter, query);
     switch (response.status_code)
     {
-        case 200:
-        {
+        case 200: {
             return from_dynamic<id_response>(parse_json_response(response)).id;
         }
-        case 202:
-        {
-            // The ISS object we're interested in is the result of a calculation
-            // that hasn't finished yet, so wait for it to resolve and try
-            // again.
+        case 202: {
+            // The ISS object we're interested in is the result of a
+            // calculation that hasn't finished yet, so wait for it to resolve
+            // and try again.
             long_poll_calculation_status(
                 check_in,
                 [](calculation_status const& status) {},
@@ -48,13 +47,11 @@ resolve_iss_object_to_immutable(
             return resolve_iss_object_to_immutable(
                 connection, session, context_id, object_id, ignore_upgrades);
         }
-        case 204:
-        {
-            // The ISS object we're interested in is the result of a calculation
-            // that failed.
+        case 204: {
+            // The ISS object we're interested in is the result of a
+            // calculation that failed.
         }
-        default:
-        {
+        default: {
             CRADLE_THROW(
                 bad_http_status_code()
                 << attempted_http_request_info(redact_request(query))
@@ -80,15 +77,13 @@ get_iss_object_metadata(
     auto response = connection.perform_request(check_in, reporter, query);
     switch (response.status_code)
     {
-        case 200:
-        {
+        case 200: {
             return response.headers;
         }
-        case 202:
-        {
-            // The ISS object we're interested in is the result of a calculation
-            // that hasn't finished yet, so wait for it to resolve and try
-            // again.
+        case 202: {
+            // The ISS object we're interested in is the result of a
+            // calculation that hasn't finished yet, so wait for it to resolve
+            // and try again.
             long_poll_calculation_status(
                 check_in,
                 [](calculation_status const& status) {},
@@ -99,13 +94,11 @@ get_iss_object_metadata(
             return get_iss_object_metadata(
                 connection, session, context_id, object_id);
         }
-        case 204:
-        {
-            // The ISS object we're interested in is the result of a calculation
-            // that failed.
+        case 204: {
+            // The ISS object we're interested in is the result of a
+            // calculation that failed.
         }
-        default:
-        {
+        default: {
             CRADLE_THROW(
                 bad_http_status_code()
                 << attempted_http_request_info(redact_request(query))
@@ -150,8 +143,7 @@ get_url_type_string(
             return "datetime";
         case thinknode_type_info_tag::DYNAMIC_TYPE:
             return "dynamic";
-        case thinknode_type_info_tag::ENUM_TYPE:
-        {
+        case thinknode_type_info_tag::ENUM_TYPE: {
             std::stringstream ss;
             auto const& e = as_enum_type(schema);
             ss << "enum/" << e.values.size();
@@ -165,14 +157,12 @@ get_url_type_string(
             return "float";
         case thinknode_type_info_tag::INTEGER_TYPE:
             return "integer";
-        case thinknode_type_info_tag::MAP_TYPE:
-        {
+        case thinknode_type_info_tag::MAP_TYPE: {
             auto const& m = as_map_type(schema);
             return "map/" + get_url_type_string(session, m.key_schema) + "/"
                    + get_url_type_string(session, m.value_schema);
         }
-        case thinknode_type_info_tag::NAMED_TYPE:
-        {
+        case thinknode_type_info_tag::NAMED_TYPE: {
             auto const& n = as_named_type(schema);
             return "named/"
                    + (n.account ? *n.account : get_account_name(session)) + "/"
@@ -189,8 +179,7 @@ get_url_type_string(
                    + get_url_type_string(session, as_reference_type(schema));
         case thinknode_type_info_tag::STRING_TYPE:
             return "string";
-        case thinknode_type_info_tag::STRUCTURE_TYPE:
-        {
+        case thinknode_type_info_tag::STRUCTURE_TYPE: {
             std::stringstream ss;
             auto const& s = as_structure_type(schema);
             ss << "structure/" << s.fields.size();
@@ -201,8 +190,7 @@ get_url_type_string(
             }
             return ss.str();
         }
-        case thinknode_type_info_tag::UNION_TYPE:
-        {
+        case thinknode_type_info_tag::UNION_TYPE: {
             std::stringstream ss;
             auto const& u = as_union_type(schema);
             ss << "union/" << u.members.size();
@@ -272,7 +260,8 @@ parse_url_type(token_range_t& tokens)
     }
     if (type_code == "float")
     {
-        return make_thinknode_type_info_with_float_type(thinknode_float_type());
+        return make_thinknode_type_info_with_float_type(
+            thinknode_float_type());
     }
     if (type_code == "integer")
     {

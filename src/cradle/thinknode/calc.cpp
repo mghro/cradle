@@ -1,13 +1,15 @@
-#include <cradle/thinknode/calc.hpp>
+#include <cradle/thinknode/calc.h>
 
 #include <fmt/format.h>
 
-#include <cradle/core/logging.hpp>
-#include <cradle/core/monitoring.hpp>
-#include <cradle/encodings/json.hpp>
+#include <cradle/core/monitoring.h>
+#include <cradle/encodings/json.h>
 #include <cradle/io/http_requests.hpp>
-#include <cradle/thinknode/iss.hpp>
-#include <cradle/thinknode/utilities.hpp>
+#include <cradle/thinknode/iss.h>
+#include <cradle/thinknode/utilities.h>
+#include <cradle/utilities/errors.h>
+#include <cradle/utilities/functional.h>
+#include <cradle/utilities/logging.h>
 
 namespace cradle {
 

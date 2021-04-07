@@ -1,9 +1,9 @@
-#include <cradle/fs/app_dirs.hpp>
+#include <cradle/fs/app_dirs.h>
 
 #include <filesystem>
 
-#include <cradle/core/testing.h>
-#include <cradle/fs/file_io.hpp>
+#include <cradle/utilities/testing.h>
+#include <cradle/fs/file_io.h>
 
 using namespace cradle;
 

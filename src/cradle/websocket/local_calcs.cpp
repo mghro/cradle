@@ -1,4 +1,4 @@
-#include <cradle/websocket/local_calcs.hpp>
+#include <cradle/websocket/local_calcs.h>
 
 #include <picosha2.h>
 
@@ -13,12 +13,13 @@
 #include <boost/crc.hpp>
 #endif
 
-#include <cradle/core/dynamic.hpp>
-#include <cradle/core/logging.hpp>
-#include <cradle/encodings/msgpack.hpp>
-#include <cradle/fs/file_io.hpp>
-#include <cradle/thinknode/supervisor.hpp>
-#include <cradle/thinknode/utilities.hpp>
+#include <cradle/core/dynamic.h>
+#include <cradle/encodings/msgpack.h>
+#include <cradle/fs/file_io.h>
+#include <cradle/thinknode/supervisor.h>
+#include <cradle/thinknode/utilities.h>
+#include <cradle/utilities/functional.h>
+#include <cradle/utilities/logging.h>
 
 namespace cradle {
 

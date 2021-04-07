@@ -1,10 +1,10 @@
 #ifndef CRADLE_CACHING_IMMUTABLE_CONSUMPTION_H
 #define CRADLE_CACHING_IMMUTABLE_CONSUMPTION_H
 
+#include <cradle/background/encoded_progress.h>
 #include <cradle/caching/immutable/cache.hpp>
-#include <cradle/common.hpp>
-#include <cradle/core/encoded_progress.h>
-#include <cradle/core/id.hpp>
+#include <cradle/core.h>
+#include <cradle/core/id.h>
 
 namespace cradle {
 

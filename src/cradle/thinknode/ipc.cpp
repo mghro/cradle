@@ -2,8 +2,8 @@
 
 #include <cradle/thinknode/ipc.h>
 
-#include <cradle/encodings/msgpack_internals.hpp>
-#include <cradle/io/raw_memory_io.hpp>
+#include <cradle/encodings/msgpack_internals.h>
+#include <cradle/io/raw_memory_io.h>
 
 namespace cradle {
 

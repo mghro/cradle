@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include <cradle/utilities/text.h>
+
 namespace cradle {
 
 namespace detail {

@@ -1,6 +1,6 @@
-#include <cradle/thinknode/utilities.hpp>
+#include <cradle/thinknode/utilities.h>
 
-#include <cradle/core/testing.h>
+#include <cradle/utilities/testing.h>
 
 using namespace cradle;
 

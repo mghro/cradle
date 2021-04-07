@@ -1,10 +1,10 @@
-#include <cradle/core/dynamic.hpp>
+#include <cradle/core/dynamic.h>
 
 #include <algorithm>
 
-#include <cradle/common.hpp>
-#include <cradle/core/type_info.h>
-#include <cradle/encodings/yaml.hpp>
+#include <cradle/core.h>
+#include <cradle/encodings/yaml.h>
+#include <cradle/utilities/functional.h>
 
 namespace cradle {
 

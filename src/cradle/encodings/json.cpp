@@ -1,4 +1,4 @@
-#include <cradle/encodings/json.hpp>
+#include <cradle/encodings/json.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/format.hpp>
@@ -15,7 +15,9 @@
 #include <simdjson.h>
 #endif
 
-#include <cradle/encodings/base64.hpp>
+#include <cradle/encodings/base64.h>
+#include <cradle/utilities/arrays.h>
+#include <cradle/utilities/text.h>
 
 namespace cradle {
 
