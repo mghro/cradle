@@ -39,7 +39,7 @@ struct immutable_value : untyped_immutable_value
     api_type_info
     type_info() const
     {
-        return get_type_info(T());
+        return get_type_info<T>();
     }
     size_t
     deep_size() const
@@ -183,6 +183,11 @@ to_dynamic(cradle::dynamic* v, immutable<T> const& x)
         to_dynamic(v, T());
 }
 
+// api_type_mismatch represents a mismatch in the API type system.
+CRADLE_DEFINE_EXCEPTION(api_type_mismatch)
+CRADLE_DEFINE_ERROR_INFO(api_type_info, expected_api_type)
+CRADLE_DEFINE_ERROR_INFO(api_type_info, actual_api_type)
+
 template<class T>
 std::ostream&
 operator<<(std::ostream& s, immutable<T> const& x)
@@ -193,11 +198,6 @@ operator<<(std::ostream& s, immutable<T> const& x)
         s << T();
     return s;
 }
-
-// If the above check fails, it throws this exception.
-CRADLE_DEFINE_EXCEPTION(api_type_mismatch)
-CRADLE_DEFINE_ERROR_INFO(api_type_info, expected_api_type)
-CRADLE_DEFINE_ERROR_INFO(api_type_info, actual_api_type)
 
 // Cast an untyped_immutable to a typed one.
 template<class T>
@@ -212,7 +212,8 @@ cast_immutable(untyped_immutable const& untyped)
         {
             CRADLE_THROW(
                 api_type_mismatch()
-                << get_type_info<T>() << untyped.ptr->type_info());
+                << expected_api_type_info(get_type_info<T>())
+                << actual_api_type_info(untyped.ptr->type_info()));
         }
     }
     return typed;
@@ -238,7 +239,8 @@ cast_immutable_value(
     if (!typed)
     {
         CRADLE_THROW(
-            api_type_mismatch() << get_type_info<T>() << untyped->type_info());
+            api_type_mismatch() << expected_api_type_info(get_type_info<T>())
+                                << actual_api_type_info(untyped->type_info()));
     }
     *typed_value = &typed->value;
 }

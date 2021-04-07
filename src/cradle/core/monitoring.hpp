@@ -72,7 +72,9 @@ struct subtask_progress_reporter : progress_reporter_interface
 struct sub_progress_reporter : progress_reporter_interface
 {
     sub_progress_reporter(
-        progress_reporter_interface& parent_reporter, float offset, float scale)
+        progress_reporter_interface& parent_reporter,
+        float offset,
+        float scale)
         : parent_reporter_(&parent_reporter), offset_(offset), scale_(scale)
     {
     }
