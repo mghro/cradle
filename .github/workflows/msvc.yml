@@ -33,15 +33,16 @@ jobs:
           C:/.conan/data
         key: ${{runner.os}}-MSVC-${{matrix.config}}
 
-    - uses: msys2/setup-msys2@v2
+    - name: Set up MSYS2
+      uses: msys2/setup-msys2@v2
 
-    - shell: msys2 {0}
-      run: |
-        uname -a
-
-    - name: Install
+    - name: Install OCaml
+      shell: msys2 {0}
       run: |
         pacman -S ocaml
+
+    - name: Install Conan
+      run: |
         pip install conan
 
     - name: Configure
