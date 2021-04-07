@@ -35,7 +35,7 @@ jobs:
 
     - name: Install
       run: |
-        choco install ocpwin
+        choco install ocaml
         pip install conan
 
     - name: Configure
