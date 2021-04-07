@@ -1,0 +1,50 @@
+name: MSVC
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+  CRADLE_THINKNODE_API_TOKEN: ${{ secrets.CRADLE_THINKNODE_API_TOKEN }}
+
+jobs:
+
+  VS2019:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        config: [Debug, Release]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.conan/data
+        key: ${{runner.os}}-MSVC-${{matrix.config}}
+
+    - name: Install
+      run: |
+        choco install ocpwin
+        pip install conan
+
+    - name: Configure
+      run: |
+        cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}} .
+
+    - name: Build & Test
+      run: >
+        python python/generate_config.py $CRADLE_THINKNODE_API_TOKEN
+
+        cmake --build build --config ${{matrix.config}}
+        --target unit_tests_target -j4
