@@ -10,15 +10,13 @@
 namespace cradle {
 
 // Test that a type correctly implements the CRADLE Regular type interface for
-// the given value. Note that this only tests the portions of the interface that
-// are relevant for a single value. (In particular, it's intended to work for
-// types that only have one possible value.)
+// the given value. Note that this only tests the portions of the interface
+// that are relevant for a single value. (In particular, it's intended to work
+// for types that only have one possible value.)
 template<class T>
 void
 test_regular_value(T const& x)
 {
-    BOOST_CONCEPT_ASSERT((Regular<T>) );
-
     {
         INFO("Copy construction should produce an equal value.")
         T y = x;

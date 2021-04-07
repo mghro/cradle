@@ -1,6 +1,6 @@
 #include <cradle/encodings/json.hpp>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 
 using namespace cradle;
 

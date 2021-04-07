@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include <cradle/core/monitoring.hpp>
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 #include <cradle/core/utilities.hpp>
 #include <cradle/encodings/json.hpp>
 

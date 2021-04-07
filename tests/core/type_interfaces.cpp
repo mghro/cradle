@@ -1,6 +1,6 @@
 #include <cradle/core/type_interfaces.hpp>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 
 #include <cradle/caching/disk_cache.hpp>
 

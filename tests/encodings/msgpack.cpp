@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 #include <cradle/encodings/json.hpp>
 
 using namespace cradle;

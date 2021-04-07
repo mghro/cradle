@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 #include <cradle/encodings/base64.hpp>
 #include <cradle/fs/file_io.hpp>
 

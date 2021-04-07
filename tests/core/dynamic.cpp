@@ -1,7 +1,7 @@
 #include <cradle/core/dynamic.hpp>
 
 #include <cradle/common.hpp>
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 
 using namespace cradle;
 

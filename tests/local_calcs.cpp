@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 
 #include <cradle/encodings/base64.hpp>
 #include <cradle/websocket/messages.hpp>

@@ -1,6 +1,6 @@
 #include <cradle/encodings/yaml.hpp>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 
 using namespace cradle;
 

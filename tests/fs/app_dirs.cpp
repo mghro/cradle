@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 #include <cradle/fs/file_io.hpp>
 
 using namespace cradle;

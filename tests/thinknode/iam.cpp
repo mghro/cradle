@@ -3,7 +3,7 @@
 #include <fakeit.h>
 
 #include <cradle/core/monitoring.hpp>
-#include <cradle/core/testing.hpp>
+#include <cradle/core/testing.h>
 #include <cradle/io/http_requests.hpp>
 
 using namespace cradle;
