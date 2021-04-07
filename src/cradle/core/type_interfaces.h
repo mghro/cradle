@@ -13,6 +13,7 @@
 #include <cradle/core/hash.h>
 #include <cradle/core/type_definitions.h>
 #include <cradle/core/type_info.h>
+#include <cradle/utilities/arrays.h>
 
 // This file provides implementations of the CRADLE Regular interface
 // for all the core CRADLE types.

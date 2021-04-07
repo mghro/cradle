@@ -4,6 +4,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <cradle/utilities/environment.h>
 #include <cradle/utilities/errors.h>
 
 #ifdef _WIN32
