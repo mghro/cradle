@@ -14,6 +14,40 @@ env:
 
 jobs:
 
+  preprocess:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.conan/data
+        key: ${{runner.os}}-GCC-${{matrix.config}}
+
+    - name: Install
+      run: |
+        sudo apt install lcov ocaml-nox
+        sudo pip3 install virtualenv
+
+    - name: Preprocess
+      run: |
+        gcc --version
+        scripts/set-up-python.sh --python=python3
+        source .venv/bin/activate
+        cmake -Bbuild .
+        cmake --build build --target preprocessing -j4
+
+    - name: Upload preprocessed headers
+      uses: actions/upload-artifact@v2
+      with:
+        name: preprocessed
+        path: build/generated
+
   VS2019:
     runs-on: windows-latest
 
@@ -33,22 +67,26 @@ jobs:
           C:/.conan/data
         key: ${{runner.os}}-MSVC-${{matrix.config}}
 
-    - name: Install OCaml
-      uses: msys2/setup-msys2@v2
-      with:
-        install: mingw-w64-i686-ocaml
-
-    - name: Update path
-      run: |
-        echo "D:\a\_temp\msys\msys64\mingw32\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-
     - name: Install Conan
       run: |
         pip install conan
 
+    - name: Download preprocessed headers
+      uses: actions/download-artifact@v2
+      with:
+        name: preprocessed
+        path: preprocessed
+
+    - name: Display structure of downloaded files
+      run: Get-ChildItem -Recurse preprocessed
+
     - name: Configure
-      run: |
-        cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}} .
+      run: >
+        
+        cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}}
+          -DPREPROCESSOR_USAGE=External
+          -DEXTERNALLY_PREPROCESSED_DIRECTORY="/mnt/c/dev/cradle/build/generated/"
+          -DCMAKE_BUILD_TYPE=Debug
 
     - name: Build & Test
       run: >

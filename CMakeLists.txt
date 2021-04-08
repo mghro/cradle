@@ -186,16 +186,19 @@ if("${PREPROCESSOR_USAGE}" STREQUAL "Native")
 elseif("${PREPROCESSOR_USAGE}" STREQUAL "External")
     message(STATUS "Using externally preprocessed files in:")
     message(STATUS "  ${EXTERNALLY_PREPROCESSED_DIRECTORY}")
+    get_filename_component(
+        resolved_preprocessed_directory
+        "${EXTERNALLY_PREPROCESSED_DIRECTORY}"
+        ABSOLUTE)
+    message(STATUS "  (${resolved_preprocessed_directory})")
     file(GLOB_RECURSE generated_srcs
-        "${EXTERNALLY_PREPROCESSED_DIRECTORY}/*.cpp")
+        "${resolved_preprocessed_directory}/*.cpp")
     file(GLOB_RECURSE generated_headers
-        "${EXTERNALLY_PREPROCESSED_DIRECTORY}/*.hpp")
-    set(generated_include_dir ${EXTERNALLY_PREPROCESSED_DIRECTORY})
+        "${resolved_preprocessed_directory}/*.hpp")
+    set(generated_include_dir ${resolved_preprocessed_directory})
 else()
     message(FATAL_ERROR "Invalid setting for PREPROCESSOR_USAGE")
 endif()
-message("${generated_srcs}")
-message("${generated_headers}")
 
 # Add the main library.
 file(GLOB_RECURSE srcs CONFIGURE_DEPENDS
