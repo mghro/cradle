@@ -39,7 +39,7 @@ jobs:
         gcc --version
         scripts/set-up-python.sh --python=python3
         source .venv/bin/activate
-        cmake -Bbuild .
+        cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug .
         cmake --build build --target preprocessing -j4
 
     - name: Upload preprocessed headers
