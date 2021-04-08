@@ -50,6 +50,7 @@ jobs:
 
   VS2019:
     runs-on: windows-latest
+    needs: preprocess
 
     strategy:
       matrix:
@@ -82,7 +83,7 @@ jobs:
 
     - name: Configure
       run: >
-        
+
         cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}}
           -DPREPROCESSOR_USAGE=External
           -DEXTERNALLY_PREPROCESSED_DIRECTORY="/mnt/c/dev/cradle/build/generated/"
