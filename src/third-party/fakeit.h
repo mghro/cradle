@@ -3,6 +3,7 @@
 #pragma warning(push)
 #pragma warning(disable : 5030)
 #pragma warning(disable : 4068)
+#pragma warning(disable : 4702)
 #include <fakeit.hpp>
 #pragma warning(pop)
 #else
