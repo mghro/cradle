@@ -83,6 +83,7 @@ jobs:
         cmake -Bbuild -DCMAKE_BUILD_TYPE=${{matrix.config}}
         -DPREPROCESSOR_USAGE=External
         -DEXTERNALLY_PREPROCESSED_DIRECTORY=preprocessed
+        -DLOCAL_DOCKER_TESTING=OFF
 
     - name: Build & Test
       run: >

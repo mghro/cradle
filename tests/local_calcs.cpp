@@ -12,6 +12,7 @@
 
 using namespace cradle;
 
+#ifdef LOCAL_DOCKER_TESTING
 TEST_CASE("local calcs", "[local_calcs][ws]")
 {
     disk_cache cache(disk_cache_config(none, 0x1'00'00'00'00));
@@ -165,3 +166,4 @@ TEST_CASE("local calcs", "[local_calcs][ws]")
             make_calculation_request_with_value(dynamic(0.0)))))
         == dynamic(integer(0)));
 }
+#endif

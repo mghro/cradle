@@ -11,6 +11,13 @@ set_property(CACHE PREPROCESSOR_USAGE PROPERTY
 set(EXTERNALLY_PREPROCESSED_DIRECTORY "" CACHE STRING
     "If PREPROCESSOR_USAGE is External, this is the directory that contains the externally preprocessed files.")
 
+# Define the option for local Docker testing.
+set(LOCAL_DOCKER_TESTING ON CACHE BOOL
+    "Whether or not to enable testing that requires a local Docker instance")
+if(LOCAL_DOCKER_TESTING)
+    add_compile_options(-DLOCAL_DOCKER_TESTING)
+endif()
+
 # Detect the compiler.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(IS_CLANG true)
