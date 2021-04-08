@@ -41,7 +41,7 @@ jobs:
     - name: Diagnose
       run: |
         echo $Env:Path
-        dir "D:\a\_temp\msys"
+        dir "D:\a\_temp\msys\msys64"
         dir "c:\msys64\mingw32\bin"
         dir "c:\msys64\usr\bin"
 
