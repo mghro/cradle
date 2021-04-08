@@ -38,10 +38,11 @@ jobs:
       with:
         install: mingw-w64-i686-ocaml
 
-    - name: Update path
+    - name: Diagnose
       run: |
-        echo "c:\msys64\mingw32\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "c:\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo $Env:Path
+        dir "c:\msys64\mingw32\bin"
+        dir "c:\msys64\usr\bin"
 
     - name: Install Conan
       run: |
