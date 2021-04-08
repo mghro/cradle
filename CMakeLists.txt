@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.14)
 project(cradle)
 
+# Define the options for using the preprocessor.
+# TODO: Add a Docker option.
+set(PREPROCESSOR_USAGE_OPTIONS Native External)
+set(PREPROCESSOR_USAGE Native CACHE STRING
+    "How the preprocessor should be invoked")
+set_property(CACHE PREPROCESSOR_USAGE PROPERTY
+    STRINGS ${PREPROCESSOR_USAGE_OPTIONS})
+set(EXTERNALLY_PREPROCESSED_DIRECTORY "" CACHE STRING
+    "If PREPROCESSOR_USAGE is External, this is the directory that contains the externally preprocessed files.")
+
 # Detect the compiler.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(IS_CLANG true)
@@ -21,8 +31,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 include(cmake/version.cmake)
-
-add_subdirectory(preprocessor)
 
 # Download/include CMake/Conan integration.
 if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/conan.cmake")
@@ -159,16 +167,35 @@ endif()
 # Preprocess the API headers.
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp")
-set(preprocessed_files ${headers})
-preprocess_header_files(
-    generated_srcs generated_headers
-    ACCOUNT_ID mgh
-    # TODO: Make this its own actual app...
-    TYPE_APP_ID dosimetry
-    FUNCTION_APP_ID dosimetry
-    NAMESPACE cradle
-    INDEX_FILE "${CMAKE_CURRENT_BINARY_DIR}/generated/src/cradle/api_index.hpp"
-    INPUT_FILES ${preprocessed_files})
+if("${PREPROCESSOR_USAGE}" STREQUAL "Native")
+    message(STATUS "Using native preprocessor")
+    add_subdirectory(preprocessor)
+    set(preprocessed_files ${headers})
+    preprocess_header_files(
+        generated_srcs generated_headers
+        ACCOUNT_ID mgh
+        # TODO: Make this its own actual app...
+        TYPE_APP_ID dosimetry
+        FUNCTION_APP_ID dosimetry
+        NAMESPACE cradle
+        INDEX_FILE "${CMAKE_CURRENT_BINARY_DIR}/generated/src/cradle/api_index.hpp"
+        INPUT_FILES ${preprocessed_files})
+    add_custom_target(preprocessing
+        DEPENDS ${generated_srcs} ${generated_headers})
+    set(generated_include_dir ${CMAKE_CURRENT_BINARY_DIR}/generated)
+elseif("${PREPROCESSOR_USAGE}" STREQUAL "External")
+    message(STATUS "Using externally preprocessed files in:")
+    message(STATUS "  ${EXTERNALLY_PREPROCESSED_DIRECTORY}")
+    file(GLOB_RECURSE generated_srcs
+        "${EXTERNALLY_PREPROCESSED_DIRECTORY}/*.cpp")
+    file(GLOB_RECURSE generated_headers
+        "${EXTERNALLY_PREPROCESSED_DIRECTORY}/*.hpp")
+    set(generated_include_dir ${EXTERNALLY_PREPROCESSED_DIRECTORY})
+else()
+    message(FATAL_ERROR "Invalid setting for PREPROCESSOR_USAGE")
+endif()
+message("${generated_srcs}")
+message("${generated_headers}")
 
 # Add the main library.
 file(GLOB_RECURSE srcs CONFIGURE_DEPENDS
@@ -193,7 +220,7 @@ target_compile_definitions(
 target_include_directories(cradle PUBLIC
     ${CONAN_INCLUDE_DIRS}
     ${CLIPPER_INCLUDE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/generated/src
+    ${generated_include_dir}/src
     src
     src/third-party)
 if(IS_GCC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
