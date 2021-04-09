@@ -1,40 +1,27 @@
 #ifndef CRADLE_CACHING_IMMUTABLE_PRODUCTION_H
 #define CRADLE_CACHING_IMMUTABLE_PRODUCTION_H
 
-#include <cradle/core.h>
 #include <cradle/background/encoded_progress.h>
+#include <cradle/core.h>
 #include <cradle/core/id.h>
 
 namespace cradle {
 
-enum class immutable_cache_job_state
-{
-    QUEUED,
-    RUNNING,
-    COMPLETED,
-    FAILED
-};
+struct immutable_cache;
 
-struct immutable_cache_job_status
-{
-    immutable_cache_job_state state = immutable_cache_job_state::QUEUED;
-    // Only valid if state is RUNNING, but still optional even then.
-    encoded_optional_progress progress;
-};
+// report_immutable_cache_loading_progress() is used by background jobs to
+// report progress made in computing individual cache results.
+void
+report_immutable_cache_loading_progress(
+    immutable_cache& cache, id_interface const& key, float progress);
 
-struct immutable_cache_job_interface
-{
-    // If this is invoked before the job completes, the job should assume that
-    // there is no longer any interest in its result and should cancel itself
-    // if possible.
-    virtual ~immutable_cache_job_interface()
-    {
-    }
-
-    // Get the status of the job.
-    virtual immutable_cache_job_status
-    status() const = 0;
-};
+// set_immutable_cache_data() is used by background jobs to transmit the data
+// that they produce into the background caching system.
+void
+set_immutable_cache_data(
+    immutable_cache& cache,
+    id_interface const& key,
+    untyped_immutable&& value);
 
 } // namespace cradle
 

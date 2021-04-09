@@ -13,7 +13,7 @@ reduce_memory_cache_size(immutable_cache& cache, int desired_size)
 {
     // We need to keep the jobs around until after the mutex is released
     // because they may recursively release other records.
-    std::list<std::unique_ptr<immutable_cache_job_interface>> evicted_jobs;
+    std::list<std::unique_ptr<background_job_controller>> evicted_jobs;
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
         while (!cache.eviction_list.records.empty()
@@ -28,13 +28,6 @@ reduce_memory_cache_size(immutable_cache& cache, int desired_size)
             cache.eviction_list.total_size -= data_size;
         }
     }
-}
-
-immutable_cache_job_interface*
-get_job_interface(immutable_cache_record* record)
-{
-    std::scoped_lock<std::mutex> lock(record->owner_cache->mutex);
-    return record->job.get();
 }
 
 void
@@ -80,12 +73,6 @@ reset_cached_data(immutable_cache& cache, id_interface const& key)
     immutable_cache_record* record = i->second.get();
     record->state.store(
         immutable_cache_data_state::LOADING, std::memory_order_relaxed);
-}
-
-string
-get_key_string(immutable_cache_record* record)
-{
-    return boost::lexical_cast<std::string>(*record->key);
 }
 
 } // namespace detail

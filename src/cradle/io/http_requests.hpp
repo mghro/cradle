@@ -1,8 +1,6 @@
 #ifndef CRADLE_IO_HTTP_REQUESTS_HPP
 #define CRADLE_IO_HTTP_REQUESTS_HPP
 
-#include <boost/core/noncopyable.hpp>
-
 #include <cradle/fs/types.hpp>
 
 // This file defines a low-level facility for doing authenticated HTTP
@@ -112,7 +110,7 @@ CRADLE_DEFINE_ERROR_INFO(http_response, http_response)
 // application, and its scope must dominate the scope of all http_connection
 // objects.
 
-struct http_request_system : boost::noncopyable
+struct http_request_system : noncopyable
 {
     // See below for details on :cacert_path.
     http_request_system(optional<file_path> cacert_path = none);
@@ -156,7 +154,7 @@ struct http_connection_interface
 
 struct http_connection_impl;
 
-struct http_connection : http_connection_interface, boost::noncopyable
+struct http_connection : http_connection_interface, noncopyable
 {
     http_connection(http_request_system& system);
     ~http_connection();

@@ -84,6 +84,9 @@ struct untyped_immutable_cache_ptr
         return r_ != nullptr;
     }
 
+    // Everything below here should only be called if the pointer is
+    // initialized...
+
     immutable_cache_data_status const&
     status() const
     {
@@ -116,9 +119,6 @@ struct untyped_immutable_cache_ptr
     {
         return decode_progress(status_.progress);
     }
-
-    // Everything below here should only be called if the pointer is
-    // initialized...
 
     // Update this pointer's view of the underlying 4's state.
     void
@@ -211,6 +211,9 @@ struct immutable_cache_ptr
         return untyped_.is_initialized();
     }
 
+    // Everything below here should only be called if the pointer is
+    // initialized...
+
     immutable_cache_data_status const&
     status() const
     {
@@ -243,9 +246,6 @@ struct immutable_cache_ptr
     {
         return untyped_.progress();
     }
-
-    // Everything below here should only be called if the pointer is
-    // initialized...
 
     // Update this pointer's view of the underlying record's state.
     void

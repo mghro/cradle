@@ -187,7 +187,7 @@ struct disk_cache_interface
 
 struct disk_cache_impl;
 
-struct disk_cache : disk_cache_interface, boost::noncopyable
+struct disk_cache : disk_cache_interface, noncopyable
 {
     // The default constructor creates an invalid disk cache that must be
     // initialized via reset().

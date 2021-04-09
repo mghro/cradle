@@ -12,6 +12,8 @@
 
 namespace cradle {
 
+using boost::noncopyable;
+
 using std::string;
 
 using std::optional;
@@ -361,7 +363,7 @@ struct omissible
 
 // IMMUTABLES
 
-struct untyped_immutable_value : boost::noncopyable
+struct untyped_immutable_value : noncopyable
 {
     virtual ~untyped_immutable_value()
     {

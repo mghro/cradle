@@ -6,8 +6,8 @@
 #include <mutex>
 #include <unordered_map>
 
+#include <cradle/background/job.h>
 #include <cradle/caching/immutable/consumption.h>
-#include <cradle/caching/immutable/production.h>
 
 namespace cradle {
 namespace detail {
@@ -36,7 +36,7 @@ struct immutable_cache_record
     std::list<immutable_cache_record*>::iterator eviction_list_iterator;
 
     // If state is LOADING, this is the associated job.
-    std::unique_ptr<immutable_cache_job_interface> job;
+    std::unique_ptr<background_job_controller> job;
 
     // If state is READY, this is the associated data.
     untyped_immutable data;
@@ -60,7 +60,7 @@ struct cache_record_eviction_list
     }
 };
 
-struct immutable_cache : boost::noncopyable
+struct immutable_cache : noncopyable
 {
     cache_record_map records;
     cache_record_eviction_list eviction_list;
