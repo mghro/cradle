@@ -2,9 +2,11 @@
 #define CRADLE_CACHING_IMMUTABLE_CONSUMPTION_H
 
 #include <cradle/background/encoded_progress.h>
+#include <cradle/background/job.h>
 #include <cradle/caching/immutable/cache.hpp>
 #include <cradle/core.h>
 #include <cradle/core/id.h>
+#include <cradle/utilities/functional.h>
 
 namespace cradle {
 
@@ -47,9 +49,11 @@ struct untyped_immutable_cache_ptr
     {
     }
     untyped_immutable_cache_ptr(
-        cradle::immutable_cache& cache, id_interface const& key)
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job)
     {
-        acquire(cache, key);
+        acquire(cache, key, create_job);
     }
     untyped_immutable_cache_ptr(untyped_immutable_cache_ptr const& other)
     {
@@ -76,7 +80,10 @@ struct untyped_immutable_cache_ptr
     reset();
 
     void
-    reset(cradle::immutable_cache& cache, id_interface const& key);
+    reset(
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job);
 
     bool
     is_initialized() const
@@ -149,7 +156,10 @@ struct untyped_immutable_cache_ptr
     copy(untyped_immutable_cache_ptr const& other);
 
     void
-    acquire(cradle::immutable_cache& cache, id_interface const& key);
+    acquire(
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job);
 
     captured_id key_;
 
@@ -186,9 +196,11 @@ struct immutable_cache_ptr
     }
 
     immutable_cache_ptr(
-        cradle::immutable_cache& cache, id_interface const& key)
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job)
     {
-        reset(cache, key);
+        reset(cache, key, create_job);
     }
 
     void
@@ -199,9 +211,12 @@ struct immutable_cache_ptr
     }
 
     void
-    reset(cradle::immutable_cache& cache, id_interface const& key)
+    reset(
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job)
     {
-        untyped_.reset(cache, key);
+        untyped_.reset(cache, key, create_job);
         refresh_typed();
     }
 

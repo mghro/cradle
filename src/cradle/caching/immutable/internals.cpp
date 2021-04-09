@@ -13,7 +13,7 @@ reduce_memory_cache_size(immutable_cache& cache, int desired_size)
 {
     // We need to keep the jobs around until after the mutex is released
     // because they may recursively release other records.
-    std::list<std::unique_ptr<background_job_controller>> evicted_jobs;
+    std::list<background_job_controller> evicted_jobs;
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
         while (!cache.eviction_list.records.empty()

@@ -64,7 +64,7 @@ typedef std::shared_ptr<background_job_execution_data> background_job_ptr;
 
 // A background_job_controller is used for monitoring and controlling the
 // progress of a job.
-struct background_job_controller : noncopyable
+struct background_job_controller
 {
     background_job_controller()
     {

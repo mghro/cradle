@@ -36,20 +36,35 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
 
     immutable_cache_ptr<int> p;
     REQUIRE(!p.is_initialized());
-    REQUIRE(!p.is_ready());
-    REQUIRE(p.is_loading());
 
-    p.reset(cache, make_id(0));
+    bool p_needed_creation = false;
+    p.reset(cache, make_id(0), [&] {
+        p_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(p_needed_creation);
     REQUIRE(p.is_initialized());
     REQUIRE(!p.is_ready());
     REQUIRE(p.is_loading());
     REQUIRE(p.key() == make_id(0));
 
-    immutable_cache_ptr<int> q(cache, make_id(1));
+    bool q_needed_creation = false;
+    immutable_cache_ptr<int> q(cache, make_id(1), [&] {
+        q_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(q_needed_creation);
     REQUIRE(q.is_initialized());
     REQUIRE(!q.is_ready());
     REQUIRE(q.is_loading());
     REQUIRE(q.key() == make_id(1));
+
+    bool r_needed_creation = false;
+    immutable_cache_ptr<int> r(cache, make_id(0), [&] {
+        r_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(!r_needed_creation);
 
     p = q;
     REQUIRE(p.is_initialized());

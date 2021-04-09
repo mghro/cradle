@@ -36,7 +36,7 @@ struct immutable_cache_record
     std::list<immutable_cache_record*>::iterator eviction_list_iterator;
 
     // If state is LOADING, this is the associated job.
-    std::unique_ptr<background_job_controller> job;
+    background_job_controller job;
 
     // If state is READY, this is the associated data.
     untyped_immutable data;

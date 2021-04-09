@@ -40,7 +40,10 @@ make_immutable_cache_data_status(immutable_cache_data_state state)
 }
 
 immutable_cache_record*
-acquire_cache_record(immutable_cache& cache, id_interface const& key)
+acquire_cache_record(
+    immutable_cache& cache,
+    id_interface const& key,
+    function_view<background_job_controller()> const& create_job)
 {
     std::scoped_lock<std::mutex> lock(cache.mutex);
     cache_record_map::iterator i = cache.records.find(&key);
@@ -55,8 +58,7 @@ acquire_cache_record(immutable_cache& cache, id_interface const& key)
         record->progress.store(
             encoded_optional_progress(), std::memory_order_relaxed);
         record->ref_count = 0;
-        // TODO
-        // record.job.reset(new background_job_controller);
+        record->job = create_job();
         i = cache.records.emplace(&*record->key, std::move(record)).first;
     }
     immutable_cache_record* record = i->second.get();
@@ -142,20 +144,24 @@ untyped_immutable_cache_ptr::reset()
 
 void
 untyped_immutable_cache_ptr::reset(
-    cradle::immutable_cache& cache, id_interface const& key)
+    cradle::immutable_cache& cache,
+    id_interface const& key,
+    function_view<background_job_controller()> const& create_job)
 {
     if (!key_.matches(key))
     {
         this->reset();
-        this->acquire(cache, key);
+        this->acquire(cache, key, create_job);
     }
 }
 
 void
 untyped_immutable_cache_ptr::acquire(
-    cradle::immutable_cache& cache, id_interface const& key)
+    cradle::immutable_cache& cache,
+    id_interface const& key,
+    function_view<background_job_controller()> const& create_job)
 {
-    r_ = acquire_cache_record(*cache.impl, key);
+    r_ = acquire_cache_record(*cache.impl, key, create_job);
     status_ = make_immutable_cache_data_status(
         immutable_cache_data_state::LOADING);
     update();
