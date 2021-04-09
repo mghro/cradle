@@ -17,11 +17,20 @@ report_immutable_cache_loading_progress(
 
 // set_immutable_cache_data() is used by background jobs to transmit the data
 // that they produce into the background caching system.
+
 void
 set_immutable_cache_data(
     immutable_cache& cache,
     id_interface const& key,
     untyped_immutable&& value);
+
+template<class T>
+void
+set_immutable_cache_data(
+    immutable_cache& cache, id_interface const& key, immutable<T> const& value)
+{
+    set_immutable_cache_data(cache, key, erase_type(value));
+}
 
 } // namespace cradle
 

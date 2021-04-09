@@ -1,5 +1,6 @@
 #include <cradle/caching/immutable.h>
 
+#include <cradle/core/immutable.h>
 #include <cradle/utilities/testing.h>
 
 using namespace cradle;
@@ -56,21 +57,21 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(p.is_loading());
     REQUIRE(p.key() == make_id(1));
 
-    // set_cached_data(cache, make_id(1), make_immutable(12));
+    set_immutable_cache_data(cache, make_id(1), make_immutable(12));
 
-    // REQUIRE(!p.is_ready());
-    // REQUIRE(p.is_loading());
-    // p.update();
-    // REQUIRE(p.is_ready());
-    // REQUIRE(!p.is_loading());
-    // REQUIRE(*p == 12);
+    REQUIRE(!p.is_ready());
+    REQUIRE(p.is_loading());
+    p.update();
+    REQUIRE(p.is_ready());
+    REQUIRE(!p.is_loading());
+    REQUIRE(*p == 12);
 
-    // REQUIRE(!q.is_ready());
-    // REQUIRE(q.is_loading());
-    // q.update();
-    // REQUIRE(q.is_ready());
-    // REQUIRE(!q.is_loading());
-    // REQUIRE(*q == 12);
+    REQUIRE(!q.is_ready());
+    REQUIRE(q.is_loading());
+    q.update();
+    REQUIRE(q.is_ready());
+    REQUIRE(!q.is_loading());
+    REQUIRE(*q == 12);
 
     // background_execution_system bg;
 

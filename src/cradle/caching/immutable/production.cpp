@@ -38,7 +38,7 @@ set_immutable_cache_data(
             return;
 
         detail::immutable_cache_record* r = i->second.get();
-        r->data = value;
+        r->data = std::move(value);
         r->state.store(immutable_cache_data_state::READY);
         r->progress.store(encoded_optional_progress());
         // Ideally, the job controller should be reset here, since we don't
