@@ -5,6 +5,7 @@
 #include <cradle/core/dynamic.h>
 #include <cradle/core/hash.h>
 #include <cradle/core/type_info.h>
+#include <cradle/core/type_interfaces.h>
 
 namespace cradle {
 

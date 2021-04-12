@@ -1,6 +1,7 @@
 #ifndef CRADLE_BACKGROUND_INTERNALS_HPP
 #define CRADLE_BACKGROUND_INTERNALS_HPP
 
+#include <atomic>
 #include <condition_variable>
 #include <cradle/background/job.h>
 #include <cradle/background/os.h>
@@ -23,10 +24,10 @@ struct background_job_execution_data : noncopyable
         int priority,
         bool hidden)
         : job(std::move(job)),
+          hidden(hidden),
           priority(priority),
           state(background_job_state::QUEUED),
-          cancel(false),
-          hidden(hidden)
+          cancel(false)
     {
     }
 
