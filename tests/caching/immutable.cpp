@@ -5,6 +5,27 @@
 
 using namespace cradle;
 
+namespace {
+
+// Sort the entry lists in a cache snapshot so that it's consistent across
+// unordered_map implementations.
+immutable_cache_snapshot
+sort_cache_snapshot(immutable_cache_snapshot snapshot)
+{
+    auto comparator = [](immutable_cache_entry_snapshot const& a,
+                         immutable_cache_entry_snapshot const& b) {
+        return a.key < b.key;
+    };
+    sort(snapshot.in_use.begin(), snapshot.in_use.end(), comparator);
+    sort(
+        snapshot.pending_eviction.begin(),
+        snapshot.pending_eviction.end(),
+        comparator);
+    return snapshot;
+}
+
+} // namespace
+
 TEST_CASE("basic immutable cache usage", "[immutable_cache]")
 {
     immutable_cache cache;
@@ -24,7 +45,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(p.key() == make_id(0));
 
     REQUIRE(
-        get_cache_snapshot(cache)
+        sort_cache_snapshot(get_cache_snapshot(cache))
         == (immutable_cache_snapshot{
             {{"0", immutable_cache_entry_state::LOADING, none, none, 0}},
             {}}));
@@ -42,7 +63,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(q.key() == make_id(1));
 
     REQUIRE(
-        get_cache_snapshot(cache)
+        sort_cache_snapshot(get_cache_snapshot(cache))
         == (immutable_cache_snapshot{
             {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
              {"1", immutable_cache_entry_state::LOADING, none, none, 0}},
@@ -56,7 +77,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(!r_needed_creation);
 
     REQUIRE(
-        get_cache_snapshot(cache)
+        sort_cache_snapshot(get_cache_snapshot(cache))
         == (immutable_cache_snapshot{
             {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
              {"1", immutable_cache_entry_state::LOADING, none, none, 0}},
@@ -72,7 +93,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     report_immutable_cache_loading_progress(cache, make_id(1), 0.25);
 
     REQUIRE(
-        get_cache_snapshot(cache)
+        sort_cache_snapshot(get_cache_snapshot(cache))
         == (immutable_cache_snapshot{
             {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
              {"1",
@@ -88,7 +109,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     set_immutable_cache_data(cache, make_id(1), make_immutable(12));
 
     REQUIRE(
-        get_cache_snapshot(cache)
+        sort_cache_snapshot(get_cache_snapshot(cache))
         == (immutable_cache_snapshot{
             {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
              {"1",
