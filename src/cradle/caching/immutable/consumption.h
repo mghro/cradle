@@ -3,32 +3,14 @@
 
 #include <cradle/background/encoded_progress.h>
 #include <cradle/background/job.h>
-#include <cradle/caching/immutable/cache.hpp>
 #include <cradle/core.h>
-#include <cradle/core/id.h>
 #include <cradle/utilities/functional.h>
+
+#include <cradle/caching/immutable/cache.hpp>
 
 namespace cradle {
 
-enum class immutable_cache_data_state
-{
-    // The data isn't available yet, but it's somewhere in the process of being
-    // loaded/retrieved/computed. The caller should expect that the data will
-    // transition to READY without any further intervention.
-    LOADING,
-    // The data is available.
-    READY,
-    // The data failed to compute, but it could potentially be retried through
-    // some external means.
-    FAILED
-};
-
-struct immutable_cache_data_status
-{
-    immutable_cache_data_state state = immutable_cache_data_state::LOADING;
-    // Only valid if state is LOADING, but still optional even then.
-    encoded_optional_progress progress;
-};
+struct immutable_cache;
 
 // immutable_cache_ptr represents one's interest in a particular immutable
 // value. The value is assumed to be the result of performing some operation
@@ -94,37 +76,37 @@ struct untyped_immutable_cache_ptr
     // Everything below here should only be called if the pointer is
     // initialized...
 
-    immutable_cache_data_status const&
+    immutable_cache_entry_status
     status() const
     {
-        return status_;
+        return immutable_cache_entry_status{this->state(), this->progress()};
     }
 
-    immutable_cache_data_state
+    immutable_cache_entry_state
     state() const
     {
-        return status_.state;
+        return state_;
     }
     bool
     is_loading() const
     {
-        return this->state() == immutable_cache_data_state::LOADING;
+        return this->state() == immutable_cache_entry_state::LOADING;
     }
     bool
     is_ready() const
     {
-        return this->state() == immutable_cache_data_state::READY;
+        return this->state() == immutable_cache_entry_state::READY;
     }
     bool
     is_failed() const
     {
-        return this->state() == immutable_cache_data_state::FAILED;
+        return this->state() == immutable_cache_entry_state::FAILED;
     }
 
     optional<float>
     progress() const
     {
-        return decode_progress(status_.progress);
+        return decode_progress(progress_);
     }
 
     // Update this pointer's view of the underlying 4's state.
@@ -163,8 +145,12 @@ struct untyped_immutable_cache_ptr
 
     captured_id key_;
 
+    // the record for the entry
     immutable_cache_record* r_;
-    immutable_cache_data_status status_;
+
+    // this pointer's view of the status of the entry
+    immutable_cache_entry_state state_;
+    encoded_optional_progress progress_;
 
     // This is a local copy of the data pointer. Actually acquiring this
     // pointer requires synchronization, but once it's acquired, it can be
@@ -229,13 +215,13 @@ struct immutable_cache_ptr
     // Everything below here should only be called if the pointer is
     // initialized...
 
-    immutable_cache_data_status const&
+    immutable_cache_entry_status const&
     status() const
     {
         return untyped_.status();
     }
 
-    immutable_cache_data_state
+    immutable_cache_entry_state
     state() const
     {
         return untyped_.state();
@@ -256,7 +242,7 @@ struct immutable_cache_ptr
         return untyped_.is_failed();
     }
 
-    optional<float> const&
+    optional<float>
     progress() const
     {
         return untyped_.progress();
@@ -296,7 +282,7 @@ struct immutable_cache_ptr
     void
     refresh_typed()
     {
-        if (this->state() == immutable_cache_data_state::READY)
+        if (this->state() == immutable_cache_entry_state::READY)
             cast_immutable_value(&data_, untyped_.data().ptr.get());
         else
             data_ = nullptr;

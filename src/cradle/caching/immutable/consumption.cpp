@@ -31,14 +31,6 @@ acquire_cache_record_no_lock(immutable_cache_record* record)
     }
 }
 
-immutable_cache_data_status
-make_immutable_cache_data_status(immutable_cache_data_state state)
-{
-    immutable_cache_data_status status;
-    status.state = state;
-    return status;
-}
-
 immutable_cache_record*
 acquire_cache_record(
     immutable_cache& cache,
@@ -54,7 +46,7 @@ acquire_cache_record(
         record->eviction_list_iterator = cache.eviction_list.records.end();
         record->key.capture(key);
         record->state.store(
-            immutable_cache_data_state::LOADING, std::memory_order_relaxed);
+            immutable_cache_entry_state::LOADING, std::memory_order_relaxed);
         record->progress.store(
             encoded_optional_progress(), std::memory_order_relaxed);
         record->ref_count = 0;
@@ -136,8 +128,8 @@ untyped_immutable_cache_ptr::reset()
         release_cache_record(r_);
         r_ = 0;
     }
-    status_ = make_immutable_cache_data_status(
-        immutable_cache_data_state::LOADING);
+    state_ = immutable_cache_entry_state::LOADING;
+    progress_ = encoded_optional_progress();
     key_.clear();
     data_ = untyped_immutable();
 }
@@ -162,8 +154,7 @@ untyped_immutable_cache_ptr::acquire(
     function_view<background_job_controller()> const& create_job)
 {
     r_ = acquire_cache_record(*cache.impl, key, create_job);
-    status_ = make_immutable_cache_data_status(
-        immutable_cache_data_state::LOADING);
+    state_ = immutable_cache_entry_state::LOADING;
     update();
     key_.capture(key);
 }
@@ -171,11 +162,11 @@ untyped_immutable_cache_ptr::acquire(
 void
 untyped_immutable_cache_ptr::update()
 {
-    if (status_.state != immutable_cache_data_state::READY)
+    if (state_ != immutable_cache_entry_state::READY)
     {
-        status_.state = r_->state.load(std::memory_order_relaxed);
-        status_.progress = r_->progress.load(std::memory_order_relaxed);
-        if (status_.state == immutable_cache_data_state::READY)
+        state_ = r_->state.load(std::memory_order_relaxed);
+        progress_ = r_->progress.load(std::memory_order_relaxed);
+        if (state_ == immutable_cache_entry_state::READY)
         {
             std::scoped_lock<std::mutex> lock(r_->owner_cache->mutex);
             data_ = r_->data;
@@ -189,7 +180,8 @@ untyped_immutable_cache_ptr::copy(untyped_immutable_cache_ptr const& other)
     r_ = other.r_;
     if (r_)
         acquire_cache_record(r_);
-    status_ = other.status_;
+    state_ = other.state_;
+    progress_ = other.progress_;
     key_ = other.key_;
     data_ = other.data_;
 }
@@ -199,7 +191,8 @@ untyped_immutable_cache_ptr::swap(untyped_immutable_cache_ptr& other)
 {
     using std::swap;
     swap(r_, other.r_);
-    swap(status_, other.status_);
+    swap(state_, other.state_);
+    swap(progress_, other.progress_);
     swap(data_, other.data_);
     swap(key_, other.key_);
 }

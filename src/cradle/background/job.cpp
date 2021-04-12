@@ -27,7 +27,7 @@ optional<float>
 background_job_controller::progress() const
 {
     assert(job_);
-    return decode_progress(job_->progress.load());
+    return decode_progress(job_->progress.load(std::memory_order_relaxed));
 }
 
 void

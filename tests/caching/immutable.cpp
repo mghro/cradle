@@ -5,31 +5,6 @@
 
 using namespace cradle;
 
-// struct set_int_job : composable_background_job
-// {
-//     set_int_job()
-//     {
-//     }
-//     set_int_job(
-//         immutable_cache& cache, alia::id_interface const& id, int value)
-//         : cache_(&cache), value_(value)
-//     {
-//         id_.store(id);
-//     }
-//     void
-//     execute(
-//         check_in_interface& check_in, progress_reporter_interface& reporter)
-//     {
-//         check_in();
-//         reporter(0);
-//         set_cached_data(*cache_, id_.get(), make_immutable(value_));
-//         reporter(1);
-//     }
-//     memory_cache* cache_;
-//     alia::owned_id id_;
-//     int value_;
-// };
-
 TEST_CASE("basic immutable cache usage", "[immutable_cache]")
 {
     immutable_cache cache;
@@ -48,6 +23,12 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(p.is_loading());
     REQUIRE(p.key() == make_id(0));
 
+    REQUIRE(
+        get_cache_snapshot(cache)
+        == (immutable_cache_snapshot{
+            {{"0", immutable_cache_entry_state::LOADING, none, none, 0}},
+            {}}));
+
     bool q_needed_creation = false;
     immutable_cache_ptr<int> q(cache, make_id(1), [&] {
         q_needed_creation = true;
@@ -57,7 +38,15 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(q.is_initialized());
     REQUIRE(!q.is_ready());
     REQUIRE(q.is_loading());
+    REQUIRE(q.progress() == none);
     REQUIRE(q.key() == make_id(1));
+
+    REQUIRE(
+        get_cache_snapshot(cache)
+        == (immutable_cache_snapshot{
+            {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
+             {"1", immutable_cache_entry_state::LOADING, none, none, 0}},
+            {}}));
 
     bool r_needed_creation = false;
     immutable_cache_ptr<int> r(cache, make_id(0), [&] {
@@ -66,13 +55,48 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     });
     REQUIRE(!r_needed_creation);
 
+    REQUIRE(
+        get_cache_snapshot(cache)
+        == (immutable_cache_snapshot{
+            {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
+             {"1", immutable_cache_entry_state::LOADING, none, none, 0}},
+            {}}));
+
     p = q;
     REQUIRE(p.is_initialized());
     REQUIRE(!p.is_ready());
     REQUIRE(p.is_loading());
+    REQUIRE(p.progress() == none);
     REQUIRE(p.key() == make_id(1));
 
+    report_immutable_cache_loading_progress(cache, make_id(1), 0.25);
+
+    REQUIRE(
+        get_cache_snapshot(cache)
+        == (immutable_cache_snapshot{
+            {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
+             {"1",
+              immutable_cache_entry_state::LOADING,
+              some(0.25f),
+              none,
+              0}},
+            {}}));
+
+    p.update();
+    REQUIRE(p.progress() == some(0.25));
+
     set_immutable_cache_data(cache, make_id(1), make_immutable(12));
+
+    REQUIRE(
+        get_cache_snapshot(cache)
+        == (immutable_cache_snapshot{
+            {{"0", immutable_cache_entry_state::LOADING, none, none, 0},
+             {"1",
+              immutable_cache_entry_state::READY,
+              none,
+              some(make_api_type_info_with_integer_type(api_integer_type())),
+              sizeof(int)}},
+            {}}));
 
     REQUIRE(!p.is_ready());
     REQUIRE(p.is_loading());
@@ -87,24 +111,4 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
     REQUIRE(q.is_ready());
     REQUIRE(!q.is_loading());
     REQUIRE(*q == 12);
-
-    // background_execution_system bg;
-
-    // p.reset(cache, make_id(0));
-    // REQUIRE(!p.is_ready());
-    // REQUIRE(p.is_nowhere());
-
-    // background_job_interface job;
-    // add_background_job(bg, &job, new set_int_job(cache, make_id(0), 4));
-    // p.set_job(&job);
-
-    // p.update();
-    // while (!p.is_ready())
-    // {
-    //     REQUIRE(p.state() == cached_data_state::COMPUTING);
-    //     p.update();
-    // }
-
-    // REQUIRE(!p.is_nowhere());
-    // REQUIRE(*p == 4);
 }

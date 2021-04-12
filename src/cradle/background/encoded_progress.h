@@ -20,7 +20,7 @@ int constexpr encoded_progress_max_value = 1000;
 inline encoded_optional_progress
 encode_progress(float progress)
 {
-    return encoded_optional_progress{int(progress / 1000.f)};
+    return encoded_optional_progress{int(progress * 1000.f)};
 }
 inline void
 reset(encoded_optional_progress& progress)
@@ -30,7 +30,7 @@ reset(encoded_optional_progress& progress)
 inline optional<float>
 decode_progress(encoded_optional_progress progress)
 {
-    return progress.value < 0 ? none : some(float(progress.value) * 1000.f);
+    return progress.value < 0 ? none : some(float(progress.value) / 1000.f);
 }
 
 } // namespace cradle

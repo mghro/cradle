@@ -46,7 +46,7 @@ set_cached_data(
         immutable_cache_record* record = i->second.get();
         record->data = data;
         record->state.store(
-            immutable_cache_data_state::READY, std::memory_order_relaxed);
+            immutable_cache_entry_state::READY, std::memory_order_relaxed);
         // Ideally, the job controller should be reset here, since we don't
         // really need it anymore, but this causes some tricky synchronization
         // issues with the UI code that's observing it.
@@ -72,7 +72,7 @@ reset_cached_data(immutable_cache& cache, id_interface const& key)
 
     immutable_cache_record* record = i->second.get();
     record->state.store(
-        immutable_cache_data_state::LOADING, std::memory_order_relaxed);
+        immutable_cache_entry_state::LOADING, std::memory_order_relaxed);
 }
 
 } // namespace detail

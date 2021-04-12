@@ -7,10 +7,13 @@
 #include <unordered_map>
 
 #include <cradle/background/job.h>
+#include <cradle/caching/immutable/cache.hpp>
 #include <cradle/caching/immutable/consumption.h>
 
 namespace cradle {
 namespace detail {
+
+struct immutable_cache;
 
 struct immutable_cache_record
 {
@@ -23,7 +26,7 @@ struct immutable_cache_record
     // informational purposes. However, before accessing any other fields based
     // on the value of state, you should acquire the mutex and recheck state.
 
-    std::atomic<immutable_cache_data_state> state;
+    std::atomic<immutable_cache_entry_state> state;
 
     std::atomic<encoded_optional_progress> progress;
 
@@ -66,6 +69,9 @@ struct immutable_cache : noncopyable
     cache_record_eviction_list eviction_list;
     std::mutex mutex;
 };
+
+void
+reduce_memory_cache_size(immutable_cache& cache, int desired_size);
 
 } // namespace detail
 } // namespace cradle

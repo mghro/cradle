@@ -3,6 +3,8 @@
 
 #include <memory>
 
+#include <cradle/core.h>
+
 namespace cradle {
 
 namespace detail {
@@ -18,6 +20,70 @@ struct immutable_cache
 
     std::unique_ptr<detail::immutable_cache> impl;
 };
+
+api(enum)
+enum class immutable_cache_entry_state
+{
+    // The data isn't available yet, but it's somewhere in the process of being
+    // loaded/retrieved/computed. The caller should expect that the data will
+    // transition to READY without any further intervention.
+    LOADING,
+
+    // The data is available.
+    READY,
+
+    // The data failed to compute, but it could potentially be retried through
+    // some external means.
+    FAILED
+};
+
+api(struct)
+struct immutable_cache_entry_status
+{
+    immutable_cache_entry_state state;
+
+    // :progress is only valid if state is LOADING, but still optional even
+    // then.
+    optional<float> progress;
+};
+
+api(struct)
+struct immutable_cache_entry_snapshot
+{
+    // the key associated with this entry
+    string key;
+
+    // the state of this entry
+    immutable_cache_entry_state state;
+
+    // progress in loading the data - possibly valid iff state is LOADING
+    optional<float> progress;
+
+    // type info for the cached data - valid iff state is READY
+    optional<api_type_info> type_info;
+
+    // size of the cached data - valid iff state is READY, 0 otherwise
+    size_t size;
+};
+
+api(struct)
+struct immutable_cache_snapshot
+{
+    // cache entries that are currently in use
+    std::vector<immutable_cache_entry_snapshot> in_use;
+
+    // cache entries that are no longer in use and will be evicted when
+    // necessary
+    std::vector<immutable_cache_entry_snapshot> pending_eviction;
+};
+
+// Get a snapshot of the contents of an immutable memory cache.
+immutable_cache_snapshot
+get_cache_snapshot(immutable_cache& cache);
+
+// Clear unused entries from the cache.
+void
+clear_unused_entries(immutable_cache& cache);
 
 } // namespace cradle
 
