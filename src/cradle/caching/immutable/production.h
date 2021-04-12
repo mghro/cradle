@@ -9,14 +9,14 @@ namespace cradle {
 
 struct immutable_cache;
 
-// report_immutable_cache_loading_progress() is used by background jobs to
-// report progress made in computing individual cache results.
+// report_immutable_cache_loading_progress() is used by producers to report
+// progress made in computing individual cache results.
 void
 report_immutable_cache_loading_progress(
     immutable_cache& cache, id_interface const& key, float progress);
 
-// set_immutable_cache_data() is used by background jobs to transmit the data
-// that they produce into the background caching system.
+// set_immutable_cache_data() is used by producers to transmit the data that
+// they produce to the immutable cache.
 
 void
 set_immutable_cache_data(
