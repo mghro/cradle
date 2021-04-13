@@ -88,37 +88,7 @@ release_cache_record(immutable_cache_record* record)
     }
 }
 
-void
-update_immutable_cache_data_progress(
-    immutable_cache& cache, id_interface const& key, float progress)
-{
-    std::scoped_lock<std::mutex> lock(cache.mutex);
-
-    auto i = cache.records.find(&key);
-    if (i == cache.records.end())
-        return;
-
-    immutable_cache_record* record = i->second.get();
-    record->progress.store(
-        encode_progress(progress), std::memory_order_relaxed);
-}
-
 } // namespace
-
-void
-update_immutable_cache_data_progress(
-    immutable_cache& cache, id_interface const& key, float progress)
-{
-    std::scoped_lock<std::mutex> lock(cache.mutex);
-
-    auto i = cache.records.find(&key);
-    if (i == cache.records.end())
-        return;
-
-    immutable_cache_record* record = i->second.get();
-    record->progress.store(
-        encode_progress(progress), std::memory_order_relaxed);
-}
 
 void
 untyped_immutable_cache_ptr::reset()
