@@ -187,6 +187,17 @@ untyped_immutable_cache_ptr::copy(untyped_immutable_cache_ptr const& other)
 }
 
 void
+untyped_immutable_cache_ptr::move_in(untyped_immutable_cache_ptr&& other)
+{
+    r_ = other.r_;
+    other.r_ = nullptr;
+    state_ = other.state_;
+    progress_ = other.progress_;
+    key_ = std::move(other.key_);
+    data_ = std::move(other.data_);
+}
+
+void
 untyped_immutable_cache_ptr::swap(untyped_immutable_cache_ptr& other)
 {
     using std::swap;

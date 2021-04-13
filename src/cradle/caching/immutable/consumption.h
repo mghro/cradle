@@ -12,13 +12,6 @@ namespace cradle {
 
 struct immutable_cache;
 
-// immutable_cache_ptr represents one's interest in a particular immutable
-// value. The value is assumed to be the result of performing some operation
-// (with reproducible results). If there are already other parties interested
-// in the result, the pointer will immediately pick up whatever progress has
-// already been made in computing that result. Otherwise, the owner must create
-// a new job to produce the result and associate it with the pointer.
-
 namespace detail {
 
 struct immutable_cache_record;
@@ -41,12 +34,23 @@ struct untyped_immutable_cache_ptr
     {
         copy(other);
     }
+    untyped_immutable_cache_ptr(untyped_immutable_cache_ptr&& other)
+    {
+        move_in(std::move(other));
+    }
 
     untyped_immutable_cache_ptr&
     operator=(untyped_immutable_cache_ptr const& other)
     {
         reset();
         copy(other);
+        return *this;
+    }
+    untyped_immutable_cache_ptr&
+    operator=(untyped_immutable_cache_ptr&& other)
+    {
+        reset();
+        move_in(std::move(other));
         return *this;
     }
 
@@ -138,23 +142,27 @@ struct untyped_immutable_cache_ptr
     copy(untyped_immutable_cache_ptr const& other);
 
     void
+    move_in(untyped_immutable_cache_ptr&& other);
+
+    void
     acquire(
         cradle::immutable_cache& cache,
         id_interface const& key,
         function_view<background_job_controller()> const& create_job);
 
+    // the key of the entry that this pointer points to
     captured_id key_;
 
-    // the record for the entry
+    // the internal cache record for the entry
     immutable_cache_record* r_;
 
     // this pointer's view of the status of the entry
     immutable_cache_entry_state state_;
     encoded_optional_progress progress_;
 
-    // This is a local copy of the data pointer. Actually acquiring this
-    // pointer requires synchronization, but once it's acquired, it can be
-    // used freely without synchronization.
+    // a local copy of the data pointer - Actually acquiring this pointer
+    // requires synchronization, but once it's acquired, it can be used freely
+    // without synchronization.
     untyped_immutable data_;
 };
 
@@ -166,8 +174,12 @@ swap(untyped_immutable_cache_ptr& a, untyped_immutable_cache_ptr& b)
 
 } // namespace detail
 
-// immutable_cache_ptr<T> wraps untyped_immutable_cache_ptr to provide access
-// to immutable cache data of a known type.
+// immutable_cache_ptr<T> represents one's interest in a particular immutable
+// value (of type T). The value is assumed to be the result of performing some
+// operation (with reproducible results). If there are already other parties
+// interested in the result, the pointer will immediately pick up whatever
+// progress has already been made in computing that result.
+//
 template<class T>
 struct immutable_cache_ptr
 {
