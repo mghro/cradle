@@ -1,5 +1,7 @@
 #include <cradle/caching/immutable.h>
 
+#include <sstream>
+
 #include <cradle/core/immutable.h>
 #include <cradle/utilities/testing.h>
 
@@ -184,4 +186,81 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
 
     r.update();
     REQUIRE(r.is_failed());
+}
+
+TEST_CASE("immutable cache entry watching", "[immutable_cache]")
+{
+    immutable_cache cache;
+
+    struct test_watcher : immutable_cache_entry_watcher
+    {
+        std::string label;
+        std::ostringstream& log;
+
+        test_watcher(std::string label, std::ostringstream& log)
+            : label(std::move(label)), log(log)
+        {
+        }
+
+        virtual void
+        on_progress(float progress)
+        {
+            log << label << ": on_progress: " << progress << ";";
+        }
+
+        virtual void
+        on_failure()
+        {
+            log << label << ": on_failure;";
+        }
+
+        virtual void
+        on_ready(untyped_immutable value)
+        {
+            log << label << ": on_ready: " << cast_immutable<int>(value)
+                << ";";
+        }
+    };
+
+    std::ostringstream log;
+    auto check_log = [&](string const& expected_content) {
+        REQUIRE(log.str() == expected_content);
+        log.str("");
+    };
+
+    immutable_cache_entry_handle p(
+        cache,
+        make_id(0),
+        [&] { return background_job_controller(); },
+        std::make_shared<test_watcher>("0", log));
+
+    immutable_cache_entry_handle q(
+        cache,
+        make_id(1),
+        [&] { return background_job_controller(); },
+        std::make_shared<test_watcher>("1", log));
+
+    report_immutable_cache_loading_progress(cache, make_id(1), 0.25);
+    check_log("1: on_progress: 0.25;");
+
+    // Duplicating the handle also duplicates the watchers.
+    auto r = q;
+    report_immutable_cache_loading_progress(cache, make_id(1), 0.375);
+    check_log("1: on_progress: 0.375;1: on_progress: 0.375;");
+
+    // Resetting one of the handles restores us to one watcher.
+    r.reset();
+    report_immutable_cache_loading_progress(cache, make_id(1), 0.5);
+    check_log("1: on_progress: 0.5;");
+
+    // Moving the handle doesn't change the watcher situation.
+    auto s = std::move(r);
+    report_immutable_cache_loading_progress(cache, make_id(1), 0.625);
+    check_log("1: on_progress: 0.625;");
+
+    set_immutable_cache_data(cache, make_id(1), make_immutable(12));
+    check_log("1: on_ready: 12;");
+
+    report_immutable_cache_loading_failure(cache, make_id(0));
+    check_log("0: on_failure;");
 }

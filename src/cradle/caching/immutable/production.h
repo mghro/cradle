@@ -20,9 +20,7 @@ report_immutable_cache_loading_progress(
 
 void
 set_immutable_cache_data(
-    immutable_cache& cache,
-    id_interface const& key,
-    untyped_immutable&& value);
+    immutable_cache& cache, id_interface const& key, untyped_immutable value);
 
 template<class T>
 void

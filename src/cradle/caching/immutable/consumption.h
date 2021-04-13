@@ -16,20 +16,42 @@ namespace detail {
 
 struct immutable_cache_record;
 
+}
+
+// immutable_cache_entry_watcher is the interface that must be implemented by
+// objects that want to watch for results on an immutable cache entry.
+struct immutable_cache_entry_watcher
+{
+    virtual void
+    on_progress(float progress)
+    {
+    }
+
+    virtual void
+    on_failure()
+    {
+    }
+
+    virtual void
+    on_ready(untyped_immutable value)
+        = 0;
+};
+
 // immutable_cache_entry_handle provides ownership of an immutable cache
-// entry. Other ways of interacting with immutable cache elements are built
-// on top of this.
+// entry.
 struct immutable_cache_entry_handle
 {
-    immutable_cache_entry_handle() : record_(nullptr)
+    immutable_cache_entry_handle()
     {
     }
     immutable_cache_entry_handle(
         cradle::immutable_cache& cache,
         id_interface const& key,
-        function_view<background_job_controller()> const& create_job)
+        function_view<background_job_controller()> const& create_job,
+        std::shared_ptr<immutable_cache_entry_watcher> watcher
+        = std::shared_ptr<immutable_cache_entry_watcher>())
     {
-        acquire(cache, key, create_job);
+        acquire(cache, key, create_job, std::move(watcher));
     }
     immutable_cache_entry_handle(immutable_cache_entry_handle const& other)
     {
@@ -70,7 +92,9 @@ struct immutable_cache_entry_handle
     reset(
         cradle::immutable_cache& cache,
         id_interface const& key,
-        function_view<background_job_controller()> const& create_job);
+        function_view<background_job_controller()> const& create_job,
+        std::shared_ptr<immutable_cache_entry_watcher> watcher
+        = std::shared_ptr<immutable_cache_entry_watcher>());
 
     bool
     is_initialized() const
@@ -84,7 +108,7 @@ struct immutable_cache_entry_handle
         return *key_;
     }
 
-    immutable_cache_record*
+    detail::immutable_cache_record*
     record() const
     {
         return record_;
@@ -101,14 +125,20 @@ struct immutable_cache_entry_handle
     acquire(
         cradle::immutable_cache& cache,
         id_interface const& key,
-        function_view<background_job_controller()> const& create_job);
+        function_view<background_job_controller()> const& create_job,
+        std::shared_ptr<immutable_cache_entry_watcher> watcher);
 
     // the key of the entry
     captured_id key_;
 
     // the internal cache record for the entry
-    immutable_cache_record* record_;
+    detail::immutable_cache_record* record_ = nullptr;
+
+    // the watcher (if any) associated with this handle
+    std::shared_ptr<immutable_cache_entry_watcher> watcher_;
 };
+
+namespace detail {
 
 // untyped_immutable_cache_ptr provides all of the functionality of
 // immutable_cache_ptr without compile-time knowledge of the data type.
@@ -209,6 +239,8 @@ struct untyped_immutable_cache_ptr
 // operation (with reproducible results). If there are already other parties
 // interested in the result, the pointer will immediately pick up whatever
 // progress has already been made in computing that result.
+//
+// This is a polling-based approach to observing a cache value.
 //
 template<class T>
 struct immutable_cache_ptr

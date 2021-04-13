@@ -20,7 +20,9 @@ remove_from_eviction_list(
 }
 
 void
-acquire_cache_record_no_lock(immutable_cache_record* record)
+acquire_cache_record_no_lock(
+    immutable_cache_record* record,
+    std::shared_ptr<immutable_cache_entry_watcher> const& watcher)
 {
     ++record->ref_count;
     auto& evictions = record->owner_cache->eviction_list.records;
@@ -29,13 +31,16 @@ acquire_cache_record_no_lock(immutable_cache_record* record)
         assert(record->ref_count == 1);
         remove_from_eviction_list(*record->owner_cache, record);
     }
+    if (watcher)
+        record->watchers.push_back(watcher);
 }
 
 immutable_cache_record*
 acquire_cache_record(
     immutable_cache& cache,
     id_interface const& key,
-    function_view<background_job_controller()> const& create_job)
+    function_view<background_job_controller()> const& create_job,
+    std::shared_ptr<immutable_cache_entry_watcher> const& watcher)
 {
     std::scoped_lock<std::mutex> lock(cache.mutex);
     cache_record_map::iterator i = cache.records.find(&key);
@@ -54,15 +59,17 @@ acquire_cache_record(
         i = cache.records.emplace(&*record->key, std::move(record)).first;
     }
     immutable_cache_record* record = i->second.get();
-    acquire_cache_record_no_lock(record);
+    acquire_cache_record_no_lock(record, watcher);
     return record;
 }
 
 void
-acquire_cache_record(immutable_cache_record* record)
+acquire_cache_record(
+    immutable_cache_record* record,
+    std::shared_ptr<immutable_cache_entry_watcher> const& watcher)
 {
     std::scoped_lock<std::mutex> lock(record->owner_cache->mutex);
-    acquire_cache_record_no_lock(record);
+    acquire_cache_record_no_lock(record, watcher);
 }
 
 void
@@ -76,19 +83,37 @@ add_to_eviction_list(immutable_cache& cache, immutable_cache_record* record)
         list.total_size += record->data.ptr->deep_size();
 }
 
+bool
+same_owner(
+    std::shared_ptr<immutable_cache_entry_watcher> const& shared,
+    std::weak_ptr<immutable_cache_entry_watcher> const& weak)
+{
+    return !shared.owner_before(weak) && !weak.owner_before(shared);
+}
+
 void
-release_cache_record(immutable_cache_record* record)
+release_cache_record(
+    immutable_cache_record* record,
+    std::shared_ptr<immutable_cache_entry_watcher> const& watcher)
 {
     auto& cache = *record->owner_cache;
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
         --record->ref_count;
+        if (watcher)
+        {
+            record->watchers.erase(find_if(
+                record->watchers.begin(),
+                record->watchers.end(),
+                [&](auto const& ptr) { return same_owner(watcher, ptr); }));
+        }
         if (record->ref_count == 0)
             add_to_eviction_list(cache, record);
     }
 }
 
 } // namespace
+} // namespace detail
 
 // IMMUTABLE_CACHE_ENTRY_HANDLE
 
@@ -97,22 +122,24 @@ immutable_cache_entry_handle::reset()
 {
     if (record_)
     {
-        release_cache_record(record_);
+        detail::release_cache_record(record_, watcher_);
         record_ = nullptr;
     }
     key_.clear();
+    watcher_.reset();
 }
 
 void
 immutable_cache_entry_handle::reset(
     cradle::immutable_cache& cache,
     id_interface const& key,
-    function_view<background_job_controller()> const& create_job)
+    function_view<background_job_controller()> const& create_job,
+    std::shared_ptr<immutable_cache_entry_watcher> watcher)
 {
     if (!key_.matches(key))
     {
         this->reset();
-        this->acquire(cache, key, create_job);
+        this->acquire(cache, key, create_job, std::move(watcher));
     }
 }
 
@@ -120,18 +147,22 @@ void
 immutable_cache_entry_handle::acquire(
     cradle::immutable_cache& cache,
     id_interface const& key,
-    function_view<background_job_controller()> const& create_job)
+    function_view<background_job_controller()> const& create_job,
+    std::shared_ptr<immutable_cache_entry_watcher> watcher)
 {
-    record_ = acquire_cache_record(*cache.impl, key, create_job);
+    record_
+        = detail::acquire_cache_record(*cache.impl, key, create_job, watcher);
     key_.capture(key);
+    watcher_ = std::move(watcher);
 }
 
 void
 immutable_cache_entry_handle::copy(immutable_cache_entry_handle const& other)
 {
     record_ = other.record_;
+    watcher_ = other.watcher_;
     if (record_)
-        acquire_cache_record(record_);
+        detail::acquire_cache_record(record_, watcher_);
     key_ = other.key_;
 }
 
@@ -141,6 +172,7 @@ immutable_cache_entry_handle::move_in(immutable_cache_entry_handle&& other)
     record_ = other.record_;
     other.record_ = nullptr;
     key_ = std::move(other.key_);
+    watcher_ = std::move(other.watcher_);
 }
 
 void
@@ -149,7 +181,10 @@ immutable_cache_entry_handle::swap(immutable_cache_entry_handle& other)
     using std::swap;
     swap(record_, other.record_);
     swap(key_, other.key_);
+    swap(watcher_, other.watcher_);
 }
+
+namespace detail {
 
 // UNTYPED_IMMUTABLE_CACHE_PTR
 

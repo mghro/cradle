@@ -11,6 +11,9 @@
 #include <cradle/caching/immutable/consumption.h>
 
 namespace cradle {
+
+struct immutable_cache_entry_watcher;
+
 namespace detail {
 
 struct immutable_cache;
@@ -37,6 +40,9 @@ struct immutable_cache_record
     unsigned ref_count;
 
     std::list<immutable_cache_record*>::iterator eviction_list_iterator;
+
+    // a list of watchers
+    std::list<std::weak_ptr<immutable_cache_entry_watcher>> watchers;
 
     // If state is LOADING, this is the associated job.
     background_job_controller job;

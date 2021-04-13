@@ -10,27 +10,9 @@ report_immutable_cache_loading_progress(
 {
     auto& cache = *cache_object.impl;
 
-    {
-        std::scoped_lock<std::mutex> lock(cache.mutex);
+    std::list<std::weak_ptr<immutable_cache_entry_watcher>> watchers;
 
-        auto i = cache.records.find(&key);
-        if (i == cache.records.end())
-            return;
-
-        detail::immutable_cache_record* r = i->second.get();
-        r->progress.store(
-            encode_progress(progress), std::memory_order_relaxed);
-    }
-}
-
-void
-set_immutable_cache_data(
-    immutable_cache& cache_object,
-    id_interface const& key,
-    untyped_immutable&& value)
-{
-    auto& cache = *cache_object.impl;
-
+    // Update the cache record.
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
 
@@ -39,19 +21,52 @@ set_immutable_cache_data(
             return;
 
         detail::immutable_cache_record* record = i->second.get();
-        record->data = std::move(value);
+        record->progress.store(
+            encode_progress(progress), std::memory_order_relaxed);
+        watchers = record->watchers;
+    }
+
+    // Invoke all the watchers outside of the mutex lock.
+    for (auto& watcher : watchers)
+    {
+        if (auto locked = watcher.lock())
+            locked->on_progress(progress);
+    }
+}
+
+void
+set_immutable_cache_data(
+    immutable_cache& cache_object,
+    id_interface const& key,
+    untyped_immutable value)
+{
+    auto& cache = *cache_object.impl;
+
+    std::list<std::weak_ptr<immutable_cache_entry_watcher>> watchers;
+
+    // Update the cache record.
+    {
+        std::scoped_lock<std::mutex> lock(cache.mutex);
+
+        auto i = cache.records.find(&key);
+        if (i == cache.records.end())
+            return;
+
+        detail::immutable_cache_record* record = i->second.get();
+        record->data = value;
         record->state.store(
             immutable_cache_entry_state::READY, std::memory_order_relaxed);
         record->progress.store(encoded_optional_progress());
         record->job.reset();
+        watchers = record->watchers;
     }
 
-    // TODO
-    // Setting this data could've made it possible for any of the waiting
-    // calculation jobs to run.
-    // wake_up_waiting_jobs(
-    //     *system.impl_->pools[int(background_job_queue_type::CALCULATION)]
-    //          .queue);
+    // Invoke all the watchers outside of the mutex lock.
+    for (auto& watcher : watchers)
+    {
+        if (auto locked = watcher.lock())
+            locked->on_ready(value);
+    }
 }
 
 void
@@ -60,6 +75,9 @@ report_immutable_cache_loading_failure(
 {
     auto& cache = *cache_object.impl;
 
+    std::list<std::weak_ptr<immutable_cache_entry_watcher>> watchers;
+
+    // Update the cache record.
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
 
@@ -67,10 +85,18 @@ report_immutable_cache_loading_failure(
         if (i == cache.records.end())
             return;
 
-        detail::immutable_cache_record* r = i->second.get();
-        r->state.store(immutable_cache_entry_state::FAILED);
-        r->progress.store(encoded_optional_progress());
-        r->job.reset();
+        detail::immutable_cache_record* record = i->second.get();
+        record->state.store(immutable_cache_entry_state::FAILED);
+        record->progress.store(encoded_optional_progress());
+        record->job.reset();
+        watchers = record->watchers;
+    }
+
+    // Invoke all the watchers outside of the mutex lock.
+    for (auto& watcher : watchers)
+    {
+        if (auto locked = watcher.lock())
+            locked->on_failure();
     }
 }
 

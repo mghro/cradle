@@ -37,6 +37,13 @@ map(Fn const& fn, std::map<Key, Value> const& items)
 // overload resolution.
 #define CRADLE_LAMBDIFY(f) [](auto&&... args) { return f(args...); }
 
+// CRADLE_AGGREGATOR(f) produces a lambda that assembles its arguments into an
+// aggregate expression (i.e., "{args...}") and passes that into f.
+// This is useful, for example, when you want to explicitly refer to the
+// aggregate constructor of a type as an invocable function.
+#define CRADLE_AGGREGATOR(f)                                                  \
+    [](auto&&... args) { return f{std::forward<decltype(args)>(args)...}; }
+
 // function_view is the non-owning equivalent of std::function.
 template<class Signature>
 class function_view;
