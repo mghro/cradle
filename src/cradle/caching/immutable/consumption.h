@@ -16,38 +16,39 @@ namespace detail {
 
 struct immutable_cache_record;
 
-// untyped_immutable_cache_ptr provides all of the functionality of
-// immutable_cache_ptr without compile-time knowledge of the data type.
-struct untyped_immutable_cache_ptr
+// immutable_cache_entry_handle provides ownership of an immutable cache
+// entry. Other ways of interacting with immutable cache elements are built
+// on top of this.
+struct immutable_cache_entry_handle
 {
-    untyped_immutable_cache_ptr() : r_(nullptr)
+    immutable_cache_entry_handle() : record_(nullptr)
     {
     }
-    untyped_immutable_cache_ptr(
+    immutable_cache_entry_handle(
         cradle::immutable_cache& cache,
         id_interface const& key,
         function_view<background_job_controller()> const& create_job)
     {
         acquire(cache, key, create_job);
     }
-    untyped_immutable_cache_ptr(untyped_immutable_cache_ptr const& other)
+    immutable_cache_entry_handle(immutable_cache_entry_handle const& other)
     {
         copy(other);
     }
-    untyped_immutable_cache_ptr(untyped_immutable_cache_ptr&& other)
+    immutable_cache_entry_handle(immutable_cache_entry_handle&& other)
     {
         move_in(std::move(other));
     }
 
-    untyped_immutable_cache_ptr&
-    operator=(untyped_immutable_cache_ptr const& other)
+    immutable_cache_entry_handle&
+    operator=(immutable_cache_entry_handle const& other)
     {
         reset();
         copy(other);
         return *this;
     }
-    untyped_immutable_cache_ptr&
-    operator=(untyped_immutable_cache_ptr&& other)
+    immutable_cache_entry_handle&
+    operator=(immutable_cache_entry_handle&& other)
     {
         reset();
         move_in(std::move(other));
@@ -55,9 +56,9 @@ struct untyped_immutable_cache_ptr
     }
 
     void
-    swap(untyped_immutable_cache_ptr& other);
+    swap(immutable_cache_entry_handle& other);
 
-    ~untyped_immutable_cache_ptr()
+    ~immutable_cache_entry_handle()
     {
         reset();
     }
@@ -74,7 +75,58 @@ struct untyped_immutable_cache_ptr
     bool
     is_initialized() const
     {
-        return r_ != nullptr;
+        return record_ != nullptr;
+    }
+
+    id_interface const&
+    key() const
+    {
+        return *key_;
+    }
+
+    immutable_cache_record*
+    record() const
+    {
+        return record_;
+    }
+
+ private:
+    void
+    copy(immutable_cache_entry_handle const& other);
+
+    void
+    move_in(immutable_cache_entry_handle&& other);
+
+    void
+    acquire(
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job);
+
+    // the key of the entry
+    captured_id key_;
+
+    // the internal cache record for the entry
+    immutable_cache_record* record_;
+};
+
+// untyped_immutable_cache_ptr provides all of the functionality of
+// immutable_cache_ptr without compile-time knowledge of the data type.
+struct untyped_immutable_cache_ptr
+{
+    void
+    reset();
+
+    void
+    reset(
+        cradle::immutable_cache& cache,
+        id_interface const& key,
+        function_view<background_job_controller()> const& create_job);
+
+    bool
+    is_initialized() const
+    {
+        return handle_.is_initialized();
     }
 
     // Everything below here should only be called if the pointer is
@@ -113,20 +165,20 @@ struct untyped_immutable_cache_ptr
         return decode_progress(progress_);
     }
 
-    // Update this pointer's view of the underlying 4's state.
+    // Update this pointer's view of the underlying entry's state.
     void
     update();
 
     id_interface const&
     key() const
     {
-        return *key_;
+        return handle_.key();
     }
 
     immutable_cache_record*
     record() const
     {
-        return r_;
+        return handle_.record();
     }
 
     // This provides access to the actual data.
@@ -138,26 +190,10 @@ struct untyped_immutable_cache_ptr
     }
 
  private:
-    void
-    copy(untyped_immutable_cache_ptr const& other);
-
-    void
-    move_in(untyped_immutable_cache_ptr&& other);
-
-    void
-    acquire(
-        cradle::immutable_cache& cache,
-        id_interface const& key,
-        function_view<background_job_controller()> const& create_job);
-
-    // the key of the entry that this pointer points to
-    captured_id key_;
-
-    // the internal cache record for the entry
-    immutable_cache_record* r_;
+    immutable_cache_entry_handle handle_;
 
     // this pointer's view of the status of the entry
-    immutable_cache_entry_state state_;
+    immutable_cache_entry_state state_ = immutable_cache_entry_state::LOADING;
     encoded_optional_progress progress_;
 
     // a local copy of the data pointer - Actually acquiring this pointer
@@ -165,12 +201,6 @@ struct untyped_immutable_cache_ptr
     // without synchronization.
     untyped_immutable data_;
 };
-
-inline void
-swap(untyped_immutable_cache_ptr& a, untyped_immutable_cache_ptr& b)
-{
-    a.swap(b);
-}
 
 } // namespace detail
 
@@ -313,27 +343,12 @@ struct immutable_cache_ptr
         return data_;
     }
 
-    void
-    swap(immutable_cache_ptr& other)
-    {
-        using std::swap;
-        swap(untyped_, other.untyped_);
-        swap(data_, other.data_);
-    }
-
  private:
     detail::untyped_immutable_cache_ptr untyped_;
 
     // typed pointer to the data
     T const* data_;
 };
-
-template<class T>
-void
-swap(immutable_cache_ptr<T>& a, immutable_cache_ptr<T>& b)
-{
-    a.swap(b);
-}
 
 } // namespace cradle
 

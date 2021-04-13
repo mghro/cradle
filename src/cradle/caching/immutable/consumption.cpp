@@ -90,22 +90,21 @@ release_cache_record(immutable_cache_record* record)
 
 } // namespace
 
+// IMMUTABLE_CACHE_ENTRY_HANDLE
+
 void
-untyped_immutable_cache_ptr::reset()
+immutable_cache_entry_handle::reset()
 {
-    if (r_)
+    if (record_)
     {
-        release_cache_record(r_);
-        r_ = 0;
+        release_cache_record(record_);
+        record_ = nullptr;
     }
-    state_ = immutable_cache_entry_state::LOADING;
-    progress_ = encoded_optional_progress();
     key_.clear();
-    data_ = untyped_immutable();
 }
 
 void
-untyped_immutable_cache_ptr::reset(
+immutable_cache_entry_handle::reset(
     cradle::immutable_cache& cache,
     id_interface const& key,
     function_view<background_job_controller()> const& create_job)
@@ -118,15 +117,60 @@ untyped_immutable_cache_ptr::reset(
 }
 
 void
-untyped_immutable_cache_ptr::acquire(
+immutable_cache_entry_handle::acquire(
     cradle::immutable_cache& cache,
     id_interface const& key,
     function_view<background_job_controller()> const& create_job)
 {
-    r_ = acquire_cache_record(*cache.impl, key, create_job);
+    record_ = acquire_cache_record(*cache.impl, key, create_job);
+    key_.capture(key);
+}
+
+void
+immutable_cache_entry_handle::copy(immutable_cache_entry_handle const& other)
+{
+    record_ = other.record_;
+    if (record_)
+        acquire_cache_record(record_);
+    key_ = other.key_;
+}
+
+void
+immutable_cache_entry_handle::move_in(immutable_cache_entry_handle&& other)
+{
+    record_ = other.record_;
+    other.record_ = nullptr;
+    key_ = std::move(other.key_);
+}
+
+void
+immutable_cache_entry_handle::swap(immutable_cache_entry_handle& other)
+{
+    using std::swap;
+    swap(record_, other.record_);
+    swap(key_, other.key_);
+}
+
+// UNTYPED_IMMUTABLE_CACHE_PTR
+
+void
+untyped_immutable_cache_ptr::reset()
+{
+    handle_.reset();
+    state_ = immutable_cache_entry_state::LOADING;
+    progress_ = encoded_optional_progress();
+    data_ = untyped_immutable();
+}
+
+void
+untyped_immutable_cache_ptr::reset(
+    cradle::immutable_cache& cache,
+    id_interface const& key,
+    function_view<background_job_controller()> const& create_job)
+{
+    handle_.reset(cache, key, create_job);
     state_ = immutable_cache_entry_state::LOADING;
     update();
-    key_.capture(key);
 }
 
 void
@@ -134,48 +178,15 @@ untyped_immutable_cache_ptr::update()
 {
     if (state_ != immutable_cache_entry_state::READY)
     {
-        state_ = r_->state.load(std::memory_order_relaxed);
-        progress_ = r_->progress.load(std::memory_order_relaxed);
+        auto* record = handle_.record();
+        state_ = record->state.load(std::memory_order_relaxed);
+        progress_ = record->progress.load(std::memory_order_relaxed);
         if (state_ == immutable_cache_entry_state::READY)
         {
-            std::scoped_lock<std::mutex> lock(r_->owner_cache->mutex);
-            data_ = r_->data;
+            std::scoped_lock<std::mutex> lock(record->owner_cache->mutex);
+            data_ = record->data;
         }
     }
-}
-
-void
-untyped_immutable_cache_ptr::copy(untyped_immutable_cache_ptr const& other)
-{
-    r_ = other.r_;
-    if (r_)
-        acquire_cache_record(r_);
-    state_ = other.state_;
-    progress_ = other.progress_;
-    key_ = other.key_;
-    data_ = other.data_;
-}
-
-void
-untyped_immutable_cache_ptr::move_in(untyped_immutable_cache_ptr&& other)
-{
-    r_ = other.r_;
-    other.r_ = nullptr;
-    state_ = other.state_;
-    progress_ = other.progress_;
-    key_ = std::move(other.key_);
-    data_ = std::move(other.data_);
-}
-
-void
-untyped_immutable_cache_ptr::swap(untyped_immutable_cache_ptr& other)
-{
-    using std::swap;
-    swap(r_, other.r_);
-    swap(state_, other.state_);
-    swap(progress_, other.progress_);
-    swap(data_, other.data_);
-    swap(key_, other.key_);
 }
 
 } // namespace detail
