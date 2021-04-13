@@ -30,50 +30,5 @@ reduce_memory_cache_size(immutable_cache& cache, int desired_size)
     }
 }
 
-void
-set_cached_data(
-    immutable_cache& cache,
-    id_interface const& key,
-    untyped_immutable const& data)
-{
-    {
-        std::scoped_lock<std::mutex> lock(cache.mutex);
-
-        auto i = cache.records.find(&key);
-        if (i == cache.records.end())
-            return;
-
-        immutable_cache_record* record = i->second.get();
-        record->data = data;
-        record->state.store(
-            immutable_cache_entry_state::READY, std::memory_order_relaxed);
-        // Ideally, the job controller should be reset here, since we don't
-        // really need it anymore, but this causes some tricky synchronization
-        // issues with the UI code that's observing it.
-        // record->job->reset();
-    }
-
-    // TODO!!
-    // Setting this data could've made it possible for any of the waiting
-    // calculation jobs to run.
-    // wake_up_waiting_jobs(
-    //     *system.impl_->pools[int(background_job_queue_type::CALCULATION)]
-    //          .queue);
-}
-
-void
-reset_cached_data(immutable_cache& cache, id_interface const& key)
-{
-    std::scoped_lock<std::mutex> lock(cache.mutex);
-
-    auto i = cache.records.find(&key);
-    if (i == cache.records.end())
-        return;
-
-    immutable_cache_record* record = i->second.get();
-    record->state.store(
-        immutable_cache_entry_state::LOADING, std::memory_order_relaxed);
-}
-
 } // namespace detail
 } // namespace cradle
