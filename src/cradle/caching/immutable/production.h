@@ -32,6 +32,12 @@ set_immutable_cache_data(
     set_immutable_cache_data(cache, key, erase_type(value));
 }
 
+// report_immutable_cache_loading_failure() is used by producers to report
+// failures in their attempts to compute individual cache results.
+void
+report_immutable_cache_loading_failure(
+    immutable_cache& cache, id_interface const& key);
+
 } // namespace cradle
 
 #endif

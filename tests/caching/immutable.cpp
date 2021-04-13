@@ -155,13 +155,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
               sizeof(int)}},
             {}}));
 
-    {
-        immutable_cache_ptr<int> inner_q = std::move(q);
-        REQUIRE(inner_q.is_initialized());
-        REQUIRE(inner_q.is_ready());
-        REQUIRE(*inner_q == 12);
-        REQUIRE(!q.is_initialized());
-    }
+    q.reset();
 
     REQUIRE(
         sort_cache_snapshot(get_cache_snapshot(cache))
@@ -180,4 +174,14 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
         == (immutable_cache_snapshot{
             {{"0", immutable_cache_entry_state::LOADING, none, none, 0}},
             {}}));
+
+    report_immutable_cache_loading_failure(cache, make_id(0));
+
+    REQUIRE(
+        sort_cache_snapshot(get_cache_snapshot(cache))
+        == (immutable_cache_snapshot{
+            {{"0", immutable_cache_entry_state::FAILED, none, none, 0}}, {}}));
+
+    r.update();
+    REQUIRE(r.is_failed());
 }
