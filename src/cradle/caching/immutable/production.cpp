@@ -18,7 +18,8 @@ report_immutable_cache_loading_progress(
             return;
 
         detail::immutable_cache_record* r = i->second.get();
-        r->progress.store(encode_progress(progress));
+        r->progress.store(
+            encode_progress(progress), std::memory_order_relaxed);
     }
 }
 
@@ -37,11 +38,12 @@ set_immutable_cache_data(
         if (i == cache.records.end())
             return;
 
-        detail::immutable_cache_record* r = i->second.get();
-        r->data = std::move(value);
-        r->state.store(immutable_cache_entry_state::READY);
-        r->progress.store(encoded_optional_progress());
-        r->job.reset();
+        detail::immutable_cache_record* record = i->second.get();
+        record->data = std::move(value);
+        record->state.store(
+            immutable_cache_entry_state::READY, std::memory_order_relaxed);
+        record->progress.store(encoded_optional_progress());
+        record->job.reset();
     }
 
     // TODO
