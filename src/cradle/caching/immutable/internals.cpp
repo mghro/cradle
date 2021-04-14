@@ -19,14 +19,17 @@ reduce_memory_cache_size(immutable_cache& cache, size_t desired_size)
         while (!cache.eviction_list.records.empty()
                && cache.eviction_list.total_size > desired_size)
         {
-            auto const& i = cache.eviction_list.records.front();
-            auto data_size = i->data.ptr ? i->data.ptr->deep_size() : 0;
-            evicted_jobs.push_back(std::move(i->job));
-            cache.records.erase(&*i->key);
+            auto const& record = cache.eviction_list.records.front();
+            auto data_size
+                = record->data.ptr ? record->data.ptr->deep_size() : 0;
+            evicted_jobs.push_back(std::move(record->job));
+            cache.records.erase(&*record->key);
             cache.eviction_list.records.pop_front();
             cache.eviction_list.total_size -= data_size;
         }
     }
+    for (auto& job : evicted_jobs)
+        job.cancel();
 }
 
 } // namespace detail

@@ -6,6 +6,7 @@
 #include <cradle/background/job.h>
 #include <cradle/background/os.h>
 #include <cradle/background/system.h>
+#include <cradle/io/http_requests.hpp>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -17,14 +18,16 @@
 
 namespace cradle {
 
+namespace detail {
+
 struct background_job_execution_data : noncopyable
 {
     background_job_execution_data(
-        std::unique_ptr<background_job_interface>&& job,
-        int priority,
-        bool hidden)
+        std::unique_ptr<background_job_interface> job,
+        background_job_flag_set flags,
+        int priority)
         : job(std::move(job)),
-          hidden(hidden),
+          flags(flags),
           priority(priority),
           state(background_job_state::QUEUED),
           cancel(false)
@@ -34,9 +37,8 @@ struct background_job_execution_data : noncopyable
     // the job itself, owned by this structure
     std::unique_ptr<background_job_interface> job;
 
-    // If this is true, the job won't be included in status reports.
-    bool hidden;
-
+    // the flags and priority level supplied by whoever created the job
+    background_job_flag_set flags;
     int priority;
 
     // the current state of the job
@@ -44,7 +46,8 @@ struct background_job_execution_data : noncopyable
     // the progress of the job
     std::atomic<encoded_optional_progress> progress;
 
-    // If this is set, the job will be canceled next time it checks in.
+    // cancellation flag - If this is set, the job will be canceled next time
+    // it checks in.
     std::atomic<bool> cancel;
 };
 
@@ -111,13 +114,9 @@ struct background_job_failure
 struct background_job_queue : noncopyable
 {
     // used to track changes in the queue
-    unsigned version;
+    unsigned version = 0;
     // jobs that might be ready to run
     job_priority_queue jobs;
-    // jobs that are waiting on dependencies
-    job_priority_queue waiting_jobs;
-    // counts how many times jobs have been woken up
-    size_t wake_up_counter;
     // jobs that have failed
     std::list<background_job_failure> failed_jobs;
     // this provides info about all jobs in the queue
@@ -127,21 +126,12 @@ struct background_job_queue : noncopyable
     // for signalling when new jobs arrive
     std::condition_variable cv;
     // # of threads currently monitoring this queue for work
-    size_t n_idle_threads;
+    size_t n_idle_threads = 0;
     // reported size of the queue
-    // Internally, this is maintained as being the number of jobs in either
-    // the jobs queue or the waiting_jobs queue that aren't marked as hidden.
-    size_t reported_size;
-
-    background_job_queue()
-        : wake_up_counter(0), n_idle_threads(0), reported_size(0)
-    {
-    }
+    // Internally, this is maintained as being the number of jobs in the jobs
+    // queue that aren't marked as hidden.
+    size_t reported_size = 0;
 };
-
-// Move all jobs in the waiting queue back to the main queue.
-void
-wake_up_waiting_jobs(background_job_queue& queue);
 
 // This is used for communication between the threads in a thread pool and
 // outside entities.
@@ -179,6 +169,69 @@ struct background_execution_pool
     std::shared_ptr<background_job_queue> queue;
     std::vector<std::shared_ptr<background_execution_thread>> threads;
 };
+
+struct background_execution_system
+{
+    background_execution_pool
+        pools[unsigned(background_job_queue_type::COUNT)];
+
+    http_request_system http_system;
+};
+
+template<class ExecutionLoop>
+void
+add_background_thread(background_execution_pool& pool)
+{
+    auto data_proxy = std::make_shared<background_thread_data_proxy>();
+    ExecutionLoop fn(pool.queue, data_proxy);
+    auto thread
+        = std::make_shared<background_execution_thread>(fn, data_proxy);
+    pool.threads.push_back(thread);
+    // lower_thread_priority(thread->thread);
+}
+
+struct background_job_execution_loop
+{
+    background_job_execution_loop(
+        std::shared_ptr<background_job_queue> queue,
+        std::shared_ptr<background_thread_data_proxy> data_proxy)
+        : queue_(std::move(queue)), data_proxy_(std::move(data_proxy))
+    {
+    }
+    void
+    operator()();
+
+ private:
+    std::shared_ptr<background_job_queue> queue_;
+    std::shared_ptr<background_thread_data_proxy> data_proxy_;
+};
+
+void
+record_failure(
+    background_job_execution_data& job,
+    char const* msg,
+    bool transient_failure);
+
+struct http_request_processing_loop
+{
+    http_request_processing_loop(
+        std::shared_ptr<background_job_queue> queue,
+        std::shared_ptr<background_thread_data_proxy> data_proxy)
+        : queue_(std::move(queue)), data_proxy_(std::move(data_proxy))
+    //   ,
+    //   connection_(std::make_shared<http_connection>())
+    {
+    }
+    void
+    operator()();
+
+ private:
+    std::shared_ptr<background_job_queue> queue_;
+    std::shared_ptr<background_thread_data_proxy> data_proxy_;
+    // std::shared_ptr<http_connection> connection_;
+};
+
+} // namespace detail
 
 } // namespace cradle
 
