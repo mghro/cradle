@@ -116,8 +116,6 @@ release_cache_record(
             do_lru_eviction = true;
         }
     }
-    std::cout << "do_lru_eviction: " << (do_lru_eviction ? "true" : "false")
-              << "\n";
     if (do_lru_eviction)
         reduce_memory_cache_size(cache, cache.config.unused_size_limit);
 }
