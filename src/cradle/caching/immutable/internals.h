@@ -25,9 +25,9 @@ struct immutable_cache_record
     captured_id key;
 
     // All of the following fields are protected by the cache mutex. The only
-    // exception is that the state and progress fields can be polled for
+    // exception is that the :state and :progress fields can be polled for
     // informational purposes. However, before accessing any other fields based
-    // on the value of state, you should acquire the mutex and recheck state.
+    // on the value of :state, you should acquire the mutex and recheck state.
 
     std::atomic<immutable_cache_entry_state> state;
 
@@ -35,10 +35,11 @@ struct immutable_cache_record
 
     // This is a count of how many active pointers reference this data.
     // If this is 0, the data is just hanging around because it was recently
-    // used, in which case eviction_list_iterator points to this record's
+    // used, in which case :eviction_list_iterator points to this record's
     // entry in the eviction list.
     unsigned ref_count;
 
+    // (See :ref_count comment.)
     std::list<immutable_cache_record*>::iterator eviction_list_iterator;
 
     // a list of watchers
