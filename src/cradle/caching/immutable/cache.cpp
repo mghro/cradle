@@ -5,12 +5,27 @@
 
 namespace cradle {
 
-immutable_cache::immutable_cache()
-    : impl(std::make_unique<detail::immutable_cache>())
-{
-}
+immutable_cache::immutable_cache() = default;
 
 immutable_cache::~immutable_cache() = default;
+
+immutable_cache::immutable_cache(immutable_cache_config config)
+{
+    this->reset(std::move(config));
+}
+
+void
+immutable_cache::reset(immutable_cache_config config)
+{
+    this->impl = std::make_unique<detail::immutable_cache>();
+    this->impl->config = std::move(config);
+}
+
+void
+immutable_cache::reset()
+{
+    this->impl.reset();
+}
 
 void
 clear_unused_entries(immutable_cache& cache)

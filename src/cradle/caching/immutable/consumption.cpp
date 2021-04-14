@@ -80,7 +80,9 @@ add_to_eviction_list(immutable_cache& cache, immutable_cache_record* record)
     record->eviction_list_iterator
         = list.records.insert(list.records.end(), record);
     if (record->data.ptr)
+    {
         list.total_size += record->data.ptr->deep_size();
+    }
 }
 
 bool
@@ -97,6 +99,7 @@ release_cache_record(
     std::shared_ptr<immutable_cache_entry_watcher> const& watcher)
 {
     auto& cache = *record->owner_cache;
+    bool do_lru_eviction = false;
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
         --record->ref_count;
@@ -108,8 +111,15 @@ release_cache_record(
                 [&](auto const& ptr) { return same_owner(watcher, ptr); }));
         }
         if (record->ref_count == 0)
+        {
             add_to_eviction_list(cache, record);
+            do_lru_eviction = true;
+        }
     }
+    std::cout << "do_lru_eviction: " << (do_lru_eviction ? "true" : "false")
+              << "\n";
+    if (do_lru_eviction)
+        reduce_memory_cache_size(cache, cache.config.unused_size_limit);
 }
 
 } // namespace

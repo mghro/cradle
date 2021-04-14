@@ -9,7 +9,7 @@ namespace cradle {
 namespace detail {
 
 void
-reduce_memory_cache_size(immutable_cache& cache, int desired_size)
+reduce_memory_cache_size(immutable_cache& cache, size_t desired_size)
 {
     // We need to keep the jobs around until after the mutex is released
     // because they may recursively release other records.
@@ -17,8 +17,7 @@ reduce_memory_cache_size(immutable_cache& cache, int desired_size)
     {
         std::scoped_lock<std::mutex> lock(cache.mutex);
         while (!cache.eviction_list.records.empty()
-               && cache.eviction_list.total_size
-                      > size_t(desired_size) * 0x100000)
+               && cache.eviction_list.total_size > desired_size)
         {
             auto const& i = cache.eviction_list.records.front();
             auto data_size = i->data.ptr ? i->data.ptr->deep_size() : 0;

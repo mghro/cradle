@@ -13,10 +13,40 @@ struct immutable_cache;
 
 } // namespace detail
 
+api(struct)
+struct immutable_cache_config
+{
+    // The maximum amount of memory to use for caching results that are no
+    // longer in use, in bytes.
+    integer unused_size_limit;
+};
+
 struct immutable_cache
 {
+    // The default constructor creates an invalid cache that must be
+    // initialized via reset().
     immutable_cache();
+
+    // Create a cache that's initialized with the given config.
+    immutable_cache(immutable_cache_config config);
+
     ~immutable_cache();
+
+    // Reset the cache with a new config.
+    // After a successful call to this, the cache is considered initialized.
+    void
+    reset(immutable_cache_config config);
+
+    // Reset the cache to an uninitialized state.
+    void
+    reset();
+
+    // Is the cache initialized?
+    bool
+    is_initialized()
+    {
+        return impl ? true : false;
+    }
 
     std::unique_ptr<detail::immutable_cache> impl;
 };

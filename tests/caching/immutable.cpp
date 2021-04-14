@@ -31,6 +31,16 @@ sort_cache_snapshot(immutable_cache_snapshot snapshot)
 TEST_CASE("basic immutable cache usage", "[immutable_cache]")
 {
     immutable_cache cache;
+    {
+        INFO("Cache reset() and is_initialized() work as expected.");
+        REQUIRE(!cache.is_initialized());
+        cache.reset(immutable_cache_config(1024));
+        REQUIRE(cache.is_initialized());
+        cache.reset();
+        REQUIRE(!cache.is_initialized());
+        cache.reset(immutable_cache_config(1024));
+        REQUIRE(cache.is_initialized());
+    }
 
     immutable_cache_ptr<int> p;
     {
@@ -269,7 +279,7 @@ TEST_CASE("basic immutable cache usage", "[immutable_cache]")
 
 TEST_CASE("immutable cache entry watching", "[immutable_cache]")
 {
-    immutable_cache cache;
+    immutable_cache cache(immutable_cache_config(1024));
 
     struct test_watcher : immutable_cache_entry_watcher
     {
@@ -342,4 +352,55 @@ TEST_CASE("immutable cache entry watching", "[immutable_cache]")
 
     report_immutable_cache_loading_failure(cache, make_id(0));
     check_log("0: on_failure;");
+}
+
+TEST_CASE("immutable cache LRU eviction", "[immutable_cache]")
+{
+    // Initialize the cache with 1.5kB of space for unused data.
+    immutable_cache cache(immutable_cache_config(1536));
+
+    // Declare an interest in ID(1).
+    bool p_needed_creation = false;
+    immutable_cache_ptr<std::string> p(cache, make_id(1), [&] {
+        p_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(p_needed_creation);
+    // Add ID(1) to the cache as a 1kB string.
+    set_immutable_cache_data(
+        cache, make_id(1), make_immutable(string(1024, 'a')));
+
+    // Declare an interest in ID(2).
+    bool q_needed_creation = false;
+    immutable_cache_ptr<std::string> q(cache, make_id(2), [&] {
+        q_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(q_needed_creation);
+    // Add ID(2) to the cache as a 1kB string.
+    set_immutable_cache_data(
+        cache, make_id(2), make_immutable(string(1024, 'b')));
+
+    // Revoke interest in both IDs.
+    // Since only one will fit in the cache, this should evict ID(1).
+    p.reset();
+    q.reset();
+
+    // If we redeclare interest in ID(1), it should require creation.
+    bool r_needed_creation = false;
+    immutable_cache_ptr<std::string> r(cache, make_id(1), [&] {
+        r_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(r_needed_creation);
+    REQUIRE(!r.is_ready());
+
+    // If we redeclare interest in ID(2), it should NOT require creation.
+    bool s_needed_creation = false;
+    immutable_cache_ptr<std::string> s(cache, make_id(2), [&] {
+        s_needed_creation = true;
+        return background_job_controller();
+    });
+    REQUIRE(!s_needed_creation);
+    REQUIRE(s.is_ready());
 }

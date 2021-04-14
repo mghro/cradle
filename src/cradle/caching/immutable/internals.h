@@ -71,13 +71,16 @@ struct cache_record_eviction_list
 
 struct immutable_cache : noncopyable
 {
+    immutable_cache_config config;
     cache_record_map records;
     cache_record_eviction_list eviction_list;
     std::mutex mutex;
 };
 
+// Evict unused entries (in LRU order) until the total size of unused entries
+// in the cache is at most :desired_size (in bytes).
 void
-reduce_memory_cache_size(immutable_cache& cache, int desired_size);
+reduce_memory_cache_size(immutable_cache& cache, size_t desired_size);
 
 } // namespace detail
 } // namespace cradle
