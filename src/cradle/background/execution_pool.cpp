@@ -1,28 +1,25 @@
 #include <cradle/background/execution_pool.h>
 
-namespace cradle {
-
-#include <cradle/background/system.hpp>
-
 #include <boost/algorithm/string.hpp>
 
-#include <cradle/background/internals.hpp>
-#include <cradle/io/web_io.hpp>
-
 namespace cradle {
 
-void record_failure(background_job_queue& queue, background_job_ptr& job,
-    string msg, bool is_transient)
-{
-    // job->state = background_job_state::FAILED;
-    // boost::lock_guard<boost::mutex> lock(queue.mutex);
-    // inc_version(queue.version);
-    // background_job_failure failure;
-    // failure.is_transient = is_transient;
-    // failure.message = msg; // != '\0' ? msg : "unknown error";
-    // failure.job = job;
-    // queue.failed_jobs.push_back(failure);
-}
+// void
+// record_failure(
+//     background_job_queue& queue,
+//     background_job_ptr& job,
+//     string msg,
+//     bool is_transient)
+// {
+//     // job->state = background_job_state::FAILED;
+//     // boost::lock_guard<boost::mutex> lock(queue.mutex);
+//     // inc_version(queue.version);
+//     // background_job_failure failure;
+//     // failure.is_transient = is_transient;
+//     // failure.message = msg; // != '\0' ? msg : "unknown error";
+//     // failure.job = job;
+//     // queue.failed_jobs.push_back(failure);
+// }
 
 namespace detail {
 
@@ -109,18 +106,21 @@ namespace detail {
 //         }
 //         catch (cradle::exception& e)
 //         {
-//             string msg = "(bjc) " + job->job->get_info().description + string("\n") + string(e.what());
-//             record_failure(queue, job, msg, e.is_transient());
+//             string msg = "(bjc) " + job->job->get_info().description +
+//             string("\n") + string(e.what()); record_failure(queue, job, msg,
+//             e.is_transient());
 //         }
 //         catch (std::bad_alloc&)
 //         {
-//             string msg = "(bj) " + job->job->get_info().description + string("\n") + string(" out of memory");
-//             record_failure(queue, job, msg, true);
+//             string msg = "(bj) " + job->job->get_info().description +
+//             string("\n") + string(" out of memory"); record_failure(queue,
+//             job, msg, true);
 //         }
 //         catch (std::exception& e)
 //         {
-//             string msg = "(bjs) " + job->job->get_info().description + string("\n") + string(e.what());
-//             record_failure(queue, job, msg, false);
+//             string msg = "(bjs) " + job->job->get_info().description +
+//             string("\n") + string(e.what()); record_failure(queue, job, msg,
+//             false);
 //         }
 //         catch (...)
 //         {
@@ -231,7 +231,8 @@ namespace detail {
 //                     assert(0);
 //                     // Fall through just in case.
 //                  default:
-//                     // Record if the failure was transient or a 5XX error code
+//                     // Record if the failure was transient or a 5XX error
+//                     code
 //                     // so that these calculations can be retried.
 //                     record_failure(queue, job, failure.what(),
 //                         failure.is_transient() ||
@@ -241,17 +242,20 @@ namespace detail {
 //             }
 //             catch (cradle::exception& e)
 //             {
-//                 string msg = string(e.what()) + string("\n\ndebug details:\n") + "(wrc) " + job->job->get_info().description;
+//                 string msg = string(e.what()) + string("\n\ndebug
+//                 details:\n") + "(wrc) " + job->job->get_info().description;
 //                 record_failure(queue, job,  msg, e.is_transient());
 //             }
 //             catch (std::bad_alloc&)
 //             {
-//                 string msg = "(wrc) " + job->job->get_info().description + string("\n out of memory");
-//                 record_failure(queue, job, msg, true);
+//                 string msg = "(wrc) " + job->job->get_info().description +
+//                 string("\n out of memory"); record_failure(queue, job, msg,
+//                 true);
 //             }
 //             catch (std::exception& e)
 //             {
-//                 string msg = string(e.what()) + string("\n\ndebug details:\n") + "(wrs) " + job->job->get_info().description;
+//                 string msg = string(e.what()) + string("\n\ndebug
+//                 details:\n") + "(wrs) " + job->job->get_info().description;
 //                 record_failure(queue, job, msg, false);
 //             }
 //             catch (...)
@@ -273,24 +277,6 @@ namespace detail {
 //         }
 //     }
 // }
-
-void
-shut_down_pool(background_execution_pool& pool)
-{
-    for (auto& i : pool.threads)
-        i.thread.interrupt();
-}
-
-bool
-is_pool_idle(background_execution_pool& pool)
-{
-    background_job_queue& queue = *pool.queue;
-    boost::mutex::scoped_lock lock(queue.mutex);
-    return
-        queue.n_idle_threads == pool.threads.size() &&
-        queue.jobs.empty() &&
-        queue.waiting_jobs.empty();
-}
 
 // void
 // update_status(keyed_data<background_execution_pool_status>& status,
@@ -322,7 +308,8 @@ is_pool_idle(background_execution_pool& pool)
 // void update_status(background_execution_system_status& status,
 //     background_execution_system& system)
 // {
-//     for (unsigned i = 0; i != unsigned(background_job_queue_type::COUNT); ++i)
+//     for (unsigned i = 0; i != unsigned(background_job_queue_type::COUNT);
+//     ++i)
 //         update_status(status.pools[i], system.impl_->pools[i]);
 // }
 
@@ -353,14 +340,16 @@ is_pool_idle(background_execution_pool& pool)
 // get_permanent_failures(background_execution_system& system)
 // {
 //     std::list<background_job_failure_report> failures;
-//     for (unsigned i = 0; i != unsigned(background_job_queue_type::COUNT); ++i)
+//     for (unsigned i = 0; i != unsigned(background_job_queue_type::COUNT);
+//     ++i)
 //         get_permanent_failures(failures, system.impl_->pools[i]);
 //     return failures;
 // }
 
-size_t canceled_job_count(background_job_queue& queue)
+size_t
+canceled_job_count(background_job_queue& queue)
 {
-    boost::mutex::scoped_lock lock(queue.mutex);
+    std::scoped_lock<std::mutex> lock(queue.mutex);
     job_priority_queue copy = queue.jobs;
     size_t count = 0;
     while (!copy.empty())
@@ -373,15 +362,17 @@ size_t canceled_job_count(background_job_queue& queue)
     return count;
 }
 
-void clear_pending_jobs(background_execution_pool& pool)
+void
+clear_pending_jobs(background_execution_pool& pool)
 {
     auto& queue = *pool.queue;
-    boost::mutex::scoped_lock lock(queue.mutex);
-    inc_version(queue.version);
+    std::scoped_lock<std::mutex> lock(queue.mutex);
+    ++queue.version;
     queue.jobs = job_priority_queue();
 }
 
-void clear_all_jobs(background_execution_pool& pool)
+void
+clear_all_jobs(background_execution_pool& pool)
 {
     clear_pending_jobs(pool);
 
@@ -394,17 +385,14 @@ void clear_all_jobs(background_execution_pool& pool)
 
     {
         auto& queue = *pool.queue;
-        boost::mutex::scoped_lock lock(queue.mutex);
-        inc_version(queue.version);
+        std::scoped_lock<std::mutex> lock(queue.mutex);
+        ++queue.version;
         queue.failed_jobs.clear();
     }
 }
 
-namespace {
-
-void clear_canceled_jobs(
-    background_job_queue& queue,
-    job_priority_queue& pqueue)
+void
+clear_canceled_jobs(background_job_queue& queue, job_priority_queue& pqueue)
 {
     job_priority_queue filtered;
     while (!pqueue.empty())
@@ -412,7 +400,7 @@ void clear_canceled_jobs(
         auto job = pqueue.top();
         if (job->cancel)
         {
-            if (!job->hidden)
+            if (!(job->flags & BACKGROUND_JOB_HIDDEN))
                 --queue.reported_size;
             queue.job_info.erase(&*job);
         }
@@ -423,15 +411,28 @@ void clear_canceled_jobs(
     pqueue = filtered;
 }
 
-}
-
-void clear_canceled_jobs(background_execution_pool& pool)
+void
+clear_canceled_jobs(background_execution_pool& pool)
 {
     auto& queue = *pool.queue;
-    boost::mutex::scoped_lock lock(queue.mutex);
+    std::scoped_lock<std::mutex> lock(queue.mutex);
     clear_canceled_jobs(queue, queue.jobs);
 }
 
+void
+shut_down_pool(background_execution_pool& pool)
+{
+    clear_all_jobs(pool);
 }
 
+bool
+is_pool_idle(background_execution_pool& pool)
+{
+    background_job_queue& queue = *pool.queue;
+    std::scoped_lock<std::mutex> lock(queue.mutex);
+    return queue.n_idle_threads == pool.threads.size() && queue.jobs.empty();
 }
+
+} // namespace detail
+
+} // namespace cradle

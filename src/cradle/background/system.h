@@ -38,7 +38,7 @@ namespace detail {
 struct background_execution_system;
 struct background_job_execution_data;
 
-}
+} // namespace detail
 
 struct background_execution_system : noncopyable
 {

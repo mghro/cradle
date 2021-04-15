@@ -51,6 +51,13 @@ struct background_job_status
     optional<float> progress;
 };
 
+CRADLE_DEFINE_FLAG_TYPE(background_job)
+// Don't include this job (by default) in reports about what jobs are running
+// in the system.
+CRADLE_DEFINE_FLAG(background_job, 0b01, BACKGROUND_JOB_HIDDEN)
+// Ensure that an idle thread exists to pick up the job.
+CRADLE_DEFINE_FLAG(background_job, 0b01, BACKGROUND_JOB_SKIP_QUEUE)
+
 namespace detail {
 
 struct background_job_execution_data : noncopyable
@@ -84,7 +91,7 @@ struct background_job_execution_data : noncopyable
     std::atomic<bool> cancel;
 };
 
-}
+} // namespace detail
 
 typedef std::shared_ptr<detail::background_job_execution_data>
     background_job_ptr;
@@ -124,13 +131,6 @@ struct background_job_controller
 
     background_job_ptr job_;
 };
-
-struct background_execution_system;
-
-CRADLE_DEFINE_FLAG_TYPE(background_job)
-// Don't include this job (by default) in reports about what jobs are running
-// in the system.
-CRADLE_DEFINE_FLAG(background_job, 0b01, BACKGROUND_JOB_HIDDEN)
 
 } // namespace cradle
 

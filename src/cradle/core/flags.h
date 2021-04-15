@@ -106,7 +106,9 @@ hash_value(cradle::flag_set<Tag> const& set)
     typedef cradle::flag_set<type_prefix##_flag_tag> type_prefix##_flag_set;
 
 #define CRADLE_DEFINE_FLAG(type_prefix, code, name)                           \
-    static unsigned const name##_CODE = code;                                 \
+    namespace flag_codes {                                                    \
+    static unsigned const name = code;                                        \
+    }                                                                         \
     static cradle::flag_set<type_prefix##_flag_tag> const name(code);
 
 } // namespace cradle
