@@ -3,7 +3,6 @@
 
 #include <cradle/background/job.h>
 #include <cradle/core.h>
-#include <cradle/io/http_requests.hpp>
 
 #include <list>
 
@@ -37,8 +36,9 @@ namespace cradle {
 namespace detail {
 
 struct background_execution_system;
+struct background_job_execution_data;
 
-}
+} // namespace detail
 
 struct background_execution_system : noncopyable
 {
@@ -47,8 +47,6 @@ struct background_execution_system : noncopyable
 
     std::unique_ptr<detail::background_execution_system> impl_;
 };
-
-struct background_job_execution_data;
 
 // Clear all the jobs in the system, including those that are currently
 // executing.

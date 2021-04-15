@@ -1,6 +1,8 @@
 #ifndef CRADLE_BACKGROUND_JOB_H
 #define CRADLE_BACKGROUND_JOB_H
 
+#include <atomic>
+
 #include <cradle/background/encoded_progress.h>
 #include <cradle/core.h>
 
@@ -49,11 +51,47 @@ struct background_job_status
     optional<float> progress;
 };
 
-// This is defined in cradle/background/internals.h. It stores the actual data
-// that the system tracks about a background job.
+CRADLE_DEFINE_FLAG_TYPE(background_job)
+// Don't include this job (by default) in reports about what jobs are running
+// in the system.
+CRADLE_DEFINE_FLAG(background_job, 0b01, BACKGROUND_JOB_HIDDEN)
+// Ensure that an idle thread exists to pick up the job.
+CRADLE_DEFINE_FLAG(background_job, 0b01, BACKGROUND_JOB_SKIP_QUEUE)
+
 namespace detail {
-struct background_job_execution_data;
-}
+
+struct background_job_execution_data : noncopyable
+{
+    background_job_execution_data(
+        std::unique_ptr<background_job_interface> job,
+        background_job_flag_set flags,
+        int priority)
+        : job(std::move(job)),
+          flags(flags),
+          priority(priority),
+          state(background_job_state::QUEUED),
+          cancel(false)
+    {
+    }
+
+    // the job itself, owned by this structure
+    std::unique_ptr<background_job_interface> job;
+
+    // the flags and priority level supplied by whoever created the job
+    background_job_flag_set flags;
+    int priority;
+
+    // the current state of the job
+    std::atomic<background_job_state> state;
+    // the progress of the job
+    std::atomic<encoded_optional_progress> progress;
+
+    // cancellation flag - If this is set, the job will be canceled next time
+    // it checks in.
+    std::atomic<bool> cancel;
+};
+
+} // namespace detail
 
 typedef std::shared_ptr<detail::background_job_execution_data>
     background_job_ptr;
@@ -93,57 +131,6 @@ struct background_job_controller
 
     background_job_ptr job_;
 };
-
-struct background_execution_system;
-
-enum class background_job_queue_type
-{
-    // Calculation jobs are run in parallel according to the number of
-    // available process cores.
-    CALCULATION = 0,
-
-    // Disk jobs are run with a much lower level of parallelism since it's
-    // assumed that disk bandwidth is going to limit parallelism.
-    DISK,
-
-    // HTTP job are run with a very high level of parallelism.
-    // (It would be essentially infinite, but we've determined that this can
-    // cause issues with routers/ISPs getting upset when clients have too many
-    // open connections.)
-    HTTP,
-
-    // Jobs in the following queues are long-lived network request jobs that
-    // may run indefinitely but consume very little bandwidth, so they each get
-    // their own thread.
-    NOTIFICATION_WATCH,
-    REMOTE_CALCULATION,
-
-    // This is just here to capture the count of queue types.
-    COUNT
-};
-
-CRADLE_DEFINE_FLAG_TYPE(background_job)
-// Don't include this job (by default) in reports about what jobs are running
-// in the system.
-CRADLE_DEFINE_FLAG(background_job, 0b01, BACKGROUND_JOB_HIDDEN)
-// This job should run even if no external entities are interested in it.
-CRADLE_DEFINE_FLAG(background_job, 0b10, BACKGROUND_JOB_INDEPENDENT)
-
-// Add a job for the background execution system to execute.
-//
-// The returned
-//
-// :priority controls the priority of the job. A higher number means higher
-// priority. Negative numbers are OK, and 0 is taken to be the default/neutral
-// priority.
-//
-background_job_controller
-add_background_job(
-    background_execution_system& system,
-    background_job_queue_type queue,
-    std::unique_ptr<background_job_interface> job,
-    background_job_flag_set flags = NO_FLAGS,
-    int priority = 0);
 
 } // namespace cradle
 
