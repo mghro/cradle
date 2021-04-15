@@ -69,6 +69,33 @@ queue_background_job(
     queue.cv.notify_one();
 }
 
+
+// enum class background_job_queue_type
+// {
+//     // Calculation jobs are run in parallel according to the number of
+//     // available process cores.
+//     CALCULATION = 0,
+
+//     // Disk jobs are run with a much lower level of parallelism since it's
+//     // assumed that disk bandwidth is going to limit parallelism.
+//     DISK,
+
+//     // HTTP job are run with a very high level of parallelism.
+//     // (It would be essentially infinite, but we've determined that this can
+//     // cause issues with routers/ISPs getting upset when clients have too many
+//     // open connections.)
+//     HTTP,
+
+//     // Jobs in the following queues are long-lived network request jobs that
+//     // may run indefinitely but consume very little bandwidth, so they each get
+//     // their own thread.
+//     NOTIFICATION_WATCH,
+//     REMOTE_CALCULATION,
+
+//     // This is just here to capture the count of queue types.
+//     COUNT
+// };
+
 // Queue a background job to the requested queue within the background
 // execution system.
 void
@@ -103,6 +130,43 @@ queue_background_job(
     //         break;
     // }
 }
+
+// void static
+// initialize_system(background_execution_system_impl& system)
+// {
+//     // Only enable full concurrency in release mode.
+//     // I've had issues with running inside the debugger with too many threads,
+//     // and it's just easier to see what's going on with less concurrency.
+//     // (The app even feels faster in debug mode with fewer threads.)
+//   #ifdef _DEBUG
+//     bool const full_concurrency = false;
+//   #else
+//     bool const full_concurrency = true;
+//   #endif
+//     // Initialize all the queues.
+//     initialize_pool<background_job_execution_loop>(
+//         system.pools[int(background_job_queue_type::CALCULATION)],
+//         full_concurrency ? boost::thread::hardware_concurrency() : 1);
+//     initialize_pool<web_request_processing_loop>(
+//         system.pools[int(background_job_queue_type::WEB_READ)],
+//         full_concurrency ? 16 : 1);
+//     initialize_pool<web_request_processing_loop>(
+//         system.pools[int(background_job_queue_type::WEB_WRITE)], 1);
+//     initialize_pool<web_request_processing_loop>(
+//         system.pools[int(background_job_queue_type::NOTIFICATION_WATCH)], 1);
+//     initialize_pool<web_request_processing_loop>(
+//         system.pools[int(background_job_queue_type::REMOTE_CALCULATION)], 1);
+//     initialize_pool<background_job_execution_loop>(
+//         system.pools[int(background_job_queue_type::DISK)],
+//         full_concurrency ? 2 : 1);
+//     // Invalidate the session data.
+//     system.authentication.status =
+//         background_authentication_status(
+//             background_authentication_state::NO_CREDENTIALS);
+//     system.context.status =
+//         background_context_request_status(
+//             background_context_request_state::NO_REQUEST);
+// }
 
 } // namespace detail
 

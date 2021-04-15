@@ -1,55 +1,24 @@
-#ifndef CRADLE_BACKGROUND_INTERNALS_HPP
-#define CRADLE_BACKGROUND_INTERNALS_HPP
+#ifndef CRADLE_BACKGROUND_EXECUTION_POOL_HPP
+#define CRADLE_BACKGROUND_EXECUTION_POOL_HPP
 
-#include <atomic>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>
+
 #include <cradle/background/job.h>
 #include <cradle/background/os.h>
 #include <cradle/background/system.h>
 #include <cradle/io/http_requests.hpp>
-#include <mutex>
-#include <queue>
-#include <thread>
-#include <unordered_map>
 
-// This file defines various shared internals for the background execution
-// system. For more information about the system in general, see system.hpp
-// and api.hpp.
+// This file defines CRADLE's system for executing background jobs in thread
+// pools. As with most of the rest of the CRADLE background system, this is a
+// pretty straightforward port of the Astroid code, and it's likely to be
+// replaced by standard C++ mechanisms once those are finalized.
 
 namespace cradle {
 
 namespace detail {
-
-struct background_job_execution_data : noncopyable
-{
-    background_job_execution_data(
-        std::unique_ptr<background_job_interface> job,
-        background_job_flag_set flags,
-        int priority)
-        : job(std::move(job)),
-          flags(flags),
-          priority(priority),
-          state(background_job_state::QUEUED),
-          cancel(false)
-    {
-    }
-
-    // the job itself, owned by this structure
-    std::unique_ptr<background_job_interface> job;
-
-    // the flags and priority level supplied by whoever created the job
-    background_job_flag_set flags;
-    int priority;
-
-    // the current state of the job
-    std::atomic<background_job_state> state;
-    // the progress of the job
-    std::atomic<encoded_optional_progress> progress;
-
-    // cancellation flag - If this is set, the job will be canceled next time
-    // it checks in.
-    std::atomic<bool> cancel;
-};
 
 struct background_job_sorter
 {
@@ -162,20 +131,15 @@ struct background_execution_thread
     std::shared_ptr<background_thread_data_proxy> data_proxy;
 };
 
+
+namespace detail {
+
 // A background_execution_pool combines a queue of jobs with a pool of threads
 // that are intended to execute those jobs.
-struct background_execution_pool
+struct background_execution_pool : noncopyable
 {
     std::shared_ptr<background_job_queue> queue;
     std::vector<std::shared_ptr<background_execution_thread>> threads;
-};
-
-struct background_execution_system
-{
-    background_execution_pool
-        pools[unsigned(background_job_queue_type::COUNT)];
-
-    http_request_system http_system;
 };
 
 template<class ExecutionLoop>
@@ -189,6 +153,74 @@ add_background_thread(background_execution_pool& pool)
     pool.threads.push_back(thread);
     // lower_thread_priority(thread->thread);
 }
+
+template<class ExecutionLoop>
+void initialize_pool(
+    background_execution_pool& pool, size_t initial_thread_count)
+{
+    pool.queue = std::make_shared<background_job_queue>());
+    for (size_t i = 0; i != initial_thread_count; ++i)
+        add_background_thread<ExecutionLoop>(pool);
+}
+
+void
+shut_down_pool(background_execution_pool& pool);
+
+bool
+is_pool_idle(background_execution_pool& pool);
+
+void clear_canceled_jobs(background_execution_pool& pool);
+
+}
+
+template<class ExecutionLoop>
+struct background_execution_pool : noncopyable
+{
+    // Construct an uninitialized execution pool.
+    background_execution_pool() {}
+
+    // Construct an execution pool with the given number of initial threads
+    // servicing it.
+    background_execution_pool(size_t initial_thread_count)
+    {
+        detail::initialize_pool<ExecutionLoop>(pool_, initial_thread_count);
+    }
+
+    ~background_execution_pool()
+    {
+        detail::shut_down_pool(pool_);
+    }
+
+    bool is_initialized() { return is_initialized(pool_); }
+
+    void add_thread()   {
+        detail::add_background_thread<ExecutionLoop>(pool_);
+    }
+
+ private:
+    detail::background_execution_pool pool_;
+}
+
+// Add a job for the execution pool to execute.
+//
+// The returned background_job_controller can be used to monitor the job's
+// status and cancel it if needed. The controller does NOT own the job. It can
+// safely be discarded if it's not useful. If the job is no longer needed, it
+// should be explicitly canceled before discarding the controller.
+//
+// :job is a pointer to the job object that should be executed. The pool will
+// assume owernship of it.
+//
+// :priority controls the priority of the job. A higher number means higher
+// priority. Negative numbers are OK, and 0 is taken to be the default/neutral
+// priority.
+//
+background_job_controller
+add_background_job(
+    background_execution_pool& pool,
+    std::unique_ptr<background_job_interface> job,
+    background_job_flag_set flags = NO_FLAGS,
+    int priority = 0);
 
 struct background_job_execution_loop
 {
@@ -211,25 +243,6 @@ record_failure(
     background_job_execution_data& job,
     char const* msg,
     bool transient_failure);
-
-struct http_request_processing_loop
-{
-    http_request_processing_loop(
-        std::shared_ptr<background_job_queue> queue,
-        std::shared_ptr<background_thread_data_proxy> data_proxy)
-        : queue_(std::move(queue)), data_proxy_(std::move(data_proxy))
-    //   ,
-    //   connection_(std::make_shared<http_connection>())
-    {
-    }
-    void
-    operator()();
-
- private:
-    std::shared_ptr<background_job_queue> queue_;
-    std::shared_ptr<background_thread_data_proxy> data_proxy_;
-    // std::shared_ptr<http_connection> connection_;
-};
 
 } // namespace detail
 
