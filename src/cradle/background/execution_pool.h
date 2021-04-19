@@ -7,9 +7,6 @@
 #include <thread>
 
 #include <cradle/background/job.h>
-#include <cradle/background/os.h>
-#include <cradle/background/system.h>
-#include <cradle/io/http_requests.hpp>
 
 // This file defines CRADLE's system for executing background jobs in thread
 // pools. As with most of the rest of the CRADLE background system, this is a
@@ -100,6 +97,8 @@ struct background_job_queue : noncopyable
     // Internally, this is maintained as being the number of jobs in the jobs
     // queue that aren't marked as hidden.
     size_t reported_size = 0;
+    // flag to tell active threads that the queue is shutting down
+    bool terminating = false;
 };
 
 // This is used for communication between the threads in a thread pool and
@@ -118,46 +117,159 @@ struct background_execution_thread
     {
     }
 
-    template<class Function>
     background_execution_thread(
-        Function function,
-        std::shared_ptr<background_thread_data_proxy> const& data_proxy)
-        : thread(function), data_proxy(data_proxy)
+        std::thread thread,
+        std::shared_ptr<background_thread_data_proxy> data_proxy)
+        : thread(std::move(thread)), data_proxy(std::move(data_proxy))
     {
     }
 
     std::thread thread;
-
     std::shared_ptr<background_thread_data_proxy> data_proxy;
 };
 
-// A background_execution_pool combines a queue of jobs with a pool of threads
-// that are intended to execute those jobs.
+template<class Executor>
+struct background_execution_loop
+{
+    background_execution_loop(
+        std::shared_ptr<background_job_queue> queue,
+        std::shared_ptr<background_thread_data_proxy> data_proxy,
+        Executor executor)
+        : queue_(std::move(queue)),
+          data_proxy_(std::move(data_proxy)),
+          executor_(std::move(executor))
+    {
+    }
+
+    void
+    operator()()
+    {
+        while (1)
+        {
+            auto& queue = *queue_;
+
+            // Wait until the queue has a job in it, and then grab the job.
+            background_job_ptr job;
+            {
+                std::unique_lock<std::mutex> lock(queue.mutex);
+                ++queue.version;
+                ++queue.n_idle_threads;
+                // TODO: If this queue is allocating threads on demand and
+                // there are already a lot of idle threads, just end this one.
+
+                while (queue.jobs.empty())
+                {
+                    queue.cv.wait(lock);
+                    if (queue.terminating)
+                        return;
+                }
+                job = queue.jobs.top();
+                ++queue.version;
+                queue.jobs.pop();
+                if (!(job->flags & BACKGROUND_JOB_HIDDEN))
+                    --queue.reported_size;
+                --queue.n_idle_threads;
+
+                // If it's already been instructed to cancel, cancel it.
+                if (job->cancel)
+                {
+                    job->state = background_job_state::CANCELED;
+                    queue.job_info.erase(&*job);
+                    continue;
+                }
+            }
+
+            {
+                std::scoped_lock<std::mutex> lock(data_proxy_->mutex);
+                data_proxy_->active_job = job;
+            }
+
+            try
+            {
+                job->state = background_job_state::RUNNING;
+                background_job_check_in check_in(job);
+                background_job_progress_reporter reporter(job);
+                executor_.execute(check_in, reporter, *job->job);
+                job->state = background_job_state::COMPLETED;
+            }
+            catch (background_job_canceled&)
+            {
+            }
+            catch (boost::exception&)
+            {
+                // string msg = "(bjc) " + job->job->get_info().description
+                //              + string("\n") + string(e.what());
+                // record_failure(queue, job, msg, e.is_transient());
+            }
+            catch (std::bad_alloc&)
+            {
+                // string msg = "(bj) " + job->job->get_info().description
+                //              + string("\n") + string(" out of memory");
+                // record_failure(queue, job, msg, true);
+            }
+            catch (std::exception&)
+            {
+                // string msg = "(bjs) " + job->job->get_info().description
+                //              + string("\n") + string(e.what());
+                // record_failure(queue, job, msg, false);
+            }
+            catch (...)
+            {
+                // string msg = "(bj) " + job->job->get_info().description;
+                // record_failure(queue, job, msg, false);
+            }
+
+            {
+                std::scoped_lock<std::mutex> lock(queue.mutex);
+                queue.job_info.erase(&*job);
+                ++queue.version;
+            }
+
+            {
+                std::scoped_lock<std::mutex> lock(data_proxy_->mutex);
+                data_proxy_->active_job.reset();
+            }
+        }
+    }
+
+ private:
+    std::shared_ptr<background_job_queue> queue_;
+    std::shared_ptr<background_thread_data_proxy> data_proxy_;
+    Executor executor_;
+};
+
+// A background_execution_pool combines a queue of jobs with a pool of
+// threads that are intended to execute those jobs.
 struct background_execution_pool : noncopyable
 {
     std::shared_ptr<background_job_queue> queue;
     std::vector<std::shared_ptr<background_execution_thread>> threads;
+    std::function<std::thread(
+        std::shared_ptr<background_job_queue>,
+        std::shared_ptr<background_thread_data_proxy>)>
+        create_thread;
 };
 
-template<class ExecutionLoop>
 void
-add_background_thread(background_execution_pool& pool)
-{
-    auto data_proxy = std::make_shared<background_thread_data_proxy>();
-    ExecutionLoop fn(pool.queue, data_proxy);
-    auto thread
-        = std::make_shared<background_execution_thread>(fn, data_proxy);
-    pool.threads.push_back(thread);
-    // lower_thread_priority(thread->thread);
-}
+add_background_thread(background_execution_pool& pool);
 
-template<class ExecutionLoop>
+template<class Executor>
 void
-initialize_pool(background_execution_pool& pool, size_t initial_thread_count)
+initialize_pool(
+    background_execution_pool& pool,
+    Executor const& model_executor,
+    size_t initial_thread_count)
 {
     pool.queue = std::make_shared<background_job_queue>();
+    pool.create_thread
+        = [model_executor](
+              std::shared_ptr<background_job_queue> queue,
+              std::shared_ptr<background_thread_data_proxy> data_proxy) {
+              return std::thread(background_execution_loop<Executor>(
+                  std::move(queue), std::move(data_proxy), model_executor));
+          };
     for (size_t i = 0; i != initial_thread_count; ++i)
-        add_background_thread<ExecutionLoop>(pool);
+        add_background_thread(pool);
 }
 
 void
@@ -170,92 +282,14 @@ void
 clear_canceled_jobs(background_execution_pool& pool);
 
 // Add a background job to the given execution pool and take care of the
-// mechanics for ensuring that a thread gets woken up to handle it.
+// mechanics for ensuring that a thread gets woken up to handle it (or created,
+// depending on the flags).
 //
-// If :ensure_idle_thread_exists is true, this will ensure that an idle thread
-// exists to pick up the job. Otherwise, the job might get queued until a
-// thread is available.
-//
-template<class ExecutionLoop>
 void
 queue_background_job(
     background_execution_pool& pool,
     background_job_ptr job_ptr,
-    background_job_flag_set flags)
-{
-    background_job_queue& queue = *pool.queue;
-    {
-        std::scoped_lock<std::mutex> lock(queue.mutex);
-        ++queue.version;
-        if (!(flags & BACKGROUND_JOB_HIDDEN))
-        {
-            queue.job_info[&*job_ptr]
-                = background_job_info(); // TODO: job_ptr->job->get_info();
-            ++queue.reported_size;
-        }
-        queue.jobs.push(job_ptr);
-        // If requested, ensure that there will be an idle thread to pick up
-        // the new job.
-        if ((flags & BACKGROUND_JOB_SKIP_QUEUE)
-            && queue.n_idle_threads < queue.jobs.size())
-        {
-            add_background_thread<ExecutionLoop>(pool);
-        }
-    }
-    queue.cv.notify_one();
-}
-
-template<class ExecutionLoop>
-background_job_controller
-add_background_job(
-    background_execution_pool& pool,
-    std::unique_ptr<background_job_interface> job,
-    background_job_flag_set flags,
-    int priority)
-{
-    auto ptr = std::make_shared<detail::background_job_execution_data>(
-        std::move(job), flags, priority);
-    detail::queue_background_job<ExecutionLoop>(pool, ptr, flags);
-    return background_job_controller(ptr);
-}
-
-} // namespace detail
-
-template<class ExecutionLoop>
-struct background_execution_pool : noncopyable
-{
-    // Construct an uninitialized execution pool.
-    background_execution_pool()
-    {
-    }
-
-    // Construct an execution pool with the given number of initial threads
-    // servicing it.
-    background_execution_pool(size_t initial_thread_count)
-    {
-        detail::initialize_pool<ExecutionLoop>(pool_, initial_thread_count);
-    }
-
-    ~background_execution_pool()
-    {
-        detail::shut_down_pool(pool_);
-    }
-
-    bool
-    is_initialized()
-    {
-        return is_initialized(pool_);
-    }
-
-    void
-    add_thread()
-    {
-        detail::add_background_thread<ExecutionLoop>(pool_);
-    }
-
- private:
-    detail::background_execution_pool pool_;
-};
+    background_job_flag_set flags);
 
 // Add a job for the execution pool to execute.
 //
@@ -271,17 +305,26 @@ struct background_execution_pool : noncopyable
 // priority. Negative numbers are OK, and 0 is taken to be the default/neutral
 // priority.
 //
-template<class ExecutionLoop>
 background_job_controller
 add_background_job(
-    background_execution_pool<ExecutionLoop>& pool,
+    background_execution_pool& pool,
     std::unique_ptr<background_job_interface> job,
     background_job_flag_set flags = NO_FLAGS,
-    int priority = 0)
+    int priority = 0);
+
+struct basic_executor
 {
-    return detail::add_background_job<ExecutionLoop>(
-        pool, job, flags, priority);
-}
+    void
+    execute(
+        background_job_check_in& check_in,
+        background_job_progress_reporter& reporter,
+        background_job_interface& job)
+    {
+        job.execute(check_in, reporter);
+    }
+};
+
+} // namespace detail
 
 // struct background_job_execution_loop
 // {

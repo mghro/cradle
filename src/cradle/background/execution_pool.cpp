@@ -23,124 +23,6 @@ namespace cradle {
 
 namespace detail {
 
-// void background_job_execution_loop::operator()()
-// {
-//     while (1)
-//     {
-//         auto& queue = *queue_;
-
-//         // Wait until the queue has a job in it, and then grab the job.
-//         background_job_ptr job;
-//         size_t wake_up_counter;
-//         {
-//             boost::unique_lock<boost::mutex> lock(queue.mutex);
-//             inc_version(queue.version);
-//             ++queue.n_idle_threads;
-//             // If this queue is allocating threads on demand and there are
-//             // already a lot of idle threads, just end this one.
-
-//             while (queue.jobs.empty())
-//                 queue.cv.wait(lock);
-//             job = queue.jobs.top();
-//             inc_version(queue.version);
-//             queue.jobs.pop();
-//             if (!job->hidden)
-//                 --queue.reported_size;
-//             --queue.n_idle_threads;
-//             wake_up_counter = queue.wake_up_counter;
-
-//             // If it's already been instructed to cancel, cancel it.
-//             if (job->cancel)
-//             {
-//                 job->state = background_job_state::CANCELED;
-//                 queue.job_info.erase(&*job);
-//                 continue;
-//             }
-//         }
-
-//         while (1)
-//         {
-//             // Instruct the job to gather its inputs.
-//             job->job->gather_inputs();
-
-//             if (job->job->inputs_ready())
-//                 goto job_inputs_ready;
-
-//             {
-//                 boost::lock_guard<boost::mutex> lock(queue.mutex);
-//                 // If the wake_up_counter has changed, data became avaiable
-//                 // while this job was checking its inputs, so try again.
-//                 if (queue.wake_up_counter != wake_up_counter)
-//                 {
-//                     wake_up_counter = queue.wake_up_counter;
-//                     continue;
-//                 }
-//                 {
-//                     inc_version(queue.version);
-//                     queue.waiting_jobs.push(job);
-//                     if (!job->hidden)
-//                         ++queue.reported_size;
-//                     break;
-//                 }
-//             }
-//         }
-//         continue;
-
-//       job_inputs_ready:
-
-//         {
-//             boost::lock_guard<boost::mutex> lock(data_proxy_->mutex);
-//             data_proxy_->active_job = job;
-//         }
-
-//         try
-//         {
-//             job->state = background_job_state::RUNNING;
-//             background_job_check_in check_in(job);
-//             background_job_progress_reporter reporter(job);
-//             job->job->execute(check_in, reporter);
-//             job->state = background_job_state::FINISHED;
-//         }
-//         catch (background_job_canceled&)
-//         {
-//         }
-//         catch (cradle::exception& e)
-//         {
-//             string msg = "(bjc) " + job->job->get_info().description +
-//             string("\n") + string(e.what()); record_failure(queue, job, msg,
-//             e.is_transient());
-//         }
-//         catch (std::bad_alloc&)
-//         {
-//             string msg = "(bj) " + job->job->get_info().description +
-//             string("\n") + string(" out of memory"); record_failure(queue,
-//             job, msg, true);
-//         }
-//         catch (std::exception& e)
-//         {
-//             string msg = "(bjs) " + job->job->get_info().description +
-//             string("\n") + string(e.what()); record_failure(queue, job, msg,
-//             false);
-//         }
-//         catch (...)
-//         {
-//             string msg = "(bj) " + job->job->get_info().description;
-//             record_failure(queue, job, msg, false);
-//         }
-
-//         {
-//             boost::unique_lock<boost::mutex> lock(queue.mutex);
-//             queue.job_info.erase(&*job);
-//             inc_version(queue.version);
-//         }
-
-//         {
-//             boost::lock_guard<boost::mutex> lock(data_proxy_->mutex);
-//             data_proxy_->active_job.reset();
-//         }
-//     }
-// }
-
 // void web_request_processing_loop::operator()()
 // {
 //     while (1)
@@ -423,6 +305,14 @@ void
 shut_down_pool(background_execution_pool& pool)
 {
     clear_all_jobs(pool);
+    auto& queue = *pool.queue;
+    {
+        std::scoped_lock<std::mutex> lock(queue.mutex);
+        queue.terminating = true;
+    }
+    queue.cv.notify_all();
+    for (auto& thread : pool.threads)
+        thread->thread.join();
 }
 
 bool
@@ -431,6 +321,57 @@ is_pool_idle(background_execution_pool& pool)
     background_job_queue& queue = *pool.queue;
     std::scoped_lock<std::mutex> lock(queue.mutex);
     return queue.n_idle_threads == pool.threads.size() && queue.jobs.empty();
+}
+
+void
+add_background_thread(background_execution_pool& pool)
+{
+    auto data_proxy = std::make_shared<background_thread_data_proxy>();
+    auto thread = std::make_shared<background_execution_thread>(
+        pool.create_thread(pool.queue, data_proxy), data_proxy);
+    pool.threads.push_back(thread);
+    // lower_thread_priority(thread->thread);
+}
+
+void
+queue_background_job(
+    background_execution_pool& pool,
+    background_job_ptr job_ptr,
+    background_job_flag_set flags)
+{
+    background_job_queue& queue = *pool.queue;
+    {
+        std::scoped_lock<std::mutex> lock(queue.mutex);
+        ++queue.version;
+        if (!(flags & BACKGROUND_JOB_HIDDEN))
+        {
+            queue.job_info[&*job_ptr]
+                = background_job_info(); // TODO: job_ptr->job->get_info();
+            ++queue.reported_size;
+        }
+        queue.jobs.push(job_ptr);
+        // If requested, ensure that there will be an idle thread to pick
+        // up the new job.
+        if ((flags & BACKGROUND_JOB_SKIP_QUEUE)
+            && queue.n_idle_threads < queue.jobs.size())
+        {
+            add_background_thread(pool);
+        }
+    }
+    queue.cv.notify_one();
+}
+
+background_job_controller
+add_background_job(
+    background_execution_pool& pool,
+    std::unique_ptr<background_job_interface> job,
+    background_job_flag_set flags,
+    int priority)
+{
+    auto ptr = std::make_shared<detail::background_job_execution_data>(
+        std::move(job), flags, priority);
+    queue_background_job(pool, ptr, flags);
+    return background_job_controller(ptr);
 }
 
 } // namespace detail
