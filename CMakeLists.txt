@@ -240,7 +240,6 @@ endif()
 # Set up the deployment directory.
 set(deploy_dir "${CMAKE_CURRENT_BINARY_DIR}/deploy")
 file(MAKE_DIRECTORY ${deploy_dir})
-file(COPY ${CONAN_LIBCURL_ROOT}/res/cacert.pem DESTINATION ${deploy_dir})
 
 # Add the server.
 add_executable(server src/server.cpp)

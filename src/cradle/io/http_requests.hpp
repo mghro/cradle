@@ -114,27 +114,8 @@ CRADLE_DEFINE_ERROR_INFO(http_response, http_response)
 
 struct http_request_system : noncopyable
 {
-    // See below for details on :cacert_path.
-    http_request_system(optional<file_path> cacert_path = none);
+    http_request_system();
     ~http_request_system();
-
-    // Get/set the path for the certificate authority file.
-    // This is optional. If none is specified, the system default is used.
-    // (On Windows, the default is to look for a cacert.pem file included with
-    // cradle.)
-    optional<file_path> const&
-    get_cacert_path()
-    {
-        return cacert_path_;
-    }
-    void
-    set_cacert_path(optional<file_path> cacert_path)
-    {
-        cacert_path_ = std::move(cacert_path);
-    }
-
- private:
-    optional<file_path> cacert_path_;
 };
 
 // http_connection provides a network connection over which HTTP requests can

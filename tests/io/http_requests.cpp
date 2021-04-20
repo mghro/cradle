@@ -12,29 +12,12 @@
 #include <cradle/utilities/environment.h>
 #include <cradle/utilities/errors.h>
 
-#include "http_requests.hpp"
-
 // Include this again to clean up preprocessor definitions.
 #include <cradle/io/http_requests.hpp>
 
 using namespace cradle;
 
-file_path
-find_testing_cacert_file()
-{
-    try
-    {
-        return file_path(get_environment_variable("CRADLE_DEPLOY_DIR"))
-               / "cacert.pem";
-    }
-    catch (...)
-    {
-        return file_path("cacert.pem");
-    }
-}
-
-static http_request_system
-    the_http_request_system(some(find_testing_cacert_file()));
+static http_request_system the_http_request_system;
 
 static auto the_logger = spdlog::stdout_color_mt("cradle");
 
