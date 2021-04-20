@@ -134,7 +134,7 @@ struct background_execution_loop
     background_execution_loop(
         std::shared_ptr<background_job_queue> queue,
         std::shared_ptr<background_thread_data_proxy> data_proxy,
-        Executor executor)
+        Executor&& executor)
         : queue_(std::move(queue)),
           data_proxy_(std::move(data_proxy)),
           executor_(std::move(executor))
@@ -253,20 +253,20 @@ struct background_execution_pool : noncopyable
 void
 add_background_thread(background_execution_pool& pool);
 
-template<class Executor>
+template<class Executor, class CreateExecutor>
 void
 initialize_pool(
     background_execution_pool& pool,
-    Executor const& model_executor,
-    size_t initial_thread_count)
+    size_t initial_thread_count,
+    CreateExecutor create_executor)
 {
     pool.queue = std::make_shared<background_job_queue>();
     pool.create_thread
-        = [model_executor](
+        = [create_executor](
               std::shared_ptr<background_job_queue> queue,
               std::shared_ptr<background_thread_data_proxy> data_proxy) {
               return std::thread(background_execution_loop<Executor>(
-                  std::move(queue), std::move(data_proxy), model_executor));
+                  std::move(queue), std::move(data_proxy), create_executor()));
           };
     for (size_t i = 0; i != initial_thread_count; ++i)
         add_background_thread(pool);
@@ -316,8 +316,8 @@ struct basic_executor
 {
     void
     execute(
-        background_job_check_in& check_in,
-        background_job_progress_reporter& reporter,
+        check_in_interface& check_in,
+        progress_reporter_interface& reporter,
         background_job_interface& job)
     {
         job.execute(check_in, reporter);

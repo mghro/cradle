@@ -10,8 +10,6 @@ struct server_config
 {
     // config for the disk cache
     omissible<cradle::disk_cache_config> disk_cache;
-    // the path to the cacert.pem file for validating SSL certificates
-    omissible<std::string> cacert_file;
     // whether or not the server should be open to connections from other
     // machines (defaults to false)
     omissible<bool> open;

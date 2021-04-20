@@ -46,13 +46,12 @@ get_method_name(http_request_method method)
     return boost::to_upper_copy(string(get_value_id(method)));
 };
 
-http_request_system::http_request_system(optional<file_path> cacert_path)
+http_request_system::http_request_system()
 {
     if (curl_global_init(CURL_GLOBAL_ALL))
     {
         CRADLE_THROW(http_request_system_error());
     }
-    set_cacert_path(std::move(cacert_path));
 }
 http_request_system::~http_request_system()
 {
@@ -62,7 +61,6 @@ http_request_system::~http_request_system()
 struct http_connection_impl
 {
     CURL* curl;
-    optional<file_path> cacert_path;
 };
 
 static void
@@ -80,17 +78,13 @@ reset_curl_connection(http_connection_impl& connection)
 
     // Enable SSL verification.
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
-    if (connection.cacert_path)
-    {
-        auto path = connection.cacert_path->string();
-        curl_easy_setopt(curl, CURLOPT_CAINFO, path.c_str());
-    }
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
 }
 
 http_connection::http_connection(http_request_system& system)
 {
-    impl_ = new http_connection_impl;
+    impl_.reset(new http_connection_impl);
 
     CURL* curl = curl_easy_init();
     if (!curl)
@@ -98,32 +92,16 @@ http_connection::http_connection(http_request_system& system)
         CRADLE_THROW(http_request_system_error());
     }
     impl_->curl = curl;
-
-    auto cacert_path = system.get_cacert_path();
-    // A default cacert file is only necessary on Windows.
-    // On other systems, Curl will automatically use the system's certificate
-    // file.
-#ifdef _WIN32
-    if (!cacert_path)
-    {
-        cacert_path = file_path("cacert.pem");
-    }
-#endif
-    if (cacert_path)
-    {
-        // Confirm that the file actually exists and can be opened.
-        // (Curl will silently ignore it if it can't.)
-        std::ifstream in;
-        open_file(in, *cacert_path, std::ios::in | std::ios::binary);
-    }
-    impl_->cacert_path = cacert_path;
 }
 http_connection::~http_connection()
 {
-    curl_easy_cleanup(impl_->curl);
-
-    delete impl_;
+    if (impl_)
+        curl_easy_cleanup(impl_->curl);
 }
+http_connection::http_connection(http_connection&&) = default;
+http_connection&
+http_connection::operator=(http_connection&&)
+    = default;
 
 struct send_transmission_state
 {

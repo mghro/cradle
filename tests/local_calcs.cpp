@@ -8,8 +8,6 @@
 #include <cradle/utilities/environment.h>
 #include <cradle/websocket/messages.hpp>
 
-#include "io/http_requests.hpp"
-
 using namespace cradle;
 
 #ifdef LOCAL_DOCKER_TESTING
@@ -18,7 +16,6 @@ TEST_CASE("local calcs", "[local_calcs][ws]")
     disk_cache cache(disk_cache_config(none, 0x1'00'00'00'00));
 
     http_request_system http_system;
-    http_system.set_cacert_path(some(find_testing_cacert_file()));
     http_connection connection(http_system);
 
     thinknode_session session;

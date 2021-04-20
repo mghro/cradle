@@ -5,6 +5,5 @@
         },
         "size_limit": 6000000000
     },
-    "cacert_file": "/cradle/cacert.pem",
     "open": true
 }

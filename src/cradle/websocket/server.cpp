@@ -1832,10 +1832,6 @@ initialize(websocket_server_impl& server, server_config const& config)
 {
     server.config = config;
 
-    if (config.cacert_file)
-        server.http_system.set_cacert_path(
-            some(file_path(*config.cacert_file)));
-
     server.cache.reset(
         config.disk_cache ? *config.disk_cache
                           : disk_cache_config(none, 0x1'00'00'00'00));
