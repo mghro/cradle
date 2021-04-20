@@ -3,6 +3,8 @@
 
 #include <cradle/fs/types.hpp>
 
+#include <memory>
+
 // This file defines a low-level facility for doing authenticated HTTP
 // requests.
 
@@ -154,10 +156,14 @@ struct http_connection_interface
 
 struct http_connection_impl;
 
-struct http_connection : http_connection_interface, noncopyable
+struct http_connection : http_connection_interface
 {
     http_connection(http_request_system& system);
     ~http_connection();
+
+    http_connection(http_connection&&);
+    http_connection&
+    operator=(http_connection&&);
 
     http_response
     perform_request(
@@ -166,7 +172,7 @@ struct http_connection : http_connection_interface, noncopyable
         http_request const& request);
 
  private:
-    http_connection_impl* impl_;
+    std::unique_ptr<http_connection_impl> impl_;
 };
 
 } // namespace cradle
