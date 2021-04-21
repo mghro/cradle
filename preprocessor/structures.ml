@@ -783,88 +783,34 @@ let structure_deep_sizeof_implementation s =
   else ""
 
 (* Generate the C++ code for a default constructor and a constructor taking
-   a value for each field. Also generate the move constructor and
-   assignment operator. *)
+   a value for each field. *)
 let structure_constructor_code s =
   (* default constructor *)
   s.structure_id ^ "() " ^ "{} "
   (* field-by-field constructor *)
-  ^ ( if List.length s.structure_fields > 0 then
-      (* If there's only one field, we need to add 'explicit' so that C++
-         doesn't mistake this for a conversion from the field type. *)
-      (if List.length s.structure_fields == 1 then "explicit " else "")
-      ^ s.structure_id ^ "("
-      ^ ( match s.structure_super with
-        | Some super -> super ^ " const& super, "
-        | None -> "" )
-      ^ String.concat ", "
-          (List.map
-             (fun f -> cpp_code_for_type f.field_type ^ " const& " ^ f.field_id)
-             s.structure_fields)
-      ^ ") : "
-      ^ ( match s.structure_super with
-        | Some super -> super ^ "(super), "
-        | None -> "" )
-      ^ String.concat ", "
-          (List.map
-             (fun f -> f.field_id ^ "(" ^ f.field_id ^ ")")
-             s.structure_fields)
-      ^ " {} "
-    else "" )
-  (* I think these constructors and assignment operators should be
-     unnecessary, but explicitly defining separate versions with move
-     semantics helps performance in Visual C++ 11... *)
-  (* copy constructor *)
-  ^ s.structure_id
-  ^ "(" ^ s.structure_id ^ " const& other) "
-  ^ ( if List.length s.structure_fields > 0 || structure_has_super s then
-      ": "
-      ^ ( match s.structure_super with
-        | Some super -> super ^ "(static_cast<" ^ super ^ " const&>(other)), "
-        | None -> "" )
-      ^ String.concat ", "
-          (List.map
-             (fun f -> f.field_id ^ "(other." ^ f.field_id ^ ")")
-             s.structure_fields)
-    else "" )
-  ^ " {} " (* move constructor *) ^ s.structure_id
-  ^ "(" ^ s.structure_id ^ "&& other) "
-  ^ ( if List.length s.structure_fields > 0 || structure_has_super s then
-      ": "
-      ^ ( match s.structure_super with
-        | Some super -> super ^ "(static_cast<" ^ super ^ "&&>(other)), "
-        | None -> "" )
-      ^ String.concat ", "
-          (List.map
-             (fun f ->
-               f.field_id ^ "(" ^ "std::move(other." ^ f.field_id ^ "))")
-             s.structure_fields)
-    else "" )
-  ^ " {} " (* copy assignment operator *) ^ s.structure_id
-  ^ "& operator=(" ^ s.structure_id ^ " const& other) " ^ "{ "
-  ^ ( match s.structure_super with
-    | Some super ->
-        "static_cast<" ^ super ^ "&>(*this) = " ^ "static_cast<" ^ super
-        ^ " const&>(other); "
-    | None -> "" )
-  ^ String.concat ""
-      (List.map
-         (fun f -> "this->" ^ f.field_id ^ " = " ^ "other." ^ f.field_id ^ "; ")
-         s.structure_fields)
-  ^ "return *this; " ^ "} " (* move assignment operator *) ^ s.structure_id
-  ^ "& operator=(" ^ s.structure_id ^ "&& other) " ^ "{ "
-  ^ ( match s.structure_super with
-    | Some super ->
-        "static_cast<" ^ super ^ "&>(*this) = " ^ "static_cast<" ^ super
-        ^ "&&>(other); "
-    | None -> "" )
-  ^ String.concat ""
-      (List.map
-         (fun f ->
-           "this->" ^ f.field_id ^ " = " ^ "std::move(other." ^ f.field_id
-           ^ "); ")
-         s.structure_fields)
-  ^ "return *this; " ^ "} "
+  ^
+  if List.length s.structure_fields > 0 then
+    (* If there's only one field, we need to add 'explicit' so that C++
+       doesn't mistake this for a conversion from the field type. *)
+    (if List.length s.structure_fields == 1 then "explicit " else "")
+    ^ s.structure_id ^ "("
+    ^ ( match s.structure_super with
+      | Some super -> super ^ " const& super, "
+      | None -> "" )
+    ^ String.concat ", "
+        (List.map
+           (fun f -> cpp_code_for_type f.field_type ^ " const& " ^ f.field_id)
+           s.structure_fields)
+    ^ ") : "
+    ^ ( match s.structure_super with
+      | Some super -> super ^ "(super), "
+      | None -> "" )
+    ^ String.concat ", "
+        (List.map
+           (fun f -> f.field_id ^ "(" ^ f.field_id ^ ")")
+           s.structure_fields)
+    ^ " {} "
+  else ""
 
 (* Generate the full declaration for a structure. *)
 let structure_declaration s =
