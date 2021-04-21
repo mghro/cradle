@@ -19,20 +19,6 @@ reset_directory(file_path const& dir)
     create_directory(dir);
 }
 
-TEST_CASE("uninitialized disk cache", "[disk_cache]")
-{
-    disk_cache cache;
-    REQUIRE(!cache.is_initialized());
-    try
-    {
-        cache.clear();
-        FAIL("no exception thrown");
-    }
-    catch (disk_cache_uninitialized&)
-    {
-    }
-}
-
 static void
 init_disk_cache(disk_cache& cache, string const& cache_dir = "disk_cache")
 {

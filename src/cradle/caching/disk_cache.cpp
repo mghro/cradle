@@ -669,61 +669,41 @@ initialize(disk_cache_impl& cache, disk_cache_config const& config)
     enforce_cache_size_limit(cache);
 }
 
-static void
-check_initialization(disk_cache_impl& cache)
-{
-    if (!cache.db)
-    {
-        CRADLE_THROW(disk_cache_uninitialized());
-    }
-}
-
 // API
 
 disk_cache::disk_cache()
 {
-    this->impl_ = new disk_cache_impl;
 }
 
 disk_cache::disk_cache(disk_cache_config const& config)
+    : impl_(new disk_cache_impl)
 {
-    this->impl_ = new disk_cache_impl;
     this->reset(config);
 }
 
 disk_cache::~disk_cache()
 {
-    {
-        auto& cache = *this->impl_;
-        std::scoped_lock<std::mutex> lock(cache.mutex);
+    if (this->impl_)
         shut_down(*this->impl_);
-    }
-    delete this->impl_;
 }
 
 void
 disk_cache::reset(disk_cache_config const& config)
 {
+    if (!this->impl_)
+        this->impl_.reset(new disk_cache_impl);
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
     shut_down(cache);
     initialize(cache, config);
 }
 
-// Reset the cache to an uninitialized state.
 void
 disk_cache::reset()
 {
-    shut_down(*impl_);
-}
-
-bool
-disk_cache::is_initialized()
-{
-    auto& cache = *this->impl_;
-    std::scoped_lock<std::mutex> lock(cache.mutex);
-
-    return cache.db != nullptr;
+    if (this->impl_)
+        shut_down(*impl_);
+    impl_.reset();
 }
 
 disk_cache_info
@@ -731,7 +711,6 @@ disk_cache::get_summary_info()
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     // Note that these are actually inconsistent since the size includes
     // invalid entries, while the entry count does not, but I think that's
@@ -748,7 +727,6 @@ disk_cache::get_entry_list()
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     return cradle::get_entry_list(cache);
 }
@@ -758,7 +736,6 @@ disk_cache::remove_entry(int64_t id)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     cradle::remove_entry(cache, id);
 }
@@ -768,7 +745,6 @@ disk_cache::clear()
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     for (auto const& entry : get_lru_entries(cache))
     {
@@ -787,7 +763,6 @@ disk_cache::find(string const& key)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     record_activity(cache);
 
@@ -799,7 +774,6 @@ disk_cache::insert(string const& key, string const& value)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     record_activity(cache);
 
@@ -827,7 +801,6 @@ disk_cache::initiate_insert(string const& key)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     record_activity(cache);
 
@@ -842,7 +815,7 @@ disk_cache::initiate_insert(string const& key)
     entry = look_up(cache, key, false);
     if (!entry)
     {
-        // Since we checked that the insert succceeded, we really shouldn't
+        // Since we checked that the insert succeeded, we really shouldn't
         // get here.
         CRADLE_THROW(
             disk_cache_failure() << disk_cache_path_info(cache.dir)
@@ -858,7 +831,6 @@ disk_cache::finish_insert(int64_t id, uint32_t crc32)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     record_activity(cache);
 
@@ -877,7 +849,6 @@ disk_cache::get_path_for_id(int64_t id)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     return cradle::get_path_for_id(cache, id);
 }
@@ -887,7 +858,6 @@ disk_cache::record_usage(int64_t id)
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     cache.usage_record_buffer.push_back(id);
 }
@@ -897,7 +867,6 @@ disk_cache::write_usage_records()
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     cradle::write_usage_records(cache);
 }
@@ -907,7 +876,6 @@ disk_cache::do_idle_processing()
 {
     auto& cache = *this->impl_;
     std::scoped_lock<std::mutex> lock(cache.mutex);
-    check_initialization(cache);
 
     if (!cache.usage_record_buffer.empty()
         && std::chrono::system_clock::now() - cache.latest_activity
