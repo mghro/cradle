@@ -6,29 +6,17 @@
 namespace cradle {
 
 template<class T>
-T const&
-get(omissible<T> const& omis)
-{
-    return omis.get();
-}
-template<class T>
-T&
-get(omissible<T>& omis)
-{
-    return omis.get();
-}
-template<class T>
 optional<T>
 as_optional(omissible<T> const& omis)
 {
-    return omis ? some(get(omis)) : optional<T>();
+    return omis ? some(*omis) : optional<T>();
 }
 
 template<class T>
 bool
 operator==(omissible<T> const& a, omissible<T> const& b)
 {
-    return a ? (b && get(a) == get(b)) : !b;
+    return a ? (b && *a == *b) : !b;
 }
 template<class T>
 bool
@@ -40,7 +28,7 @@ template<class T>
 bool
 operator<(omissible<T> const& a, omissible<T> const& b)
 {
-    return b && (a ? get(a) < get(b) : true);
+    return b && (a ? *a < *b : true);
 }
 template<class T>
 struct type_info_query<omissible<T>> : type_info_query<T>
@@ -99,7 +87,7 @@ to_dynamic(dynamic* v, omissible<T> const& x)
     dynamic_map record;
     if (x)
     {
-        to_dynamic(&record[dynamic("some")], get(x));
+        to_dynamic(&record[dynamic("some")], *x);
     }
     else
     {
@@ -139,7 +127,7 @@ std::ostream&
 operator<<(std::ostream& s, omissible<T> const& x)
 {
     if (x)
-        s << get(x);
+        s << *x;
     else
         s << "none";
     return s;

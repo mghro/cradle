@@ -270,95 +270,77 @@ struct dynamic
     std::any value_;
 };
 
-// omissible<T> is the same as optional<T>, but it obeys thinknode's behavior
-// foe omissible fields. (It should only be used as a field in a structure.)
-// optional<T> stores an optional value of type T (or no value).
+// omissible<T> is essentially the same as optional<T>, but it obeys
+// Thinknode's behavior for omissible fields. (It should only be used as a
+// field in a structure.)
 template<class T>
 struct omissible
 {
     typedef T value_type;
-    omissible() : valid_(false)
+    omissible()
     {
     }
-    omissible(T const& value) : value_(value), valid_(true)
+    omissible(T value) : wrapped_(std::move(value))
     {
     }
-    omissible(none_t) : valid_(false)
+    omissible(none_t) : wrapped_(none)
     {
     }
-    omissible(optional<T> const& opt)
-        : value_(opt ? *opt : T()), valid_(opt ? true : false)
+    omissible(optional<T> opt) : wrapped_(std::move(opt))
     {
     }
     omissible&
-    operator=(T const& value)
+    operator=(T value)
     {
-        value_ = value;
-        valid_ = true;
+        wrapped_ = std::move(value);
         return *this;
     }
     omissible& operator=(none_t)
     {
-        valid_ = false;
+        wrapped_ = none;
         return *this;
     }
     omissible&
-    operator=(optional<T> const& opt)
+    operator=(optional<T> opt)
     {
-        valid_ = opt ? true : false;
-        value_ = opt ? opt.get() : T();
+        wrapped_ = std::move(opt);
         return *this;
     }
     // allows use within if statements without other unintended conversions
-    typedef bool omissible::*unspecified_bool_type;
+    typedef std::optional<T> omissible::*unspecified_bool_type;
     operator unspecified_bool_type() const
     {
-        return valid_ ? &omissible::valid_ : 0;
+        return wrapped_ ? &omissible::wrapped_ : 0;
     }
     operator optional<T>() const
     {
-        return valid_ ? optional<T>(value_) : optional<T>();
-    }
-    T const&
-    get() const
-    {
-        assert(valid_);
-        return value_;
-    }
-    T&
-    get()
-    {
-        assert(valid_);
-        return value_;
+        return wrapped_;
     }
     T const&
     operator*() const
     {
-        assert(valid_);
-        return value_;
+        return *wrapped_;
     }
     T&
     operator*()
     {
-        assert(valid_);
-        return value_;
+        return *wrapped_;
     }
     T const*
     operator->() const
     {
         assert(valid_);
-        return &value_;
+        return &*wrapped_;
     }
     T*
     operator->()
     {
         assert(valid_);
-        return &value_;
+        return &*wrapped_;
     }
 
  private:
-    T value_;
-    bool valid_;
+    std::optional<T> wrapped_;
 };
 
 // IMMUTABLES
