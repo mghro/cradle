@@ -329,13 +329,13 @@ struct omissible
     T const*
     operator->() const
     {
-        assert(valid_);
+        assert(wrapped_);
         return &*wrapped_;
     }
     T*
     operator->()
     {
-        assert(valid_);
+        assert(wrapped_);
         return &*wrapped_;
     }
 
