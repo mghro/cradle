@@ -14,6 +14,9 @@
 #include <cradle/utilities/errors.h>
 #include <cradle/utilities/logging.h>
 
+// Include this again for #define sanitization.
+#include <cradle/io/http_requests.hpp>
+
 namespace cradle {
 
 dynamic
