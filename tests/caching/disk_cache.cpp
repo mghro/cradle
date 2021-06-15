@@ -1,6 +1,8 @@
 #include <cradle/caching/disk_cache.hpp>
 
+#include <chrono>
 #include <filesystem>
+#include <thread>
 
 #include <cradle/encodings/base64.h>
 #include <cradle/fs/file_io.h>
@@ -187,6 +189,10 @@ TEST_CASE("LRU removal", "[disk_cache]")
         REQUIRE(test_item_access(cache, 0));
         REQUIRE(test_item_access(cache, 1));
         REQUIRE(!test_item_access(cache, i));
+        // SQLite only maintains millisecond precision on its timestamps, so
+        // introduce a delay here to ensure that the timestamps in the cache
+        // are unique.
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     REQUIRE(test_item_access(cache, 0));
     REQUIRE(test_item_access(cache, 1));
