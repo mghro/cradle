@@ -1805,13 +1805,13 @@ on_message(
         enqueue_job(server.requests, client_request{hdl, message});
         if (is_kill(message.content))
         {
+            server.ws.stop_listening();
             for_each_client(
                 server.clients,
                 [&](connection_hdl hdl, client_connection const& client) {
                     server.ws.close(
                         hdl, websocketpp::close::status::going_away, "killed");
                 });
-            server.ws.stop();
         }
     }
     catch (std::exception& e)
